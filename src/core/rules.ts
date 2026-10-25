@@ -40,6 +40,7 @@ export const RULE_TOGGLES: RuleToggle[] = [
   { key: 'gifts', label: 'Cadeaux entre alliés', description: 'Donne des élèves ou une case à un allié ; les IA alliées en offrent parfois.' },
   { key: 'sos', label: 'Appel à l’aide', description: 'Bouton SOS : tes alliés envoient des élèves défendre ton camp pendant 25\u00a0s.' },
   { key: 'tribute', label: 'Tribut', description: 'Cède une case à une équipe ennemie contre 30\u00a0s de trêve.' },
+  { key: 'ghostCamps', label: 'Camps fantômes', description: 'Des camps sans propriétaire à conquérir\u00a0: pris, ils produisent des élèves.' },
 ];
 
 export interface ModeDef {

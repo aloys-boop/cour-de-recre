@@ -4,7 +4,8 @@ import { Sfx } from './audio/sfx';
 import { endStats } from './core/stats';
 import { medalsFor, mergeMedals } from './core/challenges';
 import { LEVELS } from './core/maps';
-import { encodeMapCode, mapForCode, randomSeed, type MapCode } from './core/mapcode';
+import { encodeMapCode, randomSeed, type MapCode } from './core/mapcode';
+import { mapWithRules } from './core/ghosts';
 import { loadProgress, recordWin, saveProgress, type Progress } from './core/save';
 import { Game, type GameOptions } from './game';
 import { Hud } from './ui/hud';
@@ -98,7 +99,7 @@ function startGame(state: MenuState): void {
 /** Lance une partie à partir d'un code de carte (type de partie + graine) : même code, même disposition. */
 function play(code: MapCode, o: Pick<GameOptions, 'playerColor' | 'difficulty' | 'rules'>): void {
   const mapIndex = code.spec.kind === 'campagne' ? code.spec.level : -1;
-  launch({ map: mapForCode(code), mapIndex, playerColor: o.playerColor, difficulty: o.difficulty, seed: code.seed, rules: code.spec.kind === 'escarmouche' ? o.rules : undefined }, code);
+  launch({ map: mapWithRules(code, o.rules), mapIndex, playerColor: o.playerColor, difficulty: o.difficulty, seed: code.seed, rules: code.spec.kind === 'escarmouche' ? o.rules : undefined }, code);
 }
 
 let tipTimer = 0;

@@ -70,7 +70,7 @@ export class World {
     this.rng = new Rng(seed);
     if (teamColors) this.teamColors = teamColors;
     this.grid = new Grid(map.w, map.h, map.obstacles ?? []);
-    this.tiles = map.tiles.filter((t) => t.kind !== 'camp' || (t.owner ?? 99) < numTeams).map((t) => new Tile(t));
+    this.tiles = map.tiles.filter((t) => t.kind !== 'camp' || t.ghost || (t.owner ?? 99) < numTeams).map((t) => new Tile(t));
     for (const t of this.tiles) if (t.owner >= numTeams) t.owner = NO_TEAM;
     this.presence = this.tiles.map(() => new Array<number>(numTeams).fill(0));
     for (let t = 0; t < numTeams; t++) this.allied.push(new Array<boolean>(numTeams).fill(false));
