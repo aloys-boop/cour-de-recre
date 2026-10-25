@@ -63,6 +63,15 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 describe('application complète', () => {
   it('démarre une partie depuis le menu et répond aux gestes', async () => {
+    // Hasard reproductible (carte tirée au sort, IA) : le test ne dépend pas de la chance.
+    let seed = Number(process.env.SMOKE_SEED ?? 12345) >>> 0;
+    Math.random = () => {
+      seed = (seed + 0x6d2b79f5) >>> 0;
+      let t = seed;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
     const main = await import('../src/main');
     void main;
     // Le menu est affiché avec ses huit équipes et ses cartes.
@@ -200,9 +209,14 @@ describe('application complète', () => {
       expect(u.order.kind).toBe('move');
       expect(bonus.contains(u.order.target.x, u.order.target.y)).toBe(true);
     }
-    advance(12);
-    const onTile = squad.filter((u) => u.alive && bonus.contains(u.x, u.y)).length;
-    expect(onTile).toBeGreaterThanOrEqual(Math.min(4, squad.filter((u) => u.alive).length));
+    // On compte les élèves arrivés sur la case pendant les 12 s : ensuite, libres, ils peuvent
+    // en sortir pour poursuivre un ennemi qui passe, ce qui est le comportement normal.
+    const arrived = new Set<number>();
+    for (let s = 0; s < 24; s++) {
+      advance(0.5);
+      for (const u of squad) if (u.alive && bonus.contains(u.x, u.y)) arrived.add(u.id);
+    }
+    expect(arrived.size).toBeGreaterThanOrEqual(Math.min(4, squad.length));
     (document.getElementById('btn-cancel') as HTMLButtonElement).click();
 
     // Glissé à un doigt → la caméra se déplace.
