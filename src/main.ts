@@ -100,6 +100,7 @@ function launch(opts: GameOptions): void {
     onHud: (world, selected) => hud.update(world, selected, 0),
     onRally: (cleared) =>
       hud.showHint(cleared ? 'Point de ralliement effacé.' : 'Point de ralliement posé : les nouveaux élèves de ce camp iront au drapeau.', 2400),
+    onAnnounce: (text) => hud.showHint(text, 2600),
     onPauseChange: (paused) => {
       if (paused) {
         overlay.pause(

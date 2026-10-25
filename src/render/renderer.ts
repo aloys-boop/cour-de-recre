@@ -4,6 +4,7 @@ import { NO_TEAM, type Vec2 } from '../core/types';
 import type { Unit } from '../core/unit';
 import type { World } from '../core/world';
 import type { Camera } from './camera';
+import { drawGoldenTile, drawStarvingBar } from './golden';
 import { buildSheet, FEET_Y, FRAME_H, FRAME_W, frameFor, type SheetCanvas } from './sprites';
 import { drawSuit } from './suits';
 import { CHARGE_COLOR, drawHealHeart, drawRallies, drawSpadeAura, spadeAuraTeams } from './tactics';
@@ -172,6 +173,7 @@ export class Renderer {
       ctx.stroke();
       ctx.restore();
     }
+    drawGoldenTile(ctx, world, t, cam, time);
     // Jauge de capture.
     if (t.cap > 0 && t.capTeam !== NO_TEAM) {
       const bw = (t.isCamp ? 56 : 40) * z;
@@ -275,6 +277,7 @@ export class Renderer {
         ctx.fillStyle = r > 0.5 ? '#3ee05a' : r > 0.25 ? '#f2c22e' : '#e5453c';
         ctx.fillRect(bx, by, bw * r, bh);
         drawHealHeart(ctx, u, p, z, world.time);
+        drawStarvingBar(ctx, world, u.team, bx, by, bw, bh);
       }
       ctx.globalAlpha = 1;
     }

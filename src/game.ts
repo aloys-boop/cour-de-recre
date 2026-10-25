@@ -4,6 +4,7 @@ import { GameStats } from './core/stats';
 import { NO_TEAM, type Difficulty, type MapDef } from './core/types';
 import type { Unit } from './core/unit';
 import { World } from './core/world';
+import { rhythmAnnouncement } from './core/events';
 import { TouchInput } from './input/touch';
 import { Camera } from './render/camera';
 import { Effects } from './render/effects';
@@ -29,6 +30,8 @@ export interface GameHooks {
   onHud(world: World, selectedCount: number): void;
   /** Point de ralliement posé (ou effacé) par le joueur. */
   onRally?(cleared: boolean): void;
+  /** Annonce courte à afficher (case dorée, plus de camp…). */
+  onAnnounce?(text: string): void;
 }
 
 const STEP = 1 / 60;
@@ -212,6 +215,9 @@ export class Game {
         case 'spawn':
           if (ev.team === this.playerTeam) this.sfx.play('spawn');
           break;
+        default:
+          this.announce(rhythmAnnouncement(ev, this.playerTeam));
+          break;
       }
     }
     // Nettoyage de la sélection.
@@ -351,6 +357,12 @@ export class Game {
       if (u && u.alive) out.push(u);
     }
     return out;
+  }
+
+  private announce(text: string | null): void {
+    if (!text) return;
+    this.sfx.play('capture');
+    this.hooks.onAnnounce?.(text);
   }
 
   destroy(): void {
