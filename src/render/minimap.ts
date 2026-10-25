@@ -5,6 +5,7 @@ import type { World } from '../core/world';
 import type { Camera } from './camera';
 import { COLORS } from './renderer';
 import { drawGoldenMinimap } from './golden';
+import { drawSupervisorsMinimap } from './supervisors';
 
 /** Mini-carte : vue d'ensemble de la cour, des cases et des élèves, plus le cadre de la caméra. */
 export class Minimap {
@@ -103,6 +104,7 @@ export class Minimap {
       ctx.fillStyle = TEAM_COLORS[world.teamColors[u.team]].ui;
       ctx.fillRect(p.x - 1, p.y - 1, 2.5, 2.5);
     }
+    drawSupervisorsMinimap(ctx, world, (gx, gy) => this.toMini(gx, gy));
     // Cadre de la caméra.
     const tl = cam.screenToWorld(0, 0);
     const br = cam.screenToWorld(cam.viewW, cam.viewH);

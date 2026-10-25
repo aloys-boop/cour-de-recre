@@ -34,7 +34,9 @@ export interface RuleToggle {
 }
 
 /** Options affichées (case à cocher) dans le menu d'escarmouche, dans cet ordre. */
-export const RULE_TOGGLES: RuleToggle[] = [];
+export const RULE_TOGGLES: RuleToggle[] = [
+  { key: 'supervisors', label: 'Surveillants', description: 'Des surveillants patrouillent dans la cour\u00a0: au coup de sifflet, les élèves qui se battent près d’eux sont punis 3\u00a0s.' },
+];
 
 export interface ModeDef {
   id: GameMode;

@@ -19,6 +19,8 @@ import { centroid, ControlGroups, DoubleTap, nearestOwnCamp, onScreen } from './
 import { drawArrow, type OrderArrow } from './render/arrow';
 import { magnetTile, neighbourRadius, orderMoveExact, pickUnit, startFocus, startZoom, tileGoals, type AimTile, type PickResult } from './core/aim';
 import { drawTileFlash, type TileFlash } from './render/aimfx';
+import { takeWhistles } from './core/supervisors';
+import { playWhistle } from './audio/whistle';
 
 export type GameResult = 'victoire' | 'defaite';
 
@@ -219,6 +221,7 @@ export class Game {
     const w = this.world;
     for (const ai of this.ais) ai.update(dt);
     w.update(dt);
+    if (takeWhistles(w)) playWhistle(this.sfx);
     this.diplomacy.update(dt);
     // Événements : sons et effets.
     for (const ev of w.drainEvents()) {
