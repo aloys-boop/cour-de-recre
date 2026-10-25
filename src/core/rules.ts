@@ -34,7 +34,11 @@ export interface RuleToggle {
 }
 
 /** Options affichées (case à cocher) dans le menu d'escarmouche, dans cet ordre. */
-export const RULE_TOGGLES: RuleToggle[] = [];
+export const RULE_TOGGLES: RuleToggle[] = [
+  { key: 'gifts', label: 'Cadeaux entre alliés', description: 'Donne des élèves ou une case à un allié ; les IA alliées en offrent parfois.' },
+  { key: 'sos', label: 'Appel à l’aide', description: 'Bouton SOS : tes alliés envoient des élèves défendre ton camp pendant 25\u00a0s.' },
+  { key: 'tribute', label: 'Tribut', description: 'Cède une case à une équipe ennemie contre 30\u00a0s de trêve.' },
+];
 
 export interface ModeDef {
   id: GameMode;

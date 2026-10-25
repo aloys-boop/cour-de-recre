@@ -9,6 +9,7 @@ import { World } from './core/world';
 import { rhythmAnnouncement } from './core/events';
 import { Diplomacy, diploMessage, type BreakResult, type DiploView, type ProposeResult } from './core/diplomacy';
 import { MAX_TEAMS } from './config';
+import { DiplomacyExtras } from './core/diplomacy-extras';
 import { TouchInput } from './input/touch';
 import { Camera } from './render/camera';
 import { Effects } from './render/effects';
@@ -53,6 +54,8 @@ export class Game {
   readonly stats = new GameStats();
   /** Diplomatie : alliances pendant la partie (les IA jouent la leur). */
   readonly diplomacy: Diplomacy;
+  /** Options de diplomatie (cadeaux, appel à l'aide, tribut) ; inertes si les options sont désactivées. */
+  readonly extras: DiplomacyExtras;
   /** Équipes victorieuses à la fin de la partie (plusieurs : victoire d'une alliance). */
   victors: number[] = [];
   private importantUntil = 0;
@@ -102,6 +105,7 @@ export class Game {
       this.ais.map((a) => a.team),
       seed,
     );
+    this.extras = new DiplomacyExtras(this.world, this.diplomacy, this.playerTeam, seed);
 
     const ctx = canvas.getContext('2d', { alpha: false })!;
     this.renderer = new Renderer(ctx, (w, h) => {
@@ -253,6 +257,8 @@ export class Game {
       const m = diploMessage(ev, this.playerTeam, w.teamColors);
       if (m) this.announce(m.text, m.important);
     }
+    this.extras.update(dt);
+    for (const m of this.extras.drainMessages()) this.announce(m.text, m.important);
     // Nettoyage de la sélection.
     for (const id of this.selected) {
       const u = w.unitById(id);

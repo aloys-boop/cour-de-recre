@@ -52,6 +52,8 @@ export class World {
   damageScale: number[] = new Array<number>(MAX_TEAMS).fill(1);
   /** Alliances en cours : `allied[a][b]` (symétrique). Deux alliés ne se battent pas. */
   readonly allied: boolean[][] = [];
+  /** Trêve temporaire (option Tribut, voir diplomacy-extras.ts) : deux équipes en trêve ne se battent pas. */
+  truce: ((a: number, b: number) => boolean) | null = null;
   readonly mods: TeamMods[] = [];
   time = 0;
   /** Rythme de partie : case dorée, épuisement des équipes sans camp (voir events.ts). */
@@ -133,7 +135,7 @@ export class World {
 
   /** Même équipe ou alliées : elles ne se battent pas et ne se contestent pas les cases. */
   isFriend(a: number, b: number): boolean {
-    return a === b || this.isAllied(a, b);
+    return a === b || this.isAllied(a, b) || (this.truce !== null && this.truce(a, b));
   }
 
   /** Forme ou rompt une alliance (symétrique). */
@@ -206,7 +208,7 @@ export class World {
   }
 
   /** Statistiques effectives d'une équipe (profil de couleur × bonus de cases). */
-  private refreshMods(): void {
+  refreshMods(): void {
     for (let team = 0; team < this.numTeams; team++) {
       const prof = TEAM_PROFILES[this.teamColors[team]] ?? TEAM_PROFILES[0];
       const suits: Record<Suit, number> = { spade: 0, heart: 0, diamond: 0, club: 0 };

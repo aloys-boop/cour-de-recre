@@ -9,6 +9,7 @@ import { loadProgress, recordWin, saveProgress, type Progress } from './core/sav
 import { Game, type GameOptions } from './game';
 import { Hud } from './ui/hud';
 import { ControlsHud } from './ui/controls-hud';
+import { DiplomacyExtrasHud } from './ui/diplomacy-extras';
 import { Menu, type MenuState } from './ui/menu';
 import { Overlay } from './ui/overlay';
 import { TacticsHud } from './ui/tactics-hud';
@@ -54,6 +55,7 @@ const hud = new Hud(
   progress.muted,
 );
 new ControlsHud(hudRoot, () => game, (text) => hud.showHint(text));
+new DiplomacyExtrasHud(hudRoot, () => game, hud, (text, ms) => hud.showHint(text, ms));
 
 // Bloc tactique : bascule Fuir / Charger.
 const tactics = new TacticsHud(hudRoot, {
