@@ -4,11 +4,26 @@
  */
 export type SfxName = 'punch' | 'hit' | 'ko' | 'capture' | 'select' | 'order' | 'victory' | 'defeat' | 'spawn';
 
+/** Timbre des coups par couleur d'uniforme : hauteur et coupure du filtre. */
+const TEAM_PITCH = [1, 1.14, 1.3, 0.84];
+const TEAM_CUTOFF = [1, 1.25, 1.5, 0.75];
+
 export class Sfx {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
+  private noiseBuf: AudioBuffer | null = null;
   muted = false;
   private lastPlay = new Map<SfxName, number>();
+
+  /** Contexte audio (null tant qu'il n'a pas été déverrouillé ou s'il est indisponible). */
+  get audioContext(): AudioContext | null {
+    return this.ctx;
+  }
+
+  /** Sortie générale (coupée par le bouton son) : la musique s'y branche. */
+  get output(): GainNode | null {
+    return this.master;
+  }
 
   /** À appeler depuis un gestionnaire d'événement utilisateur. */
   unlock(): void {
@@ -28,7 +43,8 @@ export class Sfx {
     if (this.master) this.master.gain.value = m ? 0 : 0.35;
   }
 
-  play(name: SfxName): void {
+  /** `color` : couleur d'uniforme de l'équipe concernée (timbre des coups et du KO). */
+  play(name: SfxName, color = 0): void {
     if (this.muted || !this.ctx || !this.master || this.ctx.state !== 'running') return;
     // Anti-saturation : on limite la cadence par type de son.
     const now = performance.now();
@@ -37,18 +53,23 @@ export class Sfx {
     if (now - last < minGap) return;
     this.lastPlay.set(name, now);
     const t = this.ctx.currentTime;
+    const pm = TEAM_PITCH[color] ?? 1;
+    const cm = TEAM_CUTOFF[color] ?? 1;
     switch (name) {
       case 'punch':
-        this.noise(t, 0.06, 900, 0.5);
-        this.tone(t, 180, 60, 0.07, 'square', 0.25);
+        this.noise(t, 0.06, 900 * cm, 0.5);
+        this.tone(t, 180 * pm, 60 * pm, 0.07, 'square', 0.25);
         break;
       case 'hit':
-        this.noise(t, 0.09, 1600, 0.6);
-        this.tone(t, 140, 50, 0.09, 'triangle', 0.5);
+        this.noise(t, 0.09, 1600 * cm, 0.6);
+        this.tone(t, 140 * pm, 50 * pm, 0.09, 'triangle', 0.5);
         break;
       case 'ko':
-        this.tone(t, 420, 110, 0.35, 'sawtooth', 0.35);
-        this.tone(t + 0.05, 300, 80, 0.3, 'square', 0.2);
+        // Choc sourd, éclat bruité puis « tuiii » descendant : bien distinct d'un simple coup.
+        this.tone(t, 110, 38, 0.22, 'sine', 0.9);
+        this.noise(t, 0.14, 2600 * cm, 0.75);
+        this.tone(t + 0.03, 640 * pm, 150 * pm, 0.42, 'square', 0.26);
+        this.tone(t + 0.07, 480 * pm, 110 * pm, 0.4, 'triangle', 0.34);
         break;
       case 'capture':
         [523, 659, 784, 1047].forEach((f, i) => this.tone(t + i * 0.07, f, f, 0.12, 'square', 0.3));
@@ -87,18 +108,22 @@ export class Sfx {
 
   private noise(t: number, dur: number, cutoff: number, gain: number): void {
     if (!this.ctx || !this.master) return;
-    const n = Math.floor(this.ctx.sampleRate * dur);
-    const buf = this.ctx.createBuffer(1, n, this.ctx.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+    if (!this.noiseBuf) {
+      // Bruit blanc calculé une seule fois, puis réutilisé (aucune allocation par coup).
+      const n = Math.floor(this.ctx.sampleRate * 0.5);
+      this.noiseBuf = this.ctx.createBuffer(1, n, this.ctx.sampleRate);
+      const d = this.noiseBuf.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    }
     const src = this.ctx.createBufferSource();
-    src.buffer = buf;
+    src.buffer = this.noiseBuf;
     const f = this.ctx.createBiquadFilter();
     f.type = 'lowpass';
     f.frequency.value = cutoff;
     const g = this.ctx.createGain();
-    g.gain.value = gain;
+    g.gain.setValueAtTime(gain, t);
+    g.gain.linearRampToValueAtTime(0, t + dur);
     src.connect(f).connect(g).connect(this.master);
-    src.start(t);
+    src.start(t, Math.random() * 0.3, dur + 0.01);
   }
 }

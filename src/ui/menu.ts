@@ -12,6 +12,7 @@ export interface MenuState {
 export interface MenuHooks {
   onPlay(state: MenuState): void;
   onToggleSound(): boolean; // retourne le nouvel état « coupé »
+  onToggleMusic?(): boolean; // retourne le nouvel état « musique coupée »
   onInstallHelp(): void;
 }
 
@@ -156,6 +157,14 @@ export class Menu {
     setSoundLabel(this.progress.muted);
     sound.addEventListener('click', () => setSoundLabel(this.hooks.onToggleSound()));
     actions.append(play, sound);
+    if (this.hooks.onToggleMusic) {
+      const music = document.createElement('button');
+      music.className = 'btn btn-secondary btn-music';
+      const setMusicLabel = (off: boolean) => (music.textContent = off ? 'Musique : coupée' : 'Musique : active');
+      setMusicLabel(!!this.progress.musicMuted);
+      music.addEventListener('click', () => setMusicLabel(this.hooks.onToggleMusic!()));
+      actions.append(music);
+    }
     inner.append(actions);
 
     const foot = el('div', 'menu-foot');
