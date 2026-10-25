@@ -1,0 +1,175 @@
+/* ------------------------------------------------------------ Options de diplomatie (cadeaux, SOS, tribut) */
+
+/*
+ * Bouton SOS : contre le bord droit, au milieu de la hauteur. En paysage sur iPhone
+ * (≈ 844 × 390), il tient entre Fuir / Charger, son et pause (en haut à droite)
+ * et Annuler + mini-carte (en bas à droite), à l'opposé de la colonne 1 / 2 / 3 / Camp.
+ */
+.sos-btn {
+  pointer-events: auto;
+  position: absolute;
+  right: calc(10px + var(--sar));
+  top: calc(50% + 10px + (var(--sat) - var(--sab)) / 2);
+  transform: translateY(-50%);
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border-radius: 50%;
+  border: 3px solid #ffd3c9;
+  background: #d8322a;
+  color: #fff;
+  font-family: inherit;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+  touch-action: manipulation;
+}
+
+.sos-btn:active {
+  transform: translateY(-50%) scale(0.95);
+  filter: brightness(1.15);
+}
+
+.sos-label {
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+.sos-wait {
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.sos-wait:empty {
+  display: none;
+}
+
+.sos-btn.cooling {
+  background: rgba(0, 0, 0, 0.55);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.sos-help {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #9fdcff;
+  color: #0d2a40;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 20px;
+  text-align: center;
+}
+
+.sos-help:empty {
+  display: none;
+}
+
+/* Proposition de tribut d'une IA : en haut à droite, sous les boutons, au-dessus du SOS. */
+.offer-card {
+  position: absolute;
+  top: calc(56px + var(--sat));
+  right: calc(10px + var(--sar));
+  width: min(280px, calc(100% - 400px - var(--sal) - var(--sar)));
+  min-width: 220px;
+  padding: 8px 10px 10px;
+  border-radius: 14px;
+  background: rgba(12, 20, 46, 0.94);
+  border: 2px solid #ffffff;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  pointer-events: auto;
+  z-index: 6;
+}
+
+.offer-text {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.offer-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.offer-actions .btn {
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 14px;
+  flex: 1 1 auto;
+}
+
+.offer-timer {
+  font-size: 12px;
+  font-weight: 800;
+  opacity: 0.8;
+  min-width: 26px;
+  text-align: right;
+}
+
+/* Actions supplémentaires du panneau « Diplomatie ». */
+.diplo-extras {
+  margin: 0 0 8px;
+}
+
+.diplo-extra-status {
+  margin: 0 0 6px;
+  font-size: 12px;
+  line-height: 1.3;
+  opacity: 0.85;
+}
+
+.diplo-extra-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.diplo-extra-actions .btn {
+  flex: 1 1 0;
+  min-height: 44px;
+  padding: 0 8px;
+  font-size: 13px;
+  line-height: 1.1;
+}
+
+/* Équipe en trêve : liseré blanc et drapeau blanc avec les secondes restantes. */
+.chip.truce {
+  border-color: #ffffff;
+  border-style: dotted;
+}
+
+.chip-truce {
+  display: none;
+  position: absolute;
+  bottom: -9px;
+  right: -5px;
+  align-items: center;
+  gap: 1px;
+  padding: 1px 3px;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #0d2a40;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.chip.truce .chip-truce {
+  display: inline-flex;
+}
+
+.chip-truce svg {
+  display: block;
+}

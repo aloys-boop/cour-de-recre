@@ -11,6 +11,8 @@ const TAG_FREE = 0;
 const TAG_DEFEND = 1;
 const TAG_ATTACK = 2;
 const TAG_RALLY = 3;
+/** Élève prêté à un allié (appel à l'aide, voir diplomacy-extras.ts) : l'IA ne le commande plus. */
+export const TAG_LOANED = 4;
 
 /**
  * Contrôleur d'une équipe IA.
@@ -46,7 +48,7 @@ export class TeamAi {
 
   private think(): void {
     const w = this.world;
-    const mine = w.units.filter((u) => u.team === this.team && u.alive);
+    const mine = w.units.filter((u) => u.team === this.team && u.alive && u.aiTag !== TAG_LOANED);
     if (mine.length === 0) return;
     for (const u of mine) if (u.order.kind === 'none' && u.aiTag !== TAG_RALLY) u.aiTag = TAG_FREE;
 
@@ -105,7 +107,7 @@ export class TeamAi {
       let best: Tile | null = null;
       let bestScore = -Infinity;
       for (const t of w.tiles) {
-        if (t.owner === this.team || (t.owner !== NO_TEAM && w.isAllied(t.owner, this.team))) continue;
+        if (t.owner === this.team || (t.owner !== NO_TEAM && w.isFriend(t.owner, this.team))) continue;
         // Un allié est déjà en train de la prendre : on la lui laisse.
         if (t.capTeam !== NO_TEAM && t.cap > 0 && w.isAllied(t.capTeam, this.team)) continue;
         const enemyNear = enemies.filter((e) => Math.hypot(e.x - t.cx, e.y - t.cy) < 2.5).length;

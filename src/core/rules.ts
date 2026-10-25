@@ -37,6 +37,9 @@ export interface RuleToggle {
 export const RULE_TOGGLES: RuleToggle[] = [
   { key: 'fog', label: 'Brouillard de guerre', description: 'Tu ne vois que les abords de tes élèves, de tes cases et de ceux de tes alliés.' },
   { key: 'supervisors', label: 'Surveillants', description: 'Des surveillants patrouillent dans la cour\u00a0: au coup de sifflet, les élèves qui se battent près d’eux sont punis 3\u00a0s.' },
+  { key: 'gifts', label: 'Cadeaux entre alliés', description: 'Donne des élèves ou une case à un allié ; les IA alliées en offrent parfois.' },
+  { key: 'sos', label: 'Appel à l’aide', description: 'Bouton SOS : tes alliés envoient des élèves défendre ton camp pendant 25\u00a0s.' },
+  { key: 'tribute', label: 'Tribut', description: 'Cède une case à une équipe ennemie contre 30\u00a0s de trêve.' },
 ];
 
 export interface ModeDef {

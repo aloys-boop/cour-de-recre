@@ -47,6 +47,14 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
 - **Rompre.** Une rupture est annoncée 5 s à l'avance (« Les Verts vont rompre l'alliance dans 5 s ! »), pour l'IA comme pour toi. Une même paire d'équipes ne peut pas changer d'alliance plus d'une fois toutes les 30 s.
 - **Ce que pense l'IA.** Chaque IA estime la puissance de chaque équipe (vie et dégâts de ses élèves, camps, cases) et garde une attitude envers chacune (rancune quand on lui met des élèves KO, méfiance pendant 2 minutes envers qui l'a trahie). Elle accepte une alliance face à une menace commune (une équipe au moins 1,5 fois plus forte que les deux), ou si le proposeur n'est pas plus fort qu'elle et qu'elle ne lui en veut pas ; jamais si l'alliance réunirait toutes les équipes restantes (ce serait la fin de la partie). Les IA s'allient aussi entre elles face à une menace, et parfois sans raison. Elles rompent quand leur allié devient trop fort ou quand l'ennemi commun est presque éliminé, plus souvent en Difficile. Une IA ne cible pas les cases de ses alliés et peut venir défendre une case alliée qu'un ennemi est en train de prendre.
 
+## Options de diplomatie (escarmouche)
+
+Trois options, désactivées par défaut et jamais actives en campagne, se cochent dans le menu d’escarmouche :
+
+- **Cadeaux entre alliés.** Dans le panneau « Diplomatie » d’un allié : « Donner des élèves » (tes élèves sélectionnés passent dans son équipe avec leurs points de vie) et « Céder une case » (ta case bonus la plus proche de lui ; jamais un camp). Les IA alliées aident parfois un allié en difficulté, toi compris (annoncé).
+- **Appel à l’aide.** Bouton « SOS » contre le bord droit : chaque allié IA envoie 30 à 50 % de ses élèves libres (moins si son propre camp est menacé) défendre ton camp le plus menacé pendant 25 s, puis les rend à sa stratégie. Recharge de 60 s affichée sur le bouton. Les IA s’appellent aussi entre elles ; tu es prévenu quand un allié appelle à l’aide.
+- **Tribut.** Dans le panneau d’une équipe non alliée : « Payer un tribut » lui cède ta case bonus la plus proche d’elle contre 30 s de trêve (ni combat ni capture entre vous ; drapeau blanc et compte à rebours sur sa puce). Elle refuse si tu n’as pas de case bonus, ou si elle est sur le point de t’écraser. Une IA en mauvaise posture face à toi peut te proposer un tribut : « Accepter » ou « Refuser », la proposition expire au bout de 8 s. Une trêve n’est pas une alliance : elle ne compte pas pour la victoire.
+
 ## Équilibrage et performances
 
 Les profils ont été réglés par simulation IA contre IA (`npx tsx scripts/dev/balance.ts normal 4mix` et `… normal 8`), en faisant tourner les couleurs sur toutes les positions. Taux de victoire rapporté à la moyenne, difficulté Normal :
@@ -122,6 +130,7 @@ src/
     tile.ts            camps et cases bonus, règles de capture
     ai.ts              IA d'équipe (évaluation des cases, regroupement, défense)
     diplomacy.ts       alliances : propositions, ruptures annoncées, attitude des IA
+    diplomacy-extras.ts  options cadeaux, appel à l’aide, tribut et trêve
     pathfinding.ts     A* 8 voisins + lissage
     spatial.ts         hash spatial pour les voisinages
     grid.ts            grille de navigation et obstacles
