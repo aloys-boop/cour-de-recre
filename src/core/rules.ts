@@ -45,6 +45,7 @@ export interface ModeDef {
 /** Modes proposés dans le menu d'escarmouche. */
 export const GAME_MODES: ModeDef[] = [
   { id: 'classique', label: 'Classique', description: 'Élimine les autres équipes ou prends tous les camps.' },
+  { id: 'roi', label: 'Roi de la cour', description: 'Tiens le trône doré du centre 2 minutes au total pour gagner. L’élimination compte toujours.' },
 ];
 
 export const DEFAULT_RULES: GameRules = { mode: 'classique' };

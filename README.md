@@ -35,6 +35,7 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
 - **Victoire.** Une équipe gagne quand elle est la dernière à avoir encore des élèves ou un camp, ou quand elle possède tous les camps. Si toutes les équipes encore en vie sont alliées entre elles (ou si une alliance tient tous les camps), **l'alliance gagne ensemble** : « Victoire de l'alliance ! », avec les couleurs alliées. Tu perds dès que tu n'as plus ni élèves ni camp, même si ton alliance l'emporte.
 - **Cartes.** Six niveaux de taille croissante (du Préau au Campus, de 14 à 22 cases bonus, puis « Le tournoi » : 8 équipes, 26 × 26, 28 cases, débloqué après le 5e). La disposition des cases et des obstacles est tirée au sort à chaque partie, de façon symétrique pour rester équitable. Chaque victoire débloque le niveau suivant ; la progression est sauvegardée sur l'appareil.
 - **Escarmouche.** Partie libre : nombre d'équipes (2 à 8), taille de la cour (petite, moyenne, grande, immense), nombre de cases bonus (10 à 30 ; au moins 20 à partir de 5 équipes), difficulté et couleur parmi les huit. La cour grandit de deux cellules par équipe au-delà de quatre. Les victoires d'escarmouche ne débloquent rien dans la campagne.
+- **Roi de la cour** (mode d'escarmouche). Un trône doré de 2 × 2 cellules, marqué d'une couronne, occupe le centre de la cour (les cases bonus et obstacles qui le touchaient sont retirés, de façon symétrique et reproductible). Il ne donne ni bonus ni élèves : il se capture comme un camp, et son propriétaire accumule du temps de règne tant que des ennemis ne le contestent pas. Le règne est compté par équipe et ne se transmet pas ; la première équipe à **2 minutes cumulées** gagne, avec ses alliés encore en vie (comme une alliance qui tient tous les camps) : « Roi de la cour ! ». Les autres victoires restent possibles. Un cadre sous les bonus affiche ton règne, celui du meneur et du tenant du trône ; annonces « Les Verts prennent le trône ! », « Plus que 20 s pour les Jaunes ! » ; l'écran de fin donne le temps de règne de chaque équipe. Les IA visent le trône en priorité (d'autant plus que son tenant approche des 2 minutes) et y laissent une garnison quand elles le tiennent.
 - **Code de carte.** Chaque partie a un code de 6 caractères (sans 0, 1, I ni O), affiché dans le menu pause et sur l'écran de fin avec un bouton « Copier ». Saisi dans le menu, il redonne exactement la même disposition (niveau ou réglages d'escarmouche compris, de 2 à 8 équipes). Les codes des versions précédentes restent valides et redonnent la même carte.
 - **Médailles.** Chaque niveau de campagne propose trois médailles : victoire, victoire sans perdre son camp, victoire en moins de 3 minutes de jeu. Elles sont sauvegardées et affichées sous forme de pastilles dans la liste des cartes.
 - **Difficulté.** Facile, Normal ou Difficile : les IA réagissent plus vite, attaquent avec de plus petits groupes, gardent moins de défenseurs et frappent plus fort.
@@ -122,6 +123,7 @@ src/
     tile.ts            camps et cases bonus, règles de capture
     ai.ts              IA d'équipe (évaluation des cases, regroupement, défense)
     diplomacy.ts       alliances : propositions, ruptures annoncées, attitude des IA
+    king.ts            mode Roi de la cour : trône, temps de règne, victoire, aide à l'IA
     pathfinding.ts     A* 8 voisins + lissage
     spatial.ts         hash spatial pour les voisinages
     grid.ts            grille de navigation et obstacles
@@ -136,6 +138,7 @@ src/
     suits.ts           symboles de cartes en vectoriel
     renderer.ts        sol iso, cases, obstacles, unités triées par profondeur, marqueurs
     minimap.ts         mini-carte
+    king.ts            trône doré, couronne pixel, repère sur la mini-carte
     camera.ts          zoom, déplacement, cadrage
   input/touch.ts       gestes tactiles et souris
   audio/sfx.ts         sons synthétisés (Web Audio)
@@ -146,6 +149,7 @@ tests/                 capture, combat, victoire, alliances, pathfinding, test d
 scripts/dev/           outils de développement (lancés avec `npx tsx`)
   balance.ts           équilibrage IA contre IA (modes 4, 4mix, 8, 8d)
   perf8.ts             temps de simulation à 8 équipes
+  roi.ts               parties IA contre IA en mode Roi de la cour (durée, type de victoire)
   render-check.ts      rendu hors navigateur (planches de sprites, scène de jeu)
   white-check.ts       comparaison Blanc / Rose pour la 8e couleur
 ```

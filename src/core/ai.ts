@@ -1,5 +1,6 @@
 import { AI_PROFILES, type AiProfile } from '../config';
 import { goldenAiBonus, goldenRetarget } from './events';
+import { kingAiScore, kingDefenseExtra, kingGarrison, kingRetarget } from './king';
 import type { Tile } from './tile';
 import { NO_TEAM, type Difficulty } from './types';
 import type { Unit } from './unit';
@@ -58,7 +59,7 @@ export class TeamAi {
       if (threat === 0 && !capturing) continue;
       const defendersNear = mine.filter((u) => Math.hypot(u.x - t.cx, u.y - t.cy) < 2.2).length;
       // Un camp menacé est défendu en priorité et plus largement.
-      const need = Math.ceil(threat * (t.isCamp ? 1.6 : 1.2) + (capturing ? (t.isCamp ? 4 : 2) : 0)) - defendersNear;
+      const need = Math.ceil(threat * (t.isCamp ? 1.6 : 1.2) + (capturing ? (t.isCamp ? 4 : 2) : 0) + kingDefenseExtra(w, t, threat, capturing)) - defendersNear;
       if (need <= 0) continue;
       const candidates = mine
         .filter((u) => u.aiTag !== TAG_DEFEND && u.state !== 'attacking')
@@ -82,6 +83,22 @@ export class TeamAi {
       }
     }
 
+    // --- Roi de la cour : garnison sur le trône tenu ---------------------------
+    const garrison = kingGarrison(w, this.team, mine.length);
+    if (garrison) {
+      const t = garrison.tile;
+      const onIt = mine.filter((u) => t.contains(u.x, u.y));
+      for (const u of onIt.slice(0, garrison.size)) u.aiTag = TAG_DEFEND;
+      const more = mine
+        .filter((u) => u.aiTag !== TAG_DEFEND && u.state !== 'attacking' && !t.contains(u.x, u.y))
+        .sort((a, b) => dist(a, t) - dist(b, t))
+        .slice(0, Math.max(0, garrison.size - onIt.length));
+      if (more.length) {
+        w.orderMove(more, { x: t.cx, y: t.cy }, true);
+        for (const u of more) u.aiTag = TAG_DEFEND;
+      }
+    }
+
     // --- Choix de la cible --------------------------------------------------
     const free = mine.filter((u) => u.aiTag === TAG_FREE || u.aiTag === TAG_RALLY);
     if (free.length === 0) return;
@@ -98,7 +115,7 @@ export class TeamAi {
     const strikers = available.filter((u) => !guards.has(u));
     if (strikers.length === 0) return;
 
-    if (this.target && (w.isFriend(this.target.owner, this.team) || w.time - this.targetSince > 25 || goldenRetarget(w, this.target, this.targetSince))) this.target = null;
+    if (this.target && (w.isFriend(this.target.owner, this.team) || w.time - this.targetSince > 25 || goldenRetarget(w, this.target, this.targetSince) || kingRetarget(w, this.team, this.target, this.targetSince))) this.target = null;
     if (!this.target) {
       let best: Tile | null = null;
       let bestScore = -Infinity;
@@ -116,6 +133,7 @@ export class TeamAi {
         if (t.capTeam === this.team) score += 0.6;
         if (t.contested) score += 0.2;
         score += goldenAiBonus(w, t);
+        score += kingAiScore(w, t, enemyNear);
         score += w.rng.next() * 0.15;
         if (score > bestScore) {
           bestScore = score;

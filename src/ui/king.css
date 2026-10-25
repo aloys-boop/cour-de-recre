@@ -1,0 +1,119 @@
+/* ------------------------------------------------------------ Mode Roi de la cour */
+
+.king-hud {
+  pointer-events: none;
+  width: fit-content;
+  min-width: 168px;
+  padding: 4px 9px 5px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1.5px solid rgba(255, 201, 40, 0.65);
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.king-head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #ffe27a;
+  white-space: nowrap;
+}
+
+.king-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+.king-row {
+  display: grid;
+  grid-template-columns: 9px minmax(34px, auto) 64px 30px;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.king-row .dot,
+.king-end .dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.king-row.holder .king-name::after {
+  content: ' \2655';
+  color: #ffc928;
+}
+
+.king-bar {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+
+.king-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  border-radius: 3px;
+  transition: width 0.25s linear;
+}
+
+.king-time {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Écran de fin. */
+.king-end {
+  margin: 8px 0 4px;
+  font-size: 13px;
+}
+
+.king-end-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.king-end-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 12px;
+}
+
+.king-end-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.king-end-item.me {
+  font-weight: 800;
+}
+
+.king-end-item.king::after {
+  content: '\2655';
+  color: #c98a00;
+  font-size: 15px;
+}
+
+@media (max-height: 380px) {
+  .king-hud {
+    font-size: 11px;
+    padding: 3px 8px 4px;
+  }
+}

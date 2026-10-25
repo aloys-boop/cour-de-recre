@@ -8,7 +8,7 @@ export type CaptureEvent = { kind: 'captured'; team: number } | null;
  * Porte la possession, la jauge de capture et, pour un camp, la minuterie d'apparition.
  */
 export class Tile {
-  readonly kind: 'camp' | 'bonus';
+  readonly kind: TileDef['kind'];
   /** Coin nord (cellule). */
   readonly x: number;
   readonly y: number;
@@ -34,11 +34,11 @@ export class Tile {
     this.kind = def.kind;
     this.x = def.x;
     this.y = def.y;
-    this.size = def.kind === 'camp' ? 2 : 1;
+    this.size = def.kind === 'bonus' ? 1 : 2;
     this.cx = def.x + this.size / 2;
     this.cy = def.y + this.size / 2;
     this.suit = def.suit ?? null;
-    this.half = def.kind === 'camp' ? TUNING.campHalf : TUNING.bonusTileHalf;
+    this.half = def.kind === 'bonus' ? TUNING.bonusTileHalf : TUNING.campHalf;
     this.owner = def.owner ?? NO_TEAM;
   }
 
@@ -70,7 +70,7 @@ const SAME_TEAM: FriendFn = (a, b) => a === b;
  *  - le propriétaire ou un de ses alliés : il efface la jauge adverse (un allié ne prend
  *    jamais la case d'un allié) ;
  *  - personne : la jauge se vide lentement.
- * Un camp se capture plus lentement qu'une case bonus.
+ * Un camp (ou le trône) se capture plus lentement qu'une case bonus.
  */
 export function updateCapture(tile: Tile, presence: number[], dt: number, friends: FriendFn = SAME_TEAM): CaptureEvent {
   let teamsPresent = 0;
@@ -118,7 +118,7 @@ export function updateCapture(tile: Tile, presence: number[], dt: number, friend
     else for (let t = 0; t < presence.length; t++) if (presence[t] > presence[present]) present = t;
   }
   const count = total;
-  const seconds = TUNING.captureSeconds * (tile.isCamp ? TUNING.campCaptureFactor : 1);
+  const seconds = TUNING.captureSeconds * (tile.kind !== 'bonus' ? TUNING.campCaptureFactor : 1);
   const speed = Math.min(2, Math.sqrt(count)) / seconds;
 
   if (present === tile.owner || (tile.owner !== NO_TEAM && friends(present, tile.owner))) {

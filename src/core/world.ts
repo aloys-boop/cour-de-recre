@@ -7,6 +7,7 @@ import { SpatialHash } from './spatial';
 import { RhythmState, bonusWeight, updateRhythm, type RhythmEvent } from './events';
 import { Tile, updateCapture } from './tile';
 import { DEFAULT_RULES, type GameRules } from './rules';
+import { KingState, kingVictors, updateKing, type KingEvent } from './king';
 import { NO_TEAM, type MapDef, type Suit, type Vec2 } from './types';
 import { Unit, punchDamage, resetUnitIds } from './unit';
 
@@ -16,7 +17,8 @@ export type WorldEvent =
   | { kind: 'ko'; x: number; y: number; team: number; by?: number }
   | { kind: 'captured'; x: number; y: number; team: number; camp: boolean }
   | { kind: 'spawn'; x: number; y: number; team: number }
-  | RhythmEvent;
+  | RhythmEvent
+  | KingEvent;
 
 export interface TeamStats {
   units: number;
@@ -56,6 +58,8 @@ export class World {
   time = 0;
   /** Rythme de partie : case dorée, épuisement des équipes sans camp (voir events.ts). */
   readonly rhythm = new RhythmState();
+  /** Mode « Roi de la cour » : trône et temps de règne (voir king.ts). */
+  readonly king = new KingState();
   private presence: number[][] = [];
   private friendFn = (a: number, b: number): boolean => this.isFriend(a, b);
   private byId = new Map<number, Unit>();
@@ -173,9 +177,12 @@ export class World {
    *  - toutes les équipes encore en vie (un élève ou un camp) sont alliées deux à deux
    *    (une seule équipe en vie : elle gagne seule) ;
    *  - ou une équipe (ou une alliance) tient tous les camps : elle gagne, avec ses alliés
-   *    encore en vie qui sont alliés à tous ses membres.
+   *    encore en vie qui sont alliés à tous ses membres ;
+   *  - mode « Roi de la cour » : l'équipe qui a régné 2 minutes, avec ses alliés (voir king.ts).
    */
   victors(): number[] {
+    const king = kingVictors(this);
+    if (king) return king;
     const s = this.stats();
     const alive: number[] = [];
     for (let t = 0; t < this.numTeams; t++) if (s[t].alive) alive.push(t);
@@ -292,6 +299,7 @@ export class World {
     this.separate();
     this.updateTiles(dt);
     if (updateRhythm(this, dt)) this.refreshMods();
+    updateKing(this, dt);
     this.removeDead();
   }
 

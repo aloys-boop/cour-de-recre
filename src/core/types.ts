@@ -17,10 +17,11 @@ export interface Vec2 {
 /**
  * Une case au sol.
  *  - `camp` : base d'une équipe (2 × 2 cellules), produit les élèves ;
- *  - `bonus` : case blanche marquée d'un symbole, donne un bonus à son propriétaire.
+ *  - `bonus` : case blanche marquée d'un symbole, donne un bonus à son propriétaire ;
+ *  - `throne` : trône du mode « Roi de la cour » (2 × 2, sans bonus ni production, voir king.ts).
  */
 export interface TileDef {
-  kind: 'camp' | 'bonus';
+  kind: 'camp' | 'bonus' | 'throne';
   /** Coin nord de la case (cellule). */
   x: number;
   y: number;
