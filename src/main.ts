@@ -1,5 +1,7 @@
 import './style.css';
+import { Music } from './audio/music';
 import { Sfx } from './audio/sfx';
+import { endStats } from './core/stats';
 import { generateMap, LEVELS } from './core/maps';
 import { loadProgress, recordWin, saveProgress, type Progress } from './core/save';
 import { Game, type GameOptions } from './game';
@@ -18,6 +20,8 @@ const overlayRoot = document.getElementById('overlay')!;
 let progress: Progress = loadProgress();
 const sfx = new Sfx();
 sfx.setMuted(progress.muted);
+const music = new Music(sfx);
+music.setEnabled(!progress.musicMuted);
 const overlay = new Overlay(overlayRoot);
 let game: Game | null = null;
 
@@ -25,6 +29,7 @@ function toggleSound(): boolean {
   sfx.unlock();
   progress = { ...progress, muted: !progress.muted };
   sfx.setMuted(progress.muted);
+  music.refresh();
   saveProgress(progress);
   hud.setSoundIcon(progress.muted);
   return progress.muted;
@@ -58,6 +63,14 @@ const tactics = new TacticsHud(hudRoot, {
 const menu = new Menu(menuRoot, progress, {
   onPlay: (state) => startGame(state),
   onToggleSound: toggleSound,
+  onToggleMusic: () => {
+    progress = { ...progress, musicMuted: !progress.musicMuted };
+    saveProgress(progress);
+    sfx.unlock();
+    music.setEnabled(!progress.musicMuted);
+    music.start();
+    return !!progress.musicMuted;
+  },
   onInstallHelp: () => overlay.installHelp(() => overlay.hide()),
 });
 
@@ -108,6 +121,7 @@ function launch(opts: GameOptions): void {
       const nextAvailable = win && o.mapIndex + 1 < LEVELS.length;
       overlay.end(win, o.map.name, {
         nextAvailable,
+        stats: game ? endStats(game.stats, game.world, game.playerTeam) : undefined,
         // Rejouer et carte suivante : nouvelle disposition tirée au sort.
         onReplay: () => launch({ ...o, map: generateMap(LEVELS[o.mapIndex], newSeed()) }),
         onNext: () => launch({ ...o, map: generateMap(LEVELS[o.mapIndex + 1], newSeed()), mapIndex: o.mapIndex + 1 }),
@@ -152,7 +166,7 @@ document.addEventListener(
 );
 
 // Première interaction : déverrouillage de l'audio (exigence d'iOS).
-window.addEventListener('pointerdown', () => sfx.unlock(), { once: false, passive: true });
+window.addEventListener('pointerdown', () => (sfx.unlock(), music.start()), { once: false, passive: true });
 
 // Service worker : jeu hors ligne et installation sur l'écran d'accueil.
 if ('serviceWorker' in navigator && import.meta.env.PROD) {

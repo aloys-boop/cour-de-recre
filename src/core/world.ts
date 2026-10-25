@@ -11,7 +11,7 @@ import { Unit, punchDamage, resetUnitIds } from './unit';
 export type WorldEvent =
   | { kind: 'punch'; x: number; y: number; team: number }
   | { kind: 'hit'; x: number; y: number; team: number }
-  | { kind: 'ko'; x: number; y: number; team: number }
+  | { kind: 'ko'; x: number; y: number; team: number; by?: number }
   | { kind: 'captured'; x: number; y: number; team: number; camp: boolean }
   | { kind: 'spawn'; x: number; y: number; team: number };
 
@@ -275,7 +275,7 @@ export class World {
           const dmg = Math.max(1, Math.round(punchDamage(() => this.rng.next()) * scale));
           const ko = target.takeDamage(dmg, u.x, u.y);
           this.events.push({ kind: 'hit', x: target.x, y: target.y, team: target.team });
-          if (ko) this.events.push({ kind: 'ko', x: target.x, y: target.y, team: target.team });
+          if (ko) this.events.push({ kind: 'ko', x: target.x, y: target.y, team: target.team, by: u.team });
         }
       }
     }

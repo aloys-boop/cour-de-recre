@@ -9,9 +9,11 @@ export interface Progress {
   muted: boolean;
   lastTeam: TeamId;
   lastDifficulty: Difficulty;
+  /** Musique coupée (champ facultatif : absent des anciennes sauvegardes, la musique est alors active). */
+  musicMuted?: boolean;
 }
 
-const DEFAULT: Progress = { unlocked: 1, wins: {}, muted: false, lastTeam: 0, lastDifficulty: 'normal' };
+const DEFAULT: Progress = { unlocked: 1, wins: {}, muted: false, lastTeam: 0, lastDifficulty: 'normal', musicMuted: false };
 
 interface StorageLike {
   getItem(k: string): string | null;
@@ -41,6 +43,7 @@ export function loadProgress(store: StorageLike | null = storage()): Progress {
       lastDifficulty: (['facile', 'normal', 'difficile'] as Difficulty[]).includes(parsed.lastDifficulty as Difficulty)
         ? (parsed.lastDifficulty as Difficulty)
         : 'normal',
+      musicMuted: !!parsed.musicMuted,
     };
   } catch {
     return { ...DEFAULT, wins: {} };

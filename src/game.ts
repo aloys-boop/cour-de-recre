@@ -1,10 +1,12 @@
 import type { Sfx } from './audio/sfx';
 import { TeamAi } from './core/ai';
+import { GameStats } from './core/stats';
 import { NO_TEAM, type Difficulty, type MapDef } from './core/types';
 import type { Unit } from './core/unit';
 import { World } from './core/world';
 import { TouchInput } from './input/touch';
 import { Camera } from './render/camera';
+import { Effects } from './render/effects';
 import { Minimap } from './render/minimap';
 import { Renderer, type Marker, type SelectionBox } from './render/renderer';
 import { FEET_Y } from './render/sprites';
@@ -37,6 +39,8 @@ export class Game {
   readonly cam = new Camera();
   readonly playerTeam = 0;
   readonly selected = new Set<number>();
+  readonly stats = new GameStats();
+  private fx = new Effects();
   private ais: TeamAi[] = [];
   private markers: Marker[] = [];
   private box: SelectionBox | null = null;
@@ -174,6 +178,7 @@ export class Game {
         steps++;
       }
       this.time += dt;
+      this.fx.update(dt);
       for (const m of this.markers) m.t += dt;
       this.markers = this.markers.filter((m) => m.t < 1);
     }
@@ -187,16 +192,18 @@ export class Game {
     // Événements : sons et effets.
     for (const ev of w.drainEvents()) {
       const color = w.teamColors[ev.team];
+      this.stats.record(ev);
+      this.fx.onEvent(ev, this.cam);
       switch (ev.kind) {
         case 'punch':
-          this.sfx.play('punch');
+          this.sfx.play('punch', color);
           break;
         case 'hit':
-          this.sfx.play('hit');
+          this.sfx.play('hit', color);
           this.markers.push({ x: ev.x, y: ev.y, t: 0, kind: 'hit', team: color });
           break;
         case 'ko':
-          this.sfx.play('ko');
+          this.sfx.play('ko', color);
           break;
         case 'captured':
           this.sfx.play(ev.camp ? 'victory' : 'capture');
@@ -231,7 +238,7 @@ export class Game {
 
   private render(): void {
     const ctx = this.canvas.getContext('2d')!;
-    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    this.fx.begin(ctx, this.dpr, this.canvas.width, this.canvas.height);
     this.renderer.draw(this.world, this.cam, {
       selected: this.selected,
       markers: this.markers,
@@ -240,6 +247,7 @@ export class Game {
       time: this.time,
     });
     if (this.arrow) drawArrow(ctx, this.arrow);
+    this.fx.draw(ctx, this.cam);
     this.minimap.draw(this.world, this.cam);
   }
 
