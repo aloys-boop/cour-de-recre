@@ -171,7 +171,11 @@ export class World {
     return u;
   }
 
-  orderMove(units: Unit[], target: Vec2): void {
+  /**
+   * Ordre de déplacement. Sans `engage`, c'est un repli : les élèves cessent le combat
+   * et courent sans riposter jusqu'à destination.
+   */
+  orderMove(units: Unit[], target: Vec2, engage = false): void {
     const n = units.length;
     // Formation légère : les élèves se répartissent autour du point visé.
     const spread = Math.min(1.6, 0.25 + Math.sqrt(n) * 0.18);
@@ -180,8 +184,9 @@ export class World {
       const a = (i / n) * Math.PI * 2 + 0.7;
       const r = n === 1 ? 0 : spread * Math.sqrt((i + 1) / n);
       const goal = this.grid.clampPos({ x: target.x + Math.cos(a) * r, y: target.y + Math.sin(a) * r }, 0.3);
-      u.order = { kind: 'move', target: goal };
+      u.order = { kind: 'move', target: goal, engage };
       u.engagedId = -1;
+      u.pendingHit = 0;
       this.computePath(u, goal);
       u.state = u.path.length ? 'moving' : 'idle';
     });
@@ -284,8 +289,10 @@ export class World {
       else if (u.order.kind === 'move') this.computePath(u, u.order.target);
     }
 
-    // Recherche d'une cible au contact (ou à portée d'aggro si inoccupé).
-    if (!engaged && this.time - u.lastScan > 0.2) {
+    // Recherche d'une cible : à portée d'aggro si inoccupé, au contact en attaque-déplacement.
+    // Un repli (déplacement sans `engage`) ne cherche jamais le combat.
+    const canEngage = u.order.kind === 'none' || u.order.kind === 'attack' || u.order.engage === true;
+    if (!engaged && canEngage && this.time - u.lastScan > 0.2) {
       u.lastScan = this.time + u.phase * 0.2;
       const radius = u.order.kind === 'none' ? TUNING.aggroRange : TUNING.punchRange * 1.6;
       const e = this.nearestEnemy(u, radius);
@@ -411,8 +418,12 @@ export class World {
       const t = this.tiles[i];
       const pres = this.presence[i];
       pres.fill(0);
+      // Soin : sur son propre camp ou un cœur possédé, un élève se régénère.
+      const heals = t.owner !== NO_TEAM && (t.isCamp || t.suit === 'heart');
       this.hash.query(t.cx, t.cy, t.half, (u) => {
-        if (u.alive && t.contains(u.x, u.y)) pres[u.team]++;
+        if (!u.alive || !t.contains(u.x, u.y)) return;
+        pres[u.team]++;
+        if (heals && u.team === t.owner && u.hp < u.maxHp) u.hp = Math.min(u.maxHp, u.hp + TUNING.regenPerSec * dt);
       });
       const ev = updateCapture(t, pres, dt);
       if (ev && ev.kind === 'captured') {

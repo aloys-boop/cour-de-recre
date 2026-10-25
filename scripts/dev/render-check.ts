@@ -2,7 +2,8 @@
 import { createCanvas } from '@napi-rs/canvas';
 import { writeFileSync } from 'node:fs';
 import { TeamAi } from '../../src/core/ai';
-import { MAPS } from '../../src/core/maps';
+import { generateMap, LEVELS } from '../../src/core/maps';
+const MAPS = LEVELS.map((l, i) => generateMap(l, 100 + i));
 import { World } from '../../src/core/world';
 import { Camera } from '../../src/render/camera';
 import { Renderer } from '../../src/render/renderer';

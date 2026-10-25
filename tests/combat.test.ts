@@ -93,3 +93,57 @@ describe('combat', () => {
     }
   });
 });
+
+describe('repli et régénération', () => {
+  it('un ordre de déplacement est un repli : l\u2019élève cesse de se battre et ne riposte pas en route', () => {
+    const world = new World(ARENA, 2, 9);
+    const a = world.spawnUnit(0, 3, 3);
+    const b = world.spawnUnit(1, 3.4, 3);
+    tick(world, 1);
+    expect(a.engagedId).toBe(b.id);
+    world.orderMove([a], { x: 1, y: 6 });
+    expect(a.engagedId).toBe(-1);
+    expect(a.order.engage).toBeFalsy();
+    const hpB = b.hp;
+    let frames = 0;
+    while (a.order.kind === 'move' && frames < 600) {
+      world.update(1 / 60);
+      frames++;
+      expect(b.hp).toBe(hpB); // poursuivi, il court sans frapper
+      expect(a.engagedId).toBe(-1);
+    }
+    expect(frames).toBeGreaterThan(30);
+    expect(Math.hypot(a.x - 1, a.y - 6)).toBeLessThan(1);
+    // Arrivé à destination, il redevient libre et se défend contre son poursuivant.
+    tick(world, 2);
+    expect(b.hp).toBeLessThan(hpB);
+  });
+
+  it('en attaque-déplacement (IA), l\u2019élève se bat contre ce qu\u2019il croise', () => {
+    const world = new World(ARENA, 2, 9);
+    const a = world.spawnUnit(0, 2, 2);
+    const b = world.spawnUnit(1, 3.5, 3.5);
+    world.orderMove([a], { x: 5, y: 5 }, true);
+    tick(world, 2.5);
+    expect(b.hp).toBeLessThan(TUNING.unitHp);
+  });
+
+  it('un élève se régénère sur son camp ou sur un cœur possédé, pas ailleurs', () => {
+    const map = { ...ARENA, tiles: [...ARENA.tiles, { kind: 'bonus' as const, x: 3, y: 0, suit: 'heart' as const, owner: 0 as const }] };
+    const world = new World(map, 2, 1);
+    const [camp0, camp1] = world.camps;
+    const onCamp = world.spawnUnit(0, camp0.cx, camp0.cy);
+    const onHeart = world.spawnUnit(0, 3.5, 0.5);
+    const away = world.spawnUnit(0, 5, 2);
+    const onEnemyCamp = world.spawnUnit(0, camp1.cx, camp1.cy);
+    for (const u of [onCamp, onHeart, away, onEnemyCamp]) u.hp = 10;
+    tick(world, 1);
+    expect(onCamp.hp).toBeGreaterThan(10);
+    expect(onHeart.hp).toBeGreaterThan(10);
+    expect(away.hp).toBe(10);
+    expect(onEnemyCamp.hp).toBe(10);
+    tick(world, 20);
+    expect(onCamp.hp).toBe(onCamp.maxHp);
+    expect(onHeart.hp).toBe(onHeart.maxHp);
+  });
+});

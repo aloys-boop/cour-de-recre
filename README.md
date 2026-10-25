@@ -15,8 +15,10 @@ Quatre équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet) se disputent 
 - **Capturer.** Des élèves d'une seule équipe doivent rester sur une case pendant environ 3 secondes (jauge visible). Plus ils sont nombreux, plus c'est rapide (jusqu'à 2 fois). Si une autre équipe tient déjà une jauge, il faut d'abord la vider. Une case occupée par plusieurs équipes est **contestée** (pointillés rouges) : rien ne bouge tant que le combat n'est pas tranché. Un camp se prend aussi, mais 2,5 fois plus lentement ; l'équipe qui le perd ne produit plus.
 - **Des équipes inégales.** Chaque uniforme a ses forces : Noir, solide et équilibré ; Vert, production très rapide mais élèves fragiles ; Jaune, très rapide ; Violet, très fort mais lent à produire. Le menu affiche le profil de chaque équipe.
 - **Combat.** Les élèves se battent à coups de poing au corps à corps. Un élève inoccupé engage de lui-même les ennemis qui s'approchent. À zéro point de vie, il s'assoit, KO, puis disparaît.
+- **Repli.** Un ordre de déplacement est un rappel : les élèves cessent le combat et courent sans riposter jusqu'à destination (ils peuvent se faire frapper en fuyant). Arrivés, ils se défendent à nouveau. Pour attaquer, touche un ennemi.
+- **Régénération.** Un élève qui se tient sur son propre camp, ou sur un cœur que son équipe possède, récupère ses points de vie (environ 7 par seconde).
 - **Victoire.** Une équipe gagne quand elle est la dernière à avoir encore des élèves ou un camp, ou quand elle possède tous les camps. Tu perds dès que tu n'as plus ni élèves ni camp.
-- **Progression.** Cinq cartes de taille croissante (du Préau au Campus). Chaque victoire débloque la suivante ; la progression est sauvegardée sur l'appareil.
+- **Cartes.** Cinq niveaux de taille croissante (du Préau au Campus, de 14 à 22 cases bonus). La disposition des cases et des obstacles est tirée au sort à chaque partie, de façon symétrique pour rester équitable. Chaque victoire débloque le niveau suivant ; la progression est sauvegardée sur l'appareil.
 - **Difficulté.** Facile, Normal ou Difficile : les IA réagissent plus vite, attaquent avec de plus petits groupes, gardent moins de défenseurs et frappent plus fort.
 
 ## Contrôles tactiles
@@ -25,7 +27,7 @@ Quatre équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet) se disputent 
 | --- | --- |
 | Tap sur un élève | Sélectionne l'élève et ses voisins proches |
 | Appui long puis glisser | Rectangle de sélection |
-| Tap sur le sol | Ordre de déplacement (marqueur blanc) |
+| Tap sur le sol | Rappel : déplacement sans combat (marqueur blanc) |
 | Tap sur un ennemi | Ordre d'attaque (marqueur rouge) |
 | Glisser à un doigt | Déplacer la caméra |
 | Pincer / glisser à deux doigts | Zoom et caméra |
@@ -77,7 +79,8 @@ src/
     pathfinding.ts     A* 8 voisins + lissage
     spatial.ts         hash spatial pour les voisinages
     grid.ts            grille de navigation et obstacles
-    maps.ts            les 5 cartes (camps, cases bonus, obstacles)
+    mapgen.ts          générateur de cartes aléatoires (camps, cases bonus, obstacles)
+    maps.ts            les 5 niveaux
     save.ts            progression (localStorage)
   render/              rendu canvas 2D
     sprites.ts         élèves dessinés pixel par pixel : 8 directions, marche, coup, KO

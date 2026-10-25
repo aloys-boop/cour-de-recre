@@ -1,5 +1,5 @@
 import { SUIT_BONUS, TEAM_COLORS, TEAM_NAMES, TEAM_PROFILES } from '../config';
-import { MAPS } from '../core/maps';
+import { LEVELS } from '../core/maps';
 import type { Progress } from '../core/save';
 import type { Difficulty, TeamId } from '../core/types';
 
@@ -33,7 +33,7 @@ export class Menu {
     this.state = {
       team: progress.lastTeam,
       difficulty: progress.lastDifficulty,
-      mapIndex: Math.min(progress.unlocked - 1, MAPS.length - 1),
+      mapIndex: Math.min(progress.unlocked - 1, LEVELS.length - 1),
     };
   }
 
@@ -118,10 +118,10 @@ export class Menu {
 
     // Cartes.
     const mapSec = el('div', 'menu-section');
-    mapSec.append(el('h2', '', 'Carte'));
+    mapSec.append(el('h2', '', 'Carte (disposition tirée au sort à chaque partie)'));
     const list = el('div', 'map-list');
     const mapBtns: HTMLButtonElement[] = [];
-    MAPS.forEach((m, i) => {
+    LEVELS.forEach((m, i) => {
       const locked = i >= this.progress.unlocked;
       const b = document.createElement('button');
       b.className = 'map-btn' + (this.state.mapIndex === i ? ' active' : '') + (locked ? ' locked' : '');
@@ -131,7 +131,7 @@ export class Menu {
       const right = document.createElement('small');
       right.textContent = locked
         ? 'Verrouillée'
-        : `${m.w}×${m.h} · ${m.teams} équipes · ${m.tiles.length} cases${wins ? ` · ${wins} victoire${wins > 1 ? 's' : ''}` : ''}`;
+        : `${m.w}×${m.h} · ${m.teams} équipes · ${m.tiles} cases${wins ? ` · ${wins} victoire${wins > 1 ? 's' : ''}` : ''}`;
       b.append(left, right);
       b.disabled = locked;
       b.addEventListener('click', () => {

@@ -63,7 +63,7 @@ export class TeamAi {
         .sort((a, b) => dist(a, t) - dist(b, t))
         .slice(0, need);
       if (candidates.length) {
-        w.orderMove(candidates, { x: t.cx, y: t.cy });
+        w.orderMove(candidates, { x: t.cx, y: t.cy }, true);
         for (const u of candidates) u.aiTag = TAG_DEFEND;
       }
     }
@@ -120,7 +120,7 @@ export class TeamAi {
 
     if (grouped.length + onTheWay >= needed || strikers.length >= needed * 2) {
       const squad = strikers.slice(0, Math.max(needed, Math.ceil(strikers.length * 0.8)));
-      w.orderMove(squad, { x: target.cx, y: target.cy });
+      w.orderMove(squad, { x: target.cx, y: target.cy }, true);
       for (const u of squad) u.aiTag = TAG_ATTACK;
     } else {
       // Regroupement : on se rassemble entre le centre du groupe et la cible.
@@ -130,7 +130,7 @@ export class TeamAi {
       };
       const toRally = strikers.filter((u) => d2(u, rally) > this.profile.rallyRadius ** 2);
       if (toRally.length) {
-        w.orderMove(toRally, rally);
+        w.orderMove(toRally, rally, true);
         for (const u of toRally) u.aiTag = TAG_RALLY;
       }
     }

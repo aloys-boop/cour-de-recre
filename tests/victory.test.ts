@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SUIT_BONUS, TEAM_PROFILES, TUNING } from '../src/config';
-import { MAPS } from '../src/core/maps';
+import { generateMap, LEVELS } from '../src/core/maps';
 import { loadProgress, recordWin, saveProgress } from '../src/core/save';
 import { NO_TEAM, type MapDef } from '../src/core/types';
 import { World } from '../src/core/world';
@@ -126,25 +126,47 @@ describe('forces inégales et cases bonus', () => {
   });
 });
 
-describe('cartes', () => {
-  it('au moins cinq cartes, de taille croissante, un camp par équipe, rien sur les obstacles', () => {
-    expect(MAPS.length).toBeGreaterThanOrEqual(5);
-    for (let i = 1; i < MAPS.length; i++) expect(MAPS[i].w * MAPS[i].h).toBeGreaterThan(MAPS[i - 1].w * MAPS[i - 1].h);
-    for (const m of MAPS) {
-      const obs = new Set((m.obstacles ?? []).map((o) => `${o.x},${o.y}`));
-      for (const t of m.tiles) {
-        const size = t.kind === 'camp' ? 2 : 1;
-        for (let dx = 0; dx < size; dx++)
-          for (let dy = 0; dy < size; dy++) {
-            expect(obs.has(`${t.x + dx},${t.y + dy}`)).toBe(false);
-            expect(t.x + dx >= 0 && t.x + dx < m.w && t.y + dy >= 0 && t.y + dy < m.h).toBe(true);
-          }
-        if (t.kind === 'bonus') expect(t.suit).toBeDefined();
+describe('cartes générées', () => {
+  it('cinq niveaux de taille croissante, une vingtaine de cases, un camp par équipe', () => {
+    expect(LEVELS.length).toBeGreaterThanOrEqual(5);
+    for (let i = 1; i < LEVELS.length; i++) expect(LEVELS[i].w * LEVELS[i].h).toBeGreaterThan(LEVELS[i - 1].w * LEVELS[i - 1].h);
+    for (const level of LEVELS) {
+      for (const seed of [1, 7, 42, 1234, 99999]) {
+        const m = generateMap(level, seed);
+        const cells = new Set<string>();
+        const obs = new Set((m.obstacles ?? []).map((o) => `${o.x},${o.y}`));
+        const bonus = m.tiles.filter((t) => t.kind === 'bonus');
+        expect(bonus.length).toBe(level.tiles);
+        for (const t of m.tiles) {
+          const size = t.kind === 'camp' ? 2 : 1;
+          for (let dx = 0; dx < size; dx++)
+            for (let dy = 0; dy < size; dy++) {
+              const k = `${t.x + dx},${t.y + dy}`;
+              expect(obs.has(k)).toBe(false);
+              expect(cells.has(k)).toBe(false); // jamais deux cases sur la même cellule
+              cells.add(k);
+              expect(t.x + dx >= 0 && t.x + dx < m.w && t.y + dy >= 0 && t.y + dy < m.h).toBe(true);
+            }
+          if (t.kind === 'bonus') expect(t.suit).toBeDefined();
+        }
+        for (let team = 0; team < level.teams; team++) expect(m.tiles.filter((t) => t.kind === 'camp' && t.owner === team).length).toBe(1);
+        // Symboles équilibrés : au moins trois cases de chaque symbole.
+        for (const suit of ['heart', 'spade', 'club', 'diamond'] as const) expect(bonus.filter((t) => t.suit === suit).length).toBeGreaterThanOrEqual(2);
+        // Obstacles bien séparés des cases.
+        for (const o of m.obstacles ?? []) for (const t of bonus) expect(Math.max(Math.abs(o.x - t.x), Math.abs(o.y - t.y))).toBeGreaterThan(1);
+        // Le tirage est déterministe pour une graine donnée, différent pour une autre.
+        expect(JSON.stringify(generateMap(level, seed))).toBe(JSON.stringify(m));
       }
-      for (let team = 0; team < m.teams; team++) expect(m.tiles.filter((t) => t.kind === 'camp' && t.owner === team).length).toBe(1);
-      expect(m.teams).toBeLessThanOrEqual(4);
-      expect(m.tiles.some((t) => t.suit === 'heart')).toBe(true);
+      expect(JSON.stringify(generateMap(level, 1))).not.toBe(JSON.stringify(generateMap(level, 2)));
     }
+  });
+
+  it('une partie complète se joue sur une carte générée', () => {
+    const m = generateMap(LEVELS[2], 5);
+    const w = new World(m, m.teams, 5);
+    tick(w, 20);
+    expect(w.units.length).toBeGreaterThan(0);
+    expect(w.winner()).toBe(NO_TEAM);
   });
 });
 
@@ -154,13 +176,13 @@ describe('progression', () => {
     const fake = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) };
     let p = loadProgress(fake);
     expect(p.unlocked).toBe(1);
-    p = recordWin(p, MAPS[0].id, 0, MAPS.length);
+    p = recordWin(p, LEVELS[0].id, 0, LEVELS.length);
     expect(p.unlocked).toBe(2);
-    expect(p.wins[MAPS[0].id]).toBe(1);
+    expect(p.wins[LEVELS[0].id]).toBe(1);
     saveProgress(p, fake);
     const again = loadProgress(fake);
     expect(again.unlocked).toBe(2);
-    const last = recordWin(again, MAPS[MAPS.length - 1].id, MAPS.length - 1, MAPS.length);
-    expect(last.unlocked).toBe(MAPS.length);
+    const last = recordWin(again, LEVELS[LEVELS.length - 1].id, LEVELS.length - 1, LEVELS.length);
+    expect(last.unlocked).toBe(LEVELS.length);
   });
 });

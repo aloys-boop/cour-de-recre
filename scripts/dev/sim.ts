@@ -1,6 +1,7 @@
 // Simulation IA contre IA pour vérifier l'équilibrage et les performances.
 import { TeamAi } from '../../src/core/ai';
-import { MAPS } from '../../src/core/maps';
+import { generateMap, LEVELS } from '../../src/core/maps';
+const MAPS = LEVELS.map((l, i) => generateMap(l, 100 + i));
 import { NO_TEAM, type Difficulty } from '../../src/core/types';
 import { World } from '../../src/core/world';
 

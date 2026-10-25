@@ -51,6 +51,7 @@ export const TUNING = {
   campCaptureFactor: 2.5, // un camp se prend plus lentement
   captureDecayPerSec: 0.15, // retour à zéro d'une jauge abandonnée
   koSeconds: 1.6, // durée pendant laquelle l'élève KO reste visible
+  regenPerSec: 7, // points de vie rendus par seconde sur son camp ou un cœur possédé
   bonusTileHalf: 0.62, // demi-côté de la zone d'une case bonus (cellules)
   campHalf: 1.05, // demi-côté de la zone d'un camp (2 × 2 cellules)
 };

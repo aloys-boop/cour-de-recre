@@ -47,6 +47,8 @@ export interface MapDef {
   tiles: TileDef[];
   /** Obstacles infranchissables (cellules). */
   obstacles?: Vec2[];
+  /** Graine du tirage (cartes générées). */
+  seed?: number;
 }
 
 export type Difficulty = 'facile' | 'normal' | 'difficile';
@@ -56,4 +58,9 @@ export interface UnitOrder {
   target: Vec2;
   /** Identifiant de l'unité visée (ordre d'attaque). */
   unitId?: number;
+  /**
+   * Déplacement « offensif » : l'élève se bat contre ce qu'il croise (IA).
+   * Sans ce drapeau, un ordre de déplacement est un repli : l'élève court sans riposter.
+   */
+  engage?: boolean;
 }

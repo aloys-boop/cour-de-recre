@@ -1,6 +1,6 @@
 import './style.css';
 import { Sfx } from './audio/sfx';
-import { MAPS } from './core/maps';
+import { generateMap, LEVELS } from './core/maps';
 import { loadProgress, recordWin, saveProgress, type Progress } from './core/save';
 import { Game, type GameOptions } from './game';
 import { Hud } from './ui/hud';
@@ -49,13 +49,17 @@ function startGame(state: MenuState): void {
   sfx.unlock();
   progress = { ...progress, lastTeam: state.team, lastDifficulty: state.difficulty };
   saveProgress(progress);
-  const opts: GameOptions = {
-    map: MAPS[state.mapIndex],
+  launch({
+    map: generateMap(LEVELS[state.mapIndex], newSeed()),
     mapIndex: state.mapIndex,
     playerColor: state.team,
     difficulty: state.difficulty,
-  };
-  launch(opts);
+  });
+}
+
+/** Graine de carte : un tirage différent à chaque partie. */
+function newSeed(): number {
+  return Math.floor(Math.random() * 1e9);
 }
 
 function launch(opts: GameOptions): void {
@@ -79,21 +83,22 @@ function launch(opts: GameOptions): void {
     onEnd: (result, o) => {
       const win = result === 'victoire';
       if (win) {
-        progress = recordWin(progress, o.map.id, o.mapIndex, MAPS.length);
+        progress = recordWin(progress, o.map.id, o.mapIndex, LEVELS.length);
         saveProgress(progress);
         menu.setProgress(progress);
       }
-      const nextAvailable = win && o.mapIndex + 1 < MAPS.length;
+      const nextAvailable = win && o.mapIndex + 1 < LEVELS.length;
       overlay.end(win, o.map.name, {
         nextAvailable,
-        onReplay: () => launch({ ...o }),
-        onNext: () => launch({ ...o, map: MAPS[o.mapIndex + 1], mapIndex: o.mapIndex + 1 }),
+        // Rejouer et carte suivante : nouvelle disposition tirée au sort.
+        onReplay: () => launch({ ...o, map: generateMap(LEVELS[o.mapIndex], newSeed()) }),
+        onNext: () => launch({ ...o, map: generateMap(LEVELS[o.mapIndex + 1], newSeed()), mapIndex: o.mapIndex + 1 }),
         onMenu: () => backToMenu(),
       });
     },
   });
   hud.update(game.world, 0, 0);
-  hud.showHint('Touche un élève, puis touche le sol pour le déplacer.');
+  hud.showHint('Touche un élève puis le sol pour le déplacer (il fuit sans se battre) ; touche un ennemi pour attaquer.', 4200);
   game.start();
 }
 
