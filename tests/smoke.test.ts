@@ -178,6 +178,31 @@ describe('application complète', () => {
     expect(me.order.kind).toBe('move');
     expect(me.order.engage).toBeFalsy();
     expect(Math.hypot(me.order.target.x - home.cx, me.order.target.y - home.cy)).toBeLessThan(2);
+    // Le repli au camp répartit les élèves dans le camp.
+    for (const id of game.selected) {
+      const u = game.world.unitById(id)!;
+      expect(home.contains(u.order.target.x, u.order.target.y)).toBe(true);
+    }
+    (document.getElementById('btn-cancel') as HTMLButtonElement).click();
+
+    // Tap à côté d'une case bonus (dans son losange agrandi) : l'ordre est aimanté,
+    // les élèves se répartissent sur la case et y arrivent.
+    (document.getElementById('btn-select-all') as HTMLButtonElement).click();
+    const squad = [...game.selected].map((id) => game.world.unitById(id)!);
+    const bonus = game.world.tiles
+      .filter((t) => !t.isCamp)
+      .sort((a, b) => Math.hypot(a.cx - home.cx, a.cy - home.cy) - Math.hypot(b.cx - home.cx, b.cy - home.cy))[0];
+    game.cam.centerOnGrid(bonus.cx, bonus.cy);
+    const near = game.cam.gridToScreen(bonus.cx + 0.6, bonus.cy - 0.25);
+    pointer('pointerdown', near.x, near.y);
+    pointer('pointerup', near.x, near.y);
+    for (const u of squad) {
+      expect(u.order.kind).toBe('move');
+      expect(bonus.contains(u.order.target.x, u.order.target.y)).toBe(true);
+    }
+    advance(12);
+    const onTile = squad.filter((u) => u.alive && bonus.contains(u.x, u.y)).length;
+    expect(onTile).toBeGreaterThanOrEqual(Math.min(4, squad.filter((u) => u.alive).length));
     (document.getElementById('btn-cancel') as HTMLButtonElement).click();
 
     // Glissé à un doigt → la caméra se déplace.

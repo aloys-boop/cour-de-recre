@@ -29,9 +29,9 @@ Quatre équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet) se disputent 
 
 | Geste | Effet |
 | --- | --- |
-| Tap sur un élève | Sélectionne l'élève et ses voisins proches |
+| Tap sur un élève | Sélectionne l'élève le plus proche du doigt (zone tactile généreuse) et ses voisins proches |
 | Appui long puis glisser | Rectangle de sélection |
-| Tap sur le sol | Rappel : déplacement sans combat (marqueur blanc), ou charge en mode Charger (marqueur orange) |
+| Tap sur le sol | Rappel : déplacement sans combat (marqueur blanc), ou charge en mode Charger (marqueur orange). Près d'une case ou d'un camp, l'ordre est aimanté : la case visée s'entoure d'un liseré blanc et les élèves se répartissent à l'intérieur |
 | Appui long sans bouger, sans sélection | Point de ralliement du camp le plus proche (drapeau) |
 | Tap sur un ennemi | Ordre d'attaque (marqueur rouge) |
 | Glisser à un doigt | Déplacer la caméra |
