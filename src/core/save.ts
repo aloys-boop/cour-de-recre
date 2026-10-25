@@ -42,7 +42,7 @@ export function loadProgress(store: StorageLike | null = storage()): Progress {
       unlocked: Math.max(1, Number(parsed.unlocked) || 1),
       wins: parsed.wins && typeof parsed.wins === 'object' ? parsed.wins : {},
       muted: !!parsed.muted,
-      lastTeam: ([0, 1, 2, 3] as TeamId[]).includes(parsed.lastTeam as TeamId) ? (parsed.lastTeam as TeamId) : 0,
+      lastTeam: ([0, 1, 2, 3, 4, 5, 6, 7] as TeamId[]).includes(parsed.lastTeam as TeamId) ? (parsed.lastTeam as TeamId) : 0,
       lastDifficulty: (['facile', 'normal', 'difficile'] as Difficulty[]).includes(parsed.lastDifficulty as Difficulty)
         ? (parsed.lastDifficulty as Difficulty)
         : 'normal',

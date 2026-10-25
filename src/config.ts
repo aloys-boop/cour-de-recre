@@ -1,6 +1,12 @@
 import type { Difficulty, Suit } from './core/types';
 
-export const TEAM_NAMES = ['Noir', 'Vert', 'Jaune', 'Violet'] as const;
+/** Nombre maximal d'équipes dans une partie (1 joueur + 7 IA). */
+export const MAX_TEAMS = 8;
+
+export const TEAM_NAMES = ['Noir', 'Vert', 'Jaune', 'Violet', 'Rouge', 'Bleu', 'Orange', 'Rose'] as const;
+
+/** Nom d'équipe au pluriel, pour les annonces (« Les Verts acceptent l’alliance. »). */
+export const TEAM_PLURALS = ['Noirs', 'Verts', 'Jaunes', 'Violets', 'Rouges', 'Bleus', 'Oranges', 'Roses'] as const;
 
 /** Couleur d'uniforme : teintes claire / principale / sombre, plus la couleur d'interface. */
 export const TEAM_COLORS = [
@@ -8,6 +14,10 @@ export const TEAM_COLORS = [
   { light: '#7fd36a', main: '#3aa83a', dark: '#1f6b27', ui: '#2f9e44', text: '#ffffff' },
   { light: '#ffe27a', main: '#f0bd2a', dark: '#b7860f', ui: '#e0b020', text: '#2b2b33' },
   { light: '#b784e6', main: '#8046c2', dark: '#51297f', ui: '#7a3fb5', text: '#ffffff' },
+  { light: '#ff7b6b', main: '#d8322a', dark: '#8c1a16', ui: '#d0342b', text: '#ffffff' },
+  { light: '#74b4ff', main: '#2f6fd8', dark: '#1a3f88', ui: '#2b68cf', text: '#ffffff' },
+  { light: '#ffb466', main: '#f07c1c', dark: '#a8500c', ui: '#ec7a1e', text: '#2b2b33' },
+  { light: '#ffb3d9', main: '#ec6fae', dark: '#a83d74', ui: '#e46aa8', text: '#2b2b33' },
 ] as const;
 
 /**
@@ -27,6 +37,10 @@ export const TEAM_PROFILES: readonly TeamProfile[] = [
   { hp: 0.7, dmg: 0.85, prod: 1.7, speed: 1.1, blurb: 'Production très rapide, mais fragiles' },
   { hp: 0.95, dmg: 0.95, prod: 1.1, speed: 1.35, blurb: 'Très rapides, un peu légers' },
   { hp: 1.4, dmg: 1.25, prod: 0.6, speed: 0.9, blurb: 'Très forts, mais lents à produire' },
+  { hp: 0.75, dmg: 1.4, prod: 1.0, speed: 1.05, blurb: 'Frappent très fort, mais peu de vie' },
+  { hp: 1.5, dmg: 0.95, prod: 0.95, speed: 0.86, blurb: 'Beaucoup de vie, mais lents' },
+  { hp: 0.95, dmg: 0.8, prod: 1.3, speed: 1.2, blurb: 'Production et vitesse élevées, petits poings' },
+  { hp: 1.15, dmg: 1.0, prod: 0.95, speed: 1.0, blurb: 'Polyvalents, un peu plus résistants' },
 ];
 
 /** Bonus accordé par chaque case possédée, selon son symbole. */
@@ -82,4 +96,28 @@ export const RHYTHM = {
   goldenMultiplier: 2, // la case dorée compte pour autant de cases
   goldenAiScore: 0.55, // attrait de la case dorée dans le choix de cible des IA
   noCampDrainPerSec: 1, // points de vie perdus par seconde par les élèves d'une équipe sans camp
+};
+
+/**
+ * Diplomatie : alliances entre équipes pendant la partie.
+ *  - une paire ne peut changer d'alliance qu'une fois toutes les `pairCooldown` secondes ;
+ *  - une rupture est annoncée `breakNotice` secondes avant de prendre effet ;
+ *  - une équipe trahie se méfie du traître pendant `betrayalMemory` secondes.
+ */
+export const DIPLOMACY = {
+  pairCooldown: 30,
+  breakNotice: 5,
+  betrayalMemory: 120,
+  thinkInterval: 7, // secondes entre deux réflexions diplomatiques d'une IA (± 30 %)
+  threatRatio: 1.5, // « nettement plus forte » : puissance au moins 1,5 fois celle des deux
+  maxAllies: 2, // au-delà, une IA n'accepte plus que face à une menace commune
+  maxAlliesThreat: 3, // plafond absolu d'alliés, même face à une menace
+  firstThink: 25, // secondes de jeu avant la première initiative diplomatique des IA
+};
+
+/** Trahisons selon la difficulté : seuil de puissance de l'allié et probabilité de passer à l'acte. */
+export const BETRAYAL: Record<Difficulty, { strongerRatio: number; chance: number; endgameChance: number }> = {
+  facile: { strongerRatio: 2.2, chance: 0.12, endgameChance: 0.15 },
+  normal: { strongerRatio: 1.8, chance: 0.3, endgameChance: 0.35 },
+  difficile: { strongerRatio: 1.45, chance: 0.6, endgameChance: 0.7 },
 };

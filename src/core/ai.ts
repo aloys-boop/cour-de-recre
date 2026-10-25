@@ -15,7 +15,8 @@ const TAG_RALLY = 3;
  *  - évalue les cases voisines et faibles ;
  *  - garde une part de ses élèves près de ses cases ;
  *  - regroupe les élèves libres avant de lancer une attaque ;
- *  - renvoie des défenseurs sur ses cases menacées.
+ *  - renvoie des défenseurs sur ses cases menacées ;
+ *  - ne cible ni ne craint ses alliés, et peut aider à défendre une case alliée proche.
  */
 export class TeamAi {
   readonly profile: AiProfile;
@@ -48,12 +49,12 @@ export class TeamAi {
     for (const u of mine) if (u.order.kind === 'none' && u.aiTag !== TAG_RALLY) u.aiTag = TAG_FREE;
 
     const owned = w.tiles.filter((t) => t.owner === this.team);
-    const enemies = w.units.filter((u) => u.team !== this.team && u.alive);
+    const enemies = w.units.filter((u) => u.alive && !w.isFriend(u.team, this.team));
 
     // --- Défense des cases menacées ---------------------------------------
     for (const t of owned) {
       const threat = enemies.filter((e) => Math.hypot(e.x - t.cx, e.y - t.cy) < 2.6).length;
-      const capturing = t.capTeam !== NO_TEAM && t.capTeam !== this.team;
+      const capturing = t.capTeam !== NO_TEAM && !w.isFriend(t.capTeam, this.team);
       if (threat === 0 && !capturing) continue;
       const defendersNear = mine.filter((u) => Math.hypot(u.x - t.cx, u.y - t.cy) < 2.2).length;
       // Un camp menacé est défendu en priorité et plus largement.
@@ -66,6 +67,18 @@ export class TeamAi {
       if (candidates.length) {
         w.orderMove(candidates, { x: t.cx, y: t.cy }, true);
         for (const u of candidates) u.aiTag = TAG_DEFEND;
+      }
+    }
+
+    // --- Aide à un allié : une case alliée qu'un ennemi est en train de prendre ---
+    for (const t of w.tiles) {
+      if (t.owner === NO_TEAM || !w.isAllied(t.owner, this.team)) continue;
+      if (t.capTeam === NO_TEAM || w.isFriend(t.capTeam, this.team) || t.cap < 0.15) continue;
+      const near = mine.filter((u) => u.aiTag === TAG_FREE && dist(u, t) < 5).sort((a, b) => dist(a, t) - dist(b, t));
+      const helpers = near.slice(0, Math.min(3, Math.floor(near.length / 2)));
+      if (helpers.length) {
+        w.orderMove(helpers, { x: t.cx, y: t.cy }, true);
+        for (const u of helpers) u.aiTag = TAG_DEFEND;
       }
     }
 
@@ -85,12 +98,14 @@ export class TeamAi {
     const strikers = available.filter((u) => !guards.has(u));
     if (strikers.length === 0) return;
 
-    if (this.target && (this.target.owner === this.team || w.time - this.targetSince > 25 || goldenRetarget(w, this.target, this.targetSince))) this.target = null;
+    if (this.target && (w.isFriend(this.target.owner, this.team) || w.time - this.targetSince > 25 || goldenRetarget(w, this.target, this.targetSince))) this.target = null;
     if (!this.target) {
       let best: Tile | null = null;
       let bestScore = -Infinity;
       for (const t of w.tiles) {
-        if (t.owner === this.team) continue;
+        if (t.owner === this.team || (t.owner !== NO_TEAM && w.isAllied(t.owner, this.team))) continue;
+        // Un allié est déjà en train de la prendre : on la lui laisse.
+        if (t.capTeam !== NO_TEAM && t.cap > 0 && w.isAllied(t.capTeam, this.team)) continue;
         const enemyNear = enemies.filter((e) => Math.hypot(e.x - t.cx, e.y - t.cy) < 2.5).length;
         let score = t.owner === NO_TEAM ? 1.0 : this.profile.aggression;
         if (t.isCamp) score = this.profile.aggression * 1.3; // prendre un camp coupe la production adverse

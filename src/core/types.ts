@@ -1,6 +1,6 @@
 // Types partagés par la simulation (logique pure, sans DOM).
 
-export type TeamId = 0 | 1 | 2 | 3;
+export type TeamId = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 export const NO_TEAM = -1;
 
 export type Suit = 'spade' | 'heart' | 'diamond' | 'club';

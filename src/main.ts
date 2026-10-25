@@ -45,6 +45,11 @@ const hud = new Hud(
     onCancel: () => game?.clearSelection(),
     onPause: () => game?.setPaused(true),
     onToggleSound: toggleSound,
+    diplomacy: {
+      view: (team) => game?.diploView(team) ?? null,
+      propose: (team) => void game?.proposeAlliance(team),
+      breakOff: (team) => void game?.breakAlliance(team),
+    },
   },
   progress.muted,
 );
@@ -94,6 +99,8 @@ function play(code: MapCode, o: Pick<GameOptions, 'playerColor' | 'difficulty'>)
   launch({ map: mapForCode(code), mapIndex, playerColor: o.playerColor, difficulty: o.difficulty, seed: code.seed }, code);
 }
 
+let tipTimer = 0;
+
 function launch(opts: GameOptions, code: MapCode): void {
   const codeText = encodeMapCode(code);
   const campaign = code.spec.kind === 'campagne';
@@ -133,7 +140,12 @@ function launch(opts: GameOptions, code: MapCode): void {
       }
       extras.push(codeBlock(codeText, () => play(code, o)));
       const nextAvailable = win && campaign && o.mapIndex + 1 < LEVELS.length;
+      // Victoire partagée : l'alliance gagne ensemble (couleurs des alliés sur l'écran de fin).
+      const victors = game?.victors ?? [];
+      const alliance = victors.length > 1 && game ? victors.map((t) => game!.world.teamColors[t]) : undefined;
+      hud.closeDiplomacy();
       overlay.end(win, o.map.name, {
+        alliance,
         nextAvailable,
         stats: game ? endStats(game.stats, game.world, game.playerTeam) : undefined,
         // Rejouer et carte suivante : nouvelle disposition tirée au sort.
@@ -148,6 +160,13 @@ function launch(opts: GameOptions, code: MapCode): void {
   hud.update(game.world, 0, 0);
   tactics.set(game.charge);
   hud.showHint('Touche un élève puis le sol pour le déplacer (il fuit sans se battre) ; touche un ennemi pour attaquer.', 4200);
+  // Puis, à partir de 3 équipes, un mot sur la diplomatie.
+  clearTimeout(tipTimer);
+  const g = game;
+  if (opts.map.teams >= 3)
+    tipTimer = window.setTimeout(() => {
+      if (game === g && !g.over && !g.paused) hud.showHint('Touche la puce d’une équipe, en haut, pour lui proposer une alliance.', 3600);
+    }, 4600);
   game.start();
 }
 

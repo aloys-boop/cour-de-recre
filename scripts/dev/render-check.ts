@@ -1,7 +1,9 @@
 // Rendu hors navigateur pour vérification visuelle (sprites + une scène de jeu).
 import { createCanvas } from '@napi-rs/canvas';
 import { writeFileSync } from 'node:fs';
+import { TEAM_COLORS } from '../../src/config';
 import { TeamAi } from '../../src/core/ai';
+import { Diplomacy } from '../../src/core/diplomacy';
 import { generateMap, LEVELS } from '../../src/core/maps';
 const MAPS = LEVELS.map((l, i) => generateMap(l, 100 + i));
 import { World } from '../../src/core/world';
@@ -13,7 +15,7 @@ const OUT = '/tmp/claude-0/-home-claude/0bece804-9679-563f-be56-1ee9d238d3fa/scr
 const make = (w: number, h: number) => createCanvas(w, h) as unknown as HTMLCanvasElement;
 
 // 1) Planches de sprites, agrandies ×3.
-for (let t = 0; t < 4; t++) {
+for (let t = 0; t < TEAM_COLORS.length; t++) {
   const sheet = buildSheet(t, make) as unknown as ReturnType<typeof createCanvas>;
   const big = createCanvas(sheet.width * 3, sheet.height * 3);
   const c = big.getContext('2d');
@@ -24,13 +26,17 @@ for (let t = 0; t < 4; t++) {
   writeFileSync(`${OUT}/sheet-${t}.png`, big.toBuffer('image/png'));
 }
 
-// 2) Scène de jeu : carte 3, 4 équipes, après 40 s de simulation avec IA.
+// 2) Scène de jeu : carte 3 (ou celle demandée), après 40 s de simulation avec IA.
+//    Carte 6 (« Le tournoi ») : 8 équipes ; le joueur (équipe 0) est allié à l'équipe 2.
 const mapIdx = Number(process.argv[2] ?? 2);
 const seconds = Number(process.argv[3] ?? 40);
 const map = MAPS[mapIdx];
-const world = new World(map, map.teams, 7, [2, 0, 1, 3]);
-void 0;
-const ais = [1, 2, 3].slice(0, map.teams - 1).map((t) => new TeamAi(world, t, 'difficile'));
+const colors = map.teams > 4 ? Array.from({ length: map.teams }, (_, i) => i) : [2, 0, 1, 3];
+const world = new World(map, map.teams, 7, colors);
+const ais = Array.from({ length: map.teams - 1 }, (_, i) => i + 1).map((t) => new TeamAi(world, t, 'difficile'));
+const diplo = new Diplomacy(world, 'difficile', ais.map((a) => a.team), 7);
+if (map.teams > 4) world.setAllied(0, 2, true);
+let maxUnits = 0;
 const ai0 = new TeamAi(world, 0, 'normal');
 const step = 1 / 60;
 const t0 = Date.now();
@@ -39,11 +45,14 @@ for (let t = 0; t < seconds; t += step) {
   ai0.update(step);
   for (const a of ais) a.update(step);
   world.update(step);
-  world.drainEvents();
+  diplo.update(step);
+  diplo.recordAll(world.drainEvents());
+  diplo.drainEvents();
+  maxUnits = Math.max(maxUnits, world.units.length);
   frames++;
 }
 const ms = Date.now() - t0;
-console.log(`simulation: ${frames} pas en ${ms} ms (${(ms / frames).toFixed(3)} ms/pas), unités: ${world.units.length}, stats:`, world.stats());
+console.log(`simulation: ${frames} pas en ${ms} ms (${(ms / frames).toFixed(3)} ms/pas IA + monde), unités: ${world.units.length} (max ${maxUnits}), alliances:`, world.alliesOf(0), world.stats());
 
 for (const zoom of [1, 1.8]) {
   const W = 1170 / 2;
@@ -76,5 +85,5 @@ for (const zoom of [1, 1.8]) {
     });
   }
   console.log(`rendu zoom ${zoom}: ${((Date.now() - t1) / N).toFixed(2)} ms/image`);
-  writeFileSync(`${OUT}/scene-z${zoom}.png`, cv.toBuffer('image/png'));
+  writeFileSync(`${OUT}/scene-m${mapIdx}-z${zoom}.png`, cv.toBuffer('image/png'));
 }

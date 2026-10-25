@@ -11,7 +11,11 @@ import type { MapDef } from './types';
  * 30 bits = 10 bits d'en-tête + 20 bits de graine, mélangés de façon
  * réversible pour que deux codes proches ne se ressemblent pas.
  *  - campagne : bit 9 = 0, bits 0 à 2 = niveau, bits 3 à 8 = 0 (contrôle) ;
- *  - escarmouche : bit 9 = 1, bits 0-1 = équipes - 2, bits 2-3 = taille, bits 4 à 8 = cases - 10.
+ *  - escarmouche à 2-4 équipes : bit 9 = 1, bits 0-1 = équipes - 2, bits 2-3 = taille,
+ *    bits 4 à 8 = cases - 10 ;
+ *  - escarmouche à 5-8 équipes (20 à 30 cases) : bit 9 = 0 et en-tête ≥ 64, soit
+ *    64 + ((équipes - 5) × 4 + taille) × 11 + (cases - 20), dans la place laissée libre par la
+ *    campagne. Les anciens codes (2 à 4 équipes, 5 niveaux) se décodent donc à l'identique.
  */
 
 export type MapSpec = { kind: 'campagne'; level: number } | ({ kind: 'escarmouche' } & SkirmishSettings);
@@ -57,9 +61,14 @@ export function randomSeed(rand: () => number = Math.random): number {
   return Math.floor(rand() * SEED_COUNT) % SEED_COUNT;
 }
 
+const MANY_BASE = 64;
+const MANY_TILES = 11; // 20 à 30 cases
+const MANY_COUNT = 4 * 4 * MANY_TILES; // 5 à 8 équipes × 4 tailles × 11
+
 function header(spec: MapSpec): number {
   if (spec.kind === 'campagne') return spec.level & 7;
   const s = clampSkirmish(spec);
+  if (s.teams >= 5) return MANY_BASE + ((s.teams - 5) * 4 + s.size) * MANY_TILES + (s.tiles - 20);
   return (1 << 9) | ((s.tiles - 10) << 4) | (s.size << 2) | (s.teams - 2);
 }
 
@@ -98,6 +107,13 @@ export function decodeMapCode(text: string): MapCode | null {
     const tiles = ((h >> 4) & 31) + 10;
     if (teams > 4 || tiles > 30) return null;
     return { spec: { kind: 'escarmouche', teams, size, tiles }, seed };
+  }
+  if (h >= MANY_BASE) {
+    const idx = h - MANY_BASE;
+    if (idx >= MANY_COUNT) return null;
+    const tiles = (idx % MANY_TILES) + 20;
+    const rest = Math.floor(idx / MANY_TILES);
+    return { spec: { kind: 'escarmouche', teams: Math.floor(rest / 4) + 5, size: rest % 4, tiles }, seed };
   }
   const level = h & 7;
   if (h >> 3 || level >= LEVELS.length) return null;

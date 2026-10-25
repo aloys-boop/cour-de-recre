@@ -1,3 +1,4 @@
+import { MAX_TEAMS } from '../config';
 import type { World, WorldEvent } from './world';
 
 /** Compteurs d'une équipe pendant une partie. */
@@ -16,7 +17,7 @@ export interface TeamTally {
 export class GameStats {
   readonly teams: TeamTally[] = [];
 
-  constructor(numTeams = 4) {
+  constructor(numTeams = MAX_TEAMS) {
     for (let t = 0; t < numTeams; t++) this.teams.push({ produced: 0, koDealt: 0, koTaken: 0, captured: 0 });
   }
 

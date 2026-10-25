@@ -5,6 +5,7 @@ import {
   SKIRMISH_TILES_MAX,
   SKIRMISH_TILES_MIN,
   clampSkirmish,
+  minTilesFor,
   skirmishLevel,
   type SkirmishSettings,
 } from '../core/skirmish';
@@ -30,7 +31,7 @@ export function skirmishPanel(settings: SkirmishSettings): HTMLElement {
   box.append(
     optionRow('Équipes', teams, () => settings.teams, (v) => {
       settings.teams = v;
-      refresh();
+      setTiles(settings.tiles); // à partir de 5 équipes : au moins 20 cases
     }),
   );
 
@@ -67,10 +68,11 @@ export function skirmishPanel(settings: SkirmishSettings): HTMLElement {
   range.className = 'tiles-range';
   range.setAttribute('aria-label', 'Nombre de cases bonus');
   const setTiles = (n: number) => {
-    settings.tiles = Math.max(SKIRMISH_TILES_MIN, Math.min(SKIRMISH_TILES_MAX, n));
+    const min = minTilesFor(settings.teams);
+    settings.tiles = Math.max(min, Math.min(SKIRMISH_TILES_MAX, n));
     value.textContent = String(settings.tiles);
     range.value = String(settings.tiles);
-    minus.disabled = settings.tiles <= SKIRMISH_TILES_MIN;
+    minus.disabled = settings.tiles <= min;
     plus.disabled = settings.tiles >= SKIRMISH_TILES_MAX;
     refresh();
   };

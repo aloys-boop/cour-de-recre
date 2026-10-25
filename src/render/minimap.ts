@@ -54,7 +54,7 @@ export class Minimap {
     return { x: (a + b) / 2, y: (b - a) / 2 };
   }
 
-  draw(world: World, cam: Camera): void {
+  draw(world: World, cam: Camera, playerTeam = 0): void {
     const ctx = this.ctx;
     const mw = world.map.w;
     const mh = world.map.h;
@@ -89,8 +89,10 @@ export class Minimap {
       ctx.lineTo(p.x - s, p.y);
       ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = 'rgba(0,0,0,0.35)';
-      ctx.lineWidth = 0.5;
+      // Camp d'un allié du joueur : liseré bleu clair.
+      const ally = t.isCamp && t.owner !== NO_TEAM && world.isAllied(t.owner, playerTeam);
+      ctx.strokeStyle = ally ? '#9fdcff' : 'rgba(0,0,0,0.35)';
+      ctx.lineWidth = ally ? 1.5 : 0.5;
       ctx.stroke();
     }
     drawGoldenMinimap(ctx, world, (gx, gy) => this.toMini(gx, gy), Math.max(2.5, (TILE_W / 2) * this.scale * 0.9));

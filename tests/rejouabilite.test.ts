@@ -153,7 +153,7 @@ describe('escarmouche', () => {
 
   it('borne les réglages hors limites', () => {
     const l = skirmishLevel({ teams: 9, size: -3, tiles: 99 });
-    expect(l.teams).toBe(4);
+    expect(l.teams).toBe(8);
     expect(l.tiles).toBe(30);
   });
 

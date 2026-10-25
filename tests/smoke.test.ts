@@ -65,10 +65,10 @@ describe('application complète', () => {
   it('démarre une partie depuis le menu et répond aux gestes', async () => {
     const main = await import('../src/main');
     void main;
-    // Le menu est affiché avec ses quatre équipes et ses cartes.
+    // Le menu est affiché avec ses huit équipes et ses cartes.
     const menu = document.getElementById('menu')!;
     expect(menu.classList.contains('hidden')).toBe(false);
-    expect(menu.querySelectorAll('.team-btn').length).toBe(4);
+    expect(menu.querySelectorAll('.team-btn').length).toBe(8);
     expect(menu.querySelectorAll('.map-btn').length).toBeGreaterThanOrEqual(5);
     expect(menu.querySelectorAll('.map-btn.locked').length).toBe(menu.querySelectorAll('.map-btn').length - 1);
 

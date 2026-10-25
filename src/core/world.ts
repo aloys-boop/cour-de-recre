@@ -1,4 +1,4 @@
-import { SUIT_BONUS, TEAM_PROFILES, TUNING } from '../config';
+import { MAX_TEAMS, SUIT_BONUS, TEAM_PROFILES, TUNING } from '../config';
 import { Grid } from './grid';
 import { dist2 } from './math';
 import { findPath, smoothPath } from './pathfinding';
@@ -44,14 +44,17 @@ export class World {
   readonly events: WorldEvent[] = [];
   readonly hash = new SpatialHash<Unit>(1);
   /** Couleur d'uniforme (index dans TEAM_COLORS / TEAM_PROFILES) de chaque équipe de la partie. */
-  teamColors: number[] = [0, 1, 2, 3];
+  teamColors: number[] = Array.from({ length: MAX_TEAMS }, (_, i) => i);
   /** Multiplicateur de dégâts par équipe (handicap / bonus des IA selon la difficulté). */
-  damageScale: number[] = [1, 1, 1, 1];
+  damageScale: number[] = new Array<number>(MAX_TEAMS).fill(1);
+  /** Alliances en cours : `allied[a][b]` (symétrique). Deux alliés ne se battent pas. */
+  readonly allied: boolean[][] = [];
   readonly mods: TeamMods[] = [];
   time = 0;
   /** Rythme de partie : case dorée, épuisement des équipes sans camp (voir events.ts). */
   readonly rhythm = new RhythmState();
   private presence: number[][] = [];
+  private friendFn = (a: number, b: number): boolean => this.isFriend(a, b);
   private byId = new Map<number, Unit>();
 
   constructor(map: MapDef, numTeams = map.teams, seed = 1, teamColors?: number[]) {
@@ -64,6 +67,7 @@ export class World {
     this.tiles = map.tiles.filter((t) => t.kind !== 'camp' || (t.owner ?? 99) < numTeams).map((t) => new Tile(t));
     for (const t of this.tiles) if (t.owner >= numTeams) t.owner = NO_TEAM;
     this.presence = this.tiles.map(() => new Array<number>(numTeams).fill(0));
+    for (let t = 0; t < numTeams; t++) this.allied.push(new Array<boolean>(numTeams).fill(false));
     for (let t = 0; t < numTeams; t++) this.mods.push({ hp: 1, dmg: 1, prod: 1, speed: 1, suits: { spade: 0, heart: 0, diamond: 0, club: 0 } });
     this.refreshMods();
     // Élèves de départ, dans le camp de chaque équipe.
@@ -117,19 +121,80 @@ export class World {
     return out;
   }
 
+  // ---------------------------------------------------------------- alliances
+
+  /** Les deux équipes sont-elles alliées (une équipe n'est pas son propre allié) ? */
+  isAllied(a: number, b: number): boolean {
+    return a !== b && a >= 0 && b >= 0 && !!this.allied[a]?.[b];
+  }
+
+  /** Même équipe ou alliées : elles ne se battent pas et ne se contestent pas les cases. */
+  isFriend(a: number, b: number): boolean {
+    return a === b || this.isAllied(a, b);
+  }
+
+  /** Forme ou rompt une alliance (symétrique). */
+  setAllied(a: number, b: number, on: boolean): void {
+    if (a === b || a < 0 || b < 0 || a >= this.numTeams || b >= this.numTeams) return;
+    this.allied[a][b] = on;
+    this.allied[b][a] = on;
+    if (on) {
+      // Les combats en cours entre nouveaux alliés cessent.
+      for (const u of this.units) {
+        if (u.team !== a && u.team !== b) continue;
+        const e = u.engagedId >= 0 ? this.byId.get(u.engagedId) : undefined;
+        if (e && this.isFriend(u.team, e.team)) {
+          u.engagedId = -1;
+          u.pendingHit = 0;
+          if (u.order.kind === 'attack') u.clearOrder();
+        }
+      }
+    }
+  }
+
+  /** Alliés d'une équipe. */
+  alliesOf(team: number): number[] {
+    const out: number[] = [];
+    for (let t = 0; t < this.numTeams; t++) if (this.isAllied(team, t)) out.push(t);
+    return out;
+  }
+
+  /** Les équipes données sont-elles toutes alliées deux à deux ? */
+  allMutuallyAllied(teams: readonly number[]): boolean {
+    for (let i = 0; i < teams.length; i++) for (let j = i + 1; j < teams.length; j++) if (!this.isAllied(teams[i], teams[j])) return false;
+    return true;
+  }
+
   /**
-   * Équipe gagnante, ou NO_TEAM :
+   * Équipes victorieuses (vide si la partie continue) :
+   *  - toutes les équipes encore en vie (un élève ou un camp) sont alliées deux à deux
+   *    (une seule équipe en vie : elle gagne seule) ;
+   *  - ou une équipe (ou une alliance) tient tous les camps : elle gagne, avec ses alliés
+   *    encore en vie qui sont alliés à tous ses membres.
+   */
+  victors(): number[] {
+    const s = this.stats();
+    const alive: number[] = [];
+    for (let t = 0; t < this.numTeams; t++) if (s[t].alive) alive.push(t);
+    if (alive.length === 0) return [];
+    if (this.allMutuallyAllied(alive)) return alive;
+    const camps = this.camps;
+    if (camps.length === 0 || camps.some((c) => c.owner === NO_TEAM)) return [];
+    const holders = [...new Set(camps.map((c) => c.owner))].sort((a, b) => a - b);
+    if (!this.allMutuallyAllied(holders)) return [];
+    const out = holders.slice();
+    for (const t of alive) if (!out.includes(t) && out.every((o) => this.isAllied(o, t))) out.push(t);
+    return out.sort((a, b) => a - b);
+  }
+
+  /**
+   * Équipe gagnante seule, ou NO_TEAM (partie en cours ou victoire d'une alliance) :
    *  - seule équipe encore en vie (un élève ou un camp), ou
    *  - propriétaire de tous les camps (les autres ne peuvent plus produire).
    */
   winner(): number {
-    const s = this.stats();
-    const aliveTeams = s.filter((x) => x.alive).length;
-    const campsTotal = this.camps.length;
-    for (let t = 0; t < this.numTeams; t++) {
-      if (s[t].alive && (aliveTeams === 1 || (campsTotal > 0 && s[t].camps === campsTotal))) return t;
-    }
-    return NO_TEAM;
+    const v = this.victors();
+    return v.length === 1 ? v[0] : NO_TEAM;
   }
 
   tileAt(px: number, py: number): Tile | null {
@@ -200,7 +265,7 @@ export class World {
     const target = this.byId.get(targetId);
     if (!target || !target.alive) return;
     for (const u of units) {
-      if (!u.alive || u.team === target.team) continue;
+      if (!u.alive || this.isFriend(u.team, target.team)) continue;
       u.order = { kind: 'attack', target: target.pos, unitId: targetId };
       u.engagedId = targetId;
       this.computePath(u, target.pos);
@@ -236,7 +301,7 @@ export class World {
     let best: Unit | null = null;
     let bd = radius * radius;
     this.hash.query(u.x, u.y, radius, (o) => {
-      if (o.team === u.team || !o.alive) return;
+      if (!o.alive || this.isFriend(o.team, u.team)) return;
       const d = dist2(u.x, u.y, o.x, o.y);
       if (d < bd) {
         bd = d;
@@ -275,7 +340,7 @@ export class World {
       if (u.pendingHit <= 0) {
         u.pendingHit = 0;
         const target = this.byId.get(u.engagedId);
-        if (target && target.alive && dist2(u.x, u.y, target.x, target.y) < (TUNING.punchRange * 1.5) ** 2) {
+        if (target && target.alive && !this.isFriend(u.team, target.team) && dist2(u.x, u.y, target.x, target.y) < (TUNING.punchRange * 1.5) ** 2) {
           const scale = this.mods[u.team].dmg * (this.damageScale[u.team] ?? 1);
           const dmg = Math.max(1, Math.round(punchDamage(() => this.rng.next()) * scale));
           const ko = target.takeDamage(dmg, u.x, u.y);
@@ -287,7 +352,7 @@ export class World {
 
     // Validation de l'ennemi engagé.
     let engaged = u.engagedId >= 0 ? this.byId.get(u.engagedId) : undefined;
-    if (engaged && !engaged.alive) {
+    if (engaged && (!engaged.alive || this.isFriend(u.team, engaged.team))) {
       engaged = undefined;
       u.engagedId = -1;
       if (u.order.kind === 'attack') u.clearOrder();
@@ -385,6 +450,8 @@ export class World {
       let py = 0;
       this.hash.query(u.x, u.y, r, (o) => {
         if (o === u || !o.alive) return;
+        // Des alliés se traversent sans se bloquer.
+        if (o.team !== u.team && this.isAllied(o.team, u.team)) return;
         const dx = u.x - o.x;
         const dy = u.y - o.y;
         const d2 = dx * dx + dy * dy;
@@ -433,7 +500,7 @@ export class World {
           u.healedAt = this.time;
         }
       });
-      const ev = updateCapture(t, pres, dt);
+      const ev = updateCapture(t, pres, dt, this.friendFn);
       if (ev && ev.kind === 'captured') {
         changed = true;
         this.events.push({ kind: 'captured', x: t.cx, y: t.cy, team: ev.team, camp: t.isCamp });

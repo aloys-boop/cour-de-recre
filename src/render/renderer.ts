@@ -47,7 +47,7 @@ export class Renderer {
     private ctx: CanvasRenderingContext2D,
     makeCanvas: (w: number, h: number) => SheetCanvas,
   ) {
-    for (let t = 0; t < 4; t++) this.sheets.push(buildSheet(t, makeCanvas));
+    for (let t = 0; t < TEAM_COLORS.length; t++) this.sheets.push(buildSheet(t, makeCanvas));
   }
 
   draw(
@@ -271,8 +271,11 @@ export class Renderer {
         const bh = Math.max(2, 2.5 * z);
         const bx = p.x - bw / 2;
         const by = p.y - (FEET_Y + 6) * z;
-        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        const ally = u.team !== playerTeam && world.isAllied(u.team, playerTeam);
+        // Allié du joueur : cadre bleuté autour de la barre et petit losange à gauche.
+        ctx.fillStyle = ally ? 'rgba(40,120,200,0.85)' : 'rgba(0,0,0,0.5)';
         ctx.fillRect(bx - 1, by - 1, bw + 2, bh + 2);
+        if (ally) drawAllyDiamond(ctx, bx - 4 * z, by + bh / 2, z);
         const r = u.hp / u.maxHp;
         ctx.fillStyle = r > 0.5 ? '#3ee05a' : r > 0.25 ? '#f2c22e' : '#e5453c';
         ctx.fillRect(bx, by, bw * r, bh);
@@ -344,4 +347,20 @@ export class Renderer {
     ctx.lineWidth = 1.5;
     ctx.strokeRect(x, y, w, h);
   }
+}
+
+/** Petit losange bleu clair qui distingue les élèves alliés des ennemis. */
+export function drawAllyDiamond(ctx: CanvasRenderingContext2D, x: number, y: number, z: number): void {
+  const r = Math.max(2.5, 3.2 * z);
+  ctx.beginPath();
+  ctx.moveTo(x, y - r);
+  ctx.lineTo(x + r * 0.8, y);
+  ctx.lineTo(x, y + r);
+  ctx.lineTo(x - r * 0.8, y);
+  ctx.closePath();
+  ctx.fillStyle = '#9fdcff';
+  ctx.fill();
+  ctx.strokeStyle = '#0d2a40';
+  ctx.lineWidth = Math.max(1, 0.9 * z);
+  ctx.stroke();
 }

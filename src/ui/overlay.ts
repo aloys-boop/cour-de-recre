@@ -1,4 +1,5 @@
-import { TEAM_COLORS, TEAM_NAMES } from '../config';
+import { TEAM_COLORS, TEAM_NAMES, TEAM_PLURALS } from '../config';
+import { teamPlural } from '../core/diplomacy';
 import { formatDuration, type EndStats } from '../core/stats';
 
 /** Fenêtres modales : pause, fin de partie, aide à l'installation. */
@@ -25,13 +26,38 @@ export class Overlay {
   end(
     win: boolean,
     mapName: string,
-    opts: { nextAvailable: boolean; onReplay: () => void; onNext: () => void; onMenu: () => void; stats?: EndStats; winText?: string; extras?: HTMLElement[] },
+    opts: {
+      nextAvailable: boolean;
+      onReplay: () => void;
+      onNext: () => void;
+      onMenu: () => void;
+      stats?: EndStats;
+      winText?: string;
+      extras?: HTMLElement[];
+      /** Couleurs des équipes d'une alliance victorieuse (victoire partagée). */
+      alliance?: number[];
+    },
   ): void {
+    const alliance = opts.alliance && opts.alliance.length > 1 ? opts.alliance : null;
+    const names = alliance ? listFr(alliance.map((c) => teamPlural(c))) : '';
+    const winText = win && opts.winText ? opts.winText : win ? `La cour « ${mapName} » est à toi.${opts.nextAvailable ? ' Une nouvelle carte est débloquée.' : ' Tu as terminé toutes les cartes !'}` : 'Tes élèves ont été mis KO et tes cases reprises.';
     const card = this.card(
-      win ? 'Victoire !' : 'Défaite…',
-      win && opts.winText ? opts.winText : win ? `La cour « ${mapName} » est à toi.${opts.nextAvailable ? ' Une nouvelle carte est débloquée.' : ' Tu as terminé toutes les cartes !'}` : 'Tes élèves ont été mis KO et tes cases reprises.',
+      win ? (alliance ? 'Victoire de l’alliance !' : 'Victoire !') : 'Défaite…',
+      alliance ? (win ? `${names.charAt(0).toUpperCase()}${names.slice(1)} gagnent ensemble. ${winText}` : `L’alliance ${listFr(alliance.map((c) => `des ${TEAM_PLURALS[c] ?? '?'}`))} l’emporte.`) : winText,
     );
     card.classList.add(win ? 'win' : 'lose');
+    if (alliance) {
+      const row = document.createElement('div');
+      row.className = 'alliance-row';
+      for (const c of alliance) {
+        const d = document.createElement('span');
+        d.className = 'alliance-dot';
+        d.style.background = TEAM_COLORS[c]?.ui ?? '#888';
+        d.title = TEAM_NAMES[c] ?? '';
+        row.append(d);
+      }
+      card.querySelector('h2')!.after(row);
+    }
     if (opts.stats) card.append(this.statsTable(opts.stats));
     card.append(...(opts.extras ?? []));
     const buttons = [this.btn('Rejouer', opts.onReplay, win ? 'btn-secondary' : '')];
@@ -57,7 +83,7 @@ export class Overlay {
   /** Tableau de fin de partie : une ligne par équipe, le joueur en évidence. */
   private statsTable(stats: EndStats): HTMLElement {
     const wrap = document.createElement('div');
-    wrap.className = 'end-stats';
+    wrap.className = stats.rows.length > 5 ? 'end-stats many' : 'end-stats';
     const table = document.createElement('table');
     const head = document.createElement('tr');
     for (const label of ['Équipe', 'Élèves', 'KO infligés', 'KO subis', 'Cases prises']) {
@@ -114,4 +140,10 @@ export class Overlay {
     b.addEventListener('click', onClick);
     return b;
   }
+}
+
+/** « les Verts, les Jaunes et les Roses ». */
+function listFr(items: string[]): string {
+  if (items.length <= 1) return items.join('');
+  return `${items.slice(0, -1).join(', ')} et ${items[items.length - 1]}`;
 }

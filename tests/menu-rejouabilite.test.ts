@@ -27,7 +27,7 @@ describe('menu : escarmouche, code de carte, médailles', () => {
     expect([...tabs].map((t) => t.textContent)).toEqual(['Campagne', 'Escarmouche']);
     click('.mode-btn', 1);
     click('.opt-btn', 1); // 3 équipes
-    click('.opt-btn', 6); // cour immense
+    click('.opt-btn', 10); // cour immense (après les 7 boutons d'équipes, de 2 à 8)
     const plus = root.querySelector('[aria-label="Plus de cases"]') as HTMLButtonElement;
     plus.click();
     plus.click();

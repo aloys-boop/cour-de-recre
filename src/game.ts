@@ -1,11 +1,13 @@
 import type { Sfx } from './audio/sfx';
 import { TeamAi } from './core/ai';
 import { GameStats } from './core/stats';
-import { NO_TEAM, type Difficulty, type MapDef } from './core/types';
+import type { Difficulty, MapDef } from './core/types';
 import type { Tile } from './core/tile';
 import type { Unit } from './core/unit';
 import { World } from './core/world';
 import { rhythmAnnouncement } from './core/events';
+import { Diplomacy, diploMessage, type BreakResult, type DiploView, type ProposeResult } from './core/diplomacy';
+import { MAX_TEAMS } from './config';
 import { TouchInput } from './input/touch';
 import { Camera } from './render/camera';
 import { Effects } from './render/effects';
@@ -20,7 +22,7 @@ export type GameResult = 'victoire' | 'defaite';
 export interface GameOptions {
   map: MapDef;
   mapIndex: number;
-  playerColor: number; // 0..3
+  playerColor: number; // 0..7
   difficulty: Difficulty;
   seed?: number;
 }
@@ -31,7 +33,7 @@ export interface GameHooks {
   onHud(world: World, selectedCount: number): void;
   /** Point de ralliement posé (ou effacé) par le joueur. */
   onRally?(cleared: boolean): void;
-  /** Annonce courte à afficher (case dorée, plus de camp…). */
+  /** Annonce courte à afficher (case dorée, plus de camp, diplomatie…). */
   onAnnounce?(text: string): void;
 }
 
@@ -44,6 +46,11 @@ export class Game {
   readonly playerTeam = 0;
   readonly selected = new Set<number>();
   readonly stats = new GameStats();
+  /** Diplomatie : alliances pendant la partie (les IA jouent la leur). */
+  readonly diplomacy: Diplomacy;
+  /** Équipes victorieuses à la fin de la partie (plusieurs : victoire d'une alliance). */
+  victors: number[] = [];
+  private importantUntil = 0;
   private fx = new Effects();
   private ais: TeamAi[] = [];
   private markers: Marker[] = [];
@@ -75,13 +82,20 @@ export class Game {
     private hooks: GameHooks,
   ) {
     // Le joueur est l'équipe 0 ; sa couleur est celle choisie, les autres suivent.
-    const others = [0, 1, 2, 3].filter((c) => c !== opts.playerColor);
-    this.world = new World(opts.map, opts.map.teams, opts.seed ?? (Date.now() % 100000), [opts.playerColor, ...others]);
+    const others = Array.from({ length: MAX_TEAMS }, (_, c) => c).filter((c) => c !== opts.playerColor);
+    const seed = opts.seed ?? Date.now() % 100000;
+    this.world = new World(opts.map, opts.map.teams, seed, [opts.playerColor, ...others]);
     for (let t = 1; t < this.world.numTeams; t++) {
       const ai = new TeamAi(this.world, t, opts.difficulty);
       this.ais.push(ai);
       this.world.damageScale[t] = ai.profile.damage;
     }
+    this.diplomacy = new Diplomacy(
+      this.world,
+      opts.difficulty,
+      this.ais.map((a) => a.team),
+      seed,
+    );
 
     const ctx = canvas.getContext('2d', { alpha: false })!;
     this.renderer = new Renderer(ctx, (w, h) => {
@@ -197,10 +211,12 @@ export class Game {
     const w = this.world;
     for (const ai of this.ais) ai.update(dt);
     w.update(dt);
+    this.diplomacy.update(dt);
     // Événements : sons et effets.
     for (const ev of w.drainEvents()) {
       const color = w.teamColors[ev.team];
       this.stats.record(ev);
+      this.diplomacy.record(ev);
       this.fx.onEvent(ev, this.cam);
       switch (ev.kind) {
         case 'punch':
@@ -225,6 +241,10 @@ export class Game {
           break;
       }
     }
+    for (const ev of this.diplomacy.drainEvents()) {
+      const m = diploMessage(ev, this.playerTeam, w.teamColors);
+      if (m) this.announce(m.text, m.important);
+    }
     // Nettoyage de la sélection.
     for (const id of this.selected) {
       const u = w.unitById(id);
@@ -237,11 +257,12 @@ export class Game {
     }
     if (this.homeCamp && this.homeCamp.owner !== this.playerTeam) this.homeCampLost = true;
     // Fin de partie.
-    const winner = w.winner();
+    const victors = w.victors();
     const me = w.stats()[this.playerTeam];
-    if (winner !== NO_TEAM || !me.alive) {
+    if (victors.length > 0 || !me.alive) {
       this.over = true;
-      const result: GameResult = winner === this.playerTeam ? 'victoire' : 'defaite';
+      this.victors = victors;
+      const result: GameResult = me.alive && victors.includes(this.playerTeam) ? 'victoire' : 'defaite';
       this.sfx.play(result === 'victoire' ? 'victory' : 'defeat');
       this.hooks.onHud(w, this.selected.size);
       this.endTimer = window.setTimeout(() => this.hooks.onEnd(result, this.opts), 900);
@@ -309,12 +330,13 @@ export class Game {
     }
     if (this.selected.size === 0) return;
     const units = this.selectedUnits();
-    if (hit && hit.team !== this.playerTeam) {
+    if (hit && this.hostile(hit)) {
       this.world.orderAttack(units, hit.id);
       this.markers.push({ x: hit.x, y: hit.y, t: 0, kind: 'attack', team: this.opts.playerColor });
       this.sfx.play('order');
       return;
     }
+    // Un tap sur un allié (pas d'attaque possible) vaut un déplacement à cet endroit.
     const g = this.cam.screenToGrid(sx, sy);
     if (g.x < 0 || g.y < 0 || g.x >= this.world.map.w || g.y >= this.world.map.h) return;
     const target = this.world.grid.walkable(g.x, g.y) ? g : (() => {
@@ -365,10 +387,61 @@ export class Game {
     return out;
   }
 
-  private announce(text: string | null): void {
+  /**
+   * Annonce au joueur. Une annonce mineure (par ex. une alliance entre deux IA) n'écrase pas
+   * une annonce importante affichée depuis moins de 2,6 s.
+   */
+  private announce(text: string | null, important = true): void {
     if (!text) return;
+    const now = this.world.time;
+    if (!important && now < this.importantUntil) return;
+    if (important) this.importantUntil = now + 2.6;
     this.sfx.play('capture');
     this.hooks.onAnnounce?.(text);
+  }
+
+  // ---------------------------------------------------------------- diplomatie
+
+  /** État diplomatique entre le joueur et une équipe. */
+  diploView(team: number): DiploView {
+    return this.diplomacy.view(this.playerTeam, team);
+  }
+
+  /** Le joueur propose une alliance ; la réponse de l'IA est immédiate et annoncée. */
+  proposeAlliance(team: number): ProposeResult {
+    if (this.over) return 'invalide';
+    const r = this.diplomacy.propose(this.playerTeam, team);
+    if (r === 'trop-tot') this.announce(this.cooldownText(team));
+    this.flushDiplomacy();
+    return r;
+  }
+
+  /** Le joueur rompt une alliance (préavis de quelques secondes). */
+  breakAlliance(team: number): BreakResult {
+    if (this.over) return 'invalide';
+    const r = this.diplomacy.requestBreak(this.playerTeam, team);
+    if (r === 'trop-tot') this.announce(this.cooldownText(team));
+    this.flushDiplomacy();
+    return r;
+  }
+
+  private cooldownText(team: number): string {
+    const s = Math.ceil(this.diplomacy.cooldownLeft(this.playerTeam, team));
+    return `Trop tôt\u00a0: encore ${s}\u00a0s avant de changer d’alliance avec cette équipe.`;
+  }
+
+  /** Annonce tout de suite les réponses (sans attendre le prochain pas de simulation). */
+  private flushDiplomacy(): void {
+    for (const ev of this.diplomacy.drainEvents()) {
+      const m = diploMessage(ev, this.playerTeam, this.world.teamColors);
+      if (m) this.announce(m.text, m.important);
+    }
+    this.hooks.onHud(this.world, this.selected.size);
+  }
+
+  /** L'élève est-il un ennemi du joueur (ni à lui, ni allié) ? */
+  private hostile(u: Unit): boolean {
+    return !this.world.isFriend(u.team, this.playerTeam);
   }
 
   destroy(): void {
@@ -461,7 +534,7 @@ export class Game {
 
   private arrowMove(x0: number, y0: number, x1: number, y1: number): void {
     const hit = this.unitAt(x1, y1);
-    this.arrow = { x0, y0, x1, y1, attack: !!hit && hit.team !== this.playerTeam };
+    this.arrow = { x0, y0, x1, y1, attack: !!hit && this.hostile(hit) };
   }
 
   /** Fin du glissé : attaque si on relâche sur un ennemi, sinon déplacement (repli) vers ce point. */
@@ -471,7 +544,7 @@ export class Game {
     const units = this.selectedUnits();
     if (units.length === 0) return;
     const hit = this.unitAt(sx, sy);
-    if (hit && hit.team !== this.playerTeam) {
+    if (hit && this.hostile(hit)) {
       this.world.orderAttack(units, hit.id);
       this.markers.push({ x: hit.x, y: hit.y, t: 0, kind: 'attack', team: this.opts.playerColor });
       this.sfx.play('order');
