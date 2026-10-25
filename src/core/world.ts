@@ -423,7 +423,10 @@ export class World {
       this.hash.query(t.cx, t.cy, t.half, (u) => {
         if (!u.alive || !t.contains(u.x, u.y)) return;
         pres[u.team]++;
-        if (heals && u.team === t.owner && u.hp < u.maxHp) u.hp = Math.min(u.maxHp, u.hp + TUNING.regenPerSec * dt);
+        if (heals && u.team === t.owner && u.hp < u.maxHp) {
+          u.hp = Math.min(u.maxHp, u.hp + TUNING.regenPerSec * dt);
+          u.healedAt = this.time;
+        }
       });
       const ev = updateCapture(t, pres, dt);
       if (ev && ev.kind === 'captured') {
@@ -439,7 +442,7 @@ export class World {
           t.spawnTimer = 0;
           if (this.teamUnitCount(t.owner) < this.map.unitCap) {
             const a = this.rng.next() * Math.PI * 2;
-            this.spawnUnit(t.owner, t.cx + Math.cos(a) * 0.5, t.cy + Math.sin(a) * 0.5);
+            this.applyRally(t, this.spawnUnit(t.owner, t.cx + Math.cos(a) * 0.5, t.cy + Math.sin(a) * 0.5));
           }
         }
       }
@@ -462,5 +465,53 @@ export class World {
     const out = this.events.slice();
     this.events.length = 0;
     return out;
+  }
+
+  // ---------------------------------------------------------------- ralliement
+
+  /** Point de ralliement de chaque camp (équipe qui l'a posé + position). */
+  readonly rallies = new Map<Tile, { team: number; x: number; y: number }>();
+
+  /**
+   * Pose le point de ralliement du camp de `team` le plus proche de `p`.
+   * Viser l'intérieur d'un de ses camps efface le ralliement de ce camp.
+   * Retourne le camp concerné, ou null si l'équipe n'a aucun camp.
+   */
+  setRally(team: number, p: Vec2): { camp: Tile; cleared: boolean } | null {
+    let best: Tile | null = null;
+    let bd = Infinity;
+    for (const t of this.tiles) {
+      if (!t.isCamp || t.owner !== team) continue;
+      if (t.contains(p.x, p.y, t.size / 2)) {
+        this.rallies.delete(t);
+        return { camp: t, cleared: true };
+      }
+      const d = dist2(p.x, p.y, t.cx, t.cy);
+      if (d < bd) {
+        bd = d;
+        best = t;
+      }
+    }
+    if (!best) return null;
+    const g = this.grid.clampPos(p, 0.3);
+    this.rallies.set(best, { team, x: g.x, y: g.y });
+    return { camp: best, cleared: false };
+  }
+
+  /** Point de ralliement valide d'un camp (posé par son propriétaire actuel), ou null. */
+  rallyFor(camp: Tile): Vec2 | null {
+    const r = this.rallies.get(camp);
+    if (!r) return null;
+    if (r.team !== camp.owner) {
+      this.rallies.delete(camp);
+      return null;
+    }
+    return { x: r.x, y: r.y };
+  }
+
+  /** Un élève qui naît dans un camp doté d'un ralliement s'y replie aussitôt. */
+  private applyRally(camp: Tile, u: Unit): void {
+    const r = this.rallyFor(camp);
+    if (r) this.orderMove([u], r, false);
   }
 }

@@ -41,6 +41,8 @@ export class Unit {
   pathGoal: Vec2 | null = null;
   /** Champ libre pour l'IA (rôle courant). */
   aiTag = 0;
+  /** Instant (temps du monde) du dernier soin reçu sur un camp ou un cœur, -1 sinon. */
+  healedAt = -1;
 
   constructor(team: number, x: number, y: number) {
     this.id = nextId++;

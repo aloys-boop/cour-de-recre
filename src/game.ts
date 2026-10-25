@@ -23,6 +23,8 @@ export interface GameHooks {
   onEnd(result: GameResult, opts: GameOptions): void;
   onPauseChange(paused: boolean): void;
   onHud(world: World, selectedCount: number): void;
+  /** Point de ralliement posé (ou effacé) par le joueur. */
+  onRally?(cleared: boolean): void;
 }
 
 const STEP = 1 / 60;
@@ -49,6 +51,8 @@ export class Game {
   private dpr = 1;
   private ac = new AbortController();
   private endTimer = 0;
+  /** Mode des ordres de déplacement du joueur : false = fuir (repli), true = charger. */
+  charge = false;
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -102,6 +106,7 @@ export class Game {
       },
       onPan: (dx, dy) => this.cam.pan(dx, dy),
       onPinch: (f, cx, cy) => this.cam.zoomAt(f, cx, cy),
+      onLongPress: (x, y) => this.longPress(x, y),
     });
 
     minimapCanvas.addEventListener(
@@ -287,8 +292,8 @@ export class Game {
       const c = this.world.grid.nearestFree(g.x, g.y);
       return { x: c.x + 0.5, y: c.y + 0.5 };
     })();
-    this.world.orderMove(units, target);
-    this.markers.push({ x: target.x, y: target.y, t: 0, kind: 'move', team: this.opts.playerColor });
+    this.world.orderMove(units, target, this.charge);
+    this.markers.push({ x: target.x, y: target.y, t: 0, kind: this.charge ? 'charge' : 'move', team: this.opts.playerColor });
     this.sfx.play('order');
   }
 
@@ -336,5 +341,29 @@ export class Game {
     clearTimeout(this.endTimer);
     this.input.destroy();
     this.ac.abort();
+  }
+
+  /**
+   * Appui long sans bouger : sans sélection, sur le sol, pose le point de ralliement du camp
+   * le plus proche (sur un de ses camps : l'efface). Sinon, comportement du rectangle de sélection.
+   */
+  private longPress(sx: number, sy: number): void {
+    this.box = null;
+    if (this.paused || this.over) return;
+    const hit = this.unitAt(sx, sy);
+    const g = this.cam.screenToGrid(sx, sy);
+    const onMap = g.x >= 0 && g.y >= 0 && g.x < this.world.map.w && g.y < this.world.map.h;
+    if (this.selected.size > 0 || (hit && hit.team === this.playerTeam) || !onMap) {
+      this.boxSelect(sx, sy, sx, sy);
+      return;
+    }
+    this.sfx.unlock();
+    const res = this.world.setRally(this.playerTeam, g);
+    if (!res) return;
+    const r = this.world.rallyFor(res.camp);
+    const at = r ?? { x: res.camp.cx, y: res.camp.cy };
+    this.markers.push({ x: at.x, y: at.y, t: 0, kind: 'capture', team: this.opts.playerColor });
+    this.sfx.play('order');
+    this.hooks.onRally?.(res.cleared);
   }
 }

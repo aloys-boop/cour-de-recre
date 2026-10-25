@@ -13,6 +13,8 @@ export interface TouchCallbacks {
   onBoxEnd(x0: number, y0: number, x1: number, y1: number): void;
   onPan(dx: number, dy: number): void;
   onPinch(factor: number, cx: number, cy: number): void;
+  /** Appui long sans bouger puis relâché (sinon, le rectangle de sélection est utilisé). */
+  onLongPress?(x: number, y: number): void;
 }
 
 interface P {
@@ -142,7 +144,8 @@ export class TouchInput {
     this.el.releasePointerCapture?.(e.pointerId);
     const p = this.local(e);
     if (this.mode === 'box') {
-      this.cb.onBoxEnd(this.boxStart.x, this.boxStart.y, p.x, p.y);
+      if (this.cb.onLongPress && Math.hypot(p.x - this.boxStart.x, p.y - this.boxStart.y) <= TAP_MAX_DIST) this.cb.onLongPress(p.x, p.y);
+      else this.cb.onBoxEnd(this.boxStart.x, this.boxStart.y, p.x, p.y);
       this.mode = 'dead';
     } else if (this.mode === 'none') {
       this.clearLong();
