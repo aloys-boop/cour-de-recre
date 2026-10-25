@@ -5,6 +5,7 @@ import type { World } from '../core/world';
 import type { Camera } from './camera';
 import { COLORS } from './renderer';
 import { drawGoldenMinimap } from './golden';
+import { drawGhostMinimap } from './ghost';
 
 /** Mini-carte : vue d'ensemble de la cour, des cases et des élèves, plus le cadre de la caméra. */
 export class Minimap {
@@ -94,6 +95,7 @@ export class Minimap {
       ctx.strokeStyle = ally ? '#9fdcff' : 'rgba(0,0,0,0.35)';
       ctx.lineWidth = ally ? 1.5 : 0.5;
       ctx.stroke();
+      if (t.ghost && t.owner === NO_TEAM) drawGhostMinimap(ctx, p, s);
     }
     drawGoldenMinimap(ctx, world, (gx, gy) => this.toMini(gx, gy), Math.max(2.5, (TILE_W / 2) * this.scale * 0.9));
     // Élèves.

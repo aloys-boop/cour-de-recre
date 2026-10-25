@@ -34,7 +34,9 @@ export interface RuleToggle {
 }
 
 /** Options affichées (case à cocher) dans le menu d'escarmouche, dans cet ordre. */
-export const RULE_TOGGLES: RuleToggle[] = [];
+export const RULE_TOGGLES: RuleToggle[] = [
+  { key: 'ghostCamps', label: 'Camps fantômes', description: 'Des camps sans propriétaire à conquérir\u00a0: pris, ils produisent des élèves.' },
+];
 
 export interface ModeDef {
   id: GameMode;

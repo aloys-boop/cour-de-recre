@@ -5,6 +5,7 @@ import type { Unit } from '../core/unit';
 import type { World } from '../core/world';
 import type { Camera } from './camera';
 import { drawGoldenTile, drawStarvingBar } from './golden';
+import { drawGhostCamp } from './ghost';
 import { buildSheet, FEET_Y, FRAME_H, FRAME_W, frameFor, type SheetCanvas } from './sprites';
 import { drawSuit } from './suits';
 import { CHARGE_COLOR, drawHealHeart, drawRallies, drawSpadeAura, spadeAuraTeams } from './tactics';
@@ -147,6 +148,7 @@ export class Renderer {
       ctx.strokeStyle = ownerColor === NO_TEAM ? '#d8d8dc' : TEAM_COLORS[ownerColor].light;
       ctx.lineWidth = Math.max(1, 1.2 * z);
       ctx.stroke();
+      if (t.ghost && t.owner === NO_TEAM) drawGhostCamp(ctx, cam, t, time);
     } else {
       // Case bonus : blanche, avec un grand symbole gris qui prend la couleur du propriétaire.
       ctx.fillStyle = COLORS.tile;

@@ -20,6 +20,8 @@ export class Tile {
   readonly suit: Suit | null;
   /** Demi-côté de la zone de capture. */
   readonly half: number;
+  /** Camp fantôme (neutre au départ, voir ghosts.ts). */
+  readonly ghost: boolean;
   /** Équipe propriétaire ou NO_TEAM. */
   owner: number;
   /** Équipe qui remplit la jauge, ou NO_TEAM. */
@@ -40,6 +42,7 @@ export class Tile {
     this.suit = def.suit ?? null;
     this.half = def.kind === 'camp' ? TUNING.campHalf : TUNING.bonusTileHalf;
     this.owner = def.owner ?? NO_TEAM;
+    this.ghost = def.kind === 'camp' && def.ghost === true;
   }
 
   get isCamp(): boolean {

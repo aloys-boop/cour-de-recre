@@ -1,5 +1,6 @@
 import { AI_PROFILES, type AiProfile } from '../config';
 import { goldenAiBonus, goldenRetarget } from './events';
+import { ghostAiBonus } from './ghosts';
 import type { Tile } from './tile';
 import { NO_TEAM, type Difficulty } from './types';
 import type { Unit } from './unit';
@@ -116,6 +117,7 @@ export class TeamAi {
         if (t.capTeam === this.team) score += 0.6;
         if (t.contested) score += 0.2;
         score += goldenAiBonus(w, t);
+        score += ghostAiBonus(w, t, this.team);
         score += w.rng.next() * 0.15;
         if (score > bestScore) {
           bestScore = score;

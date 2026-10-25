@@ -26,8 +26,10 @@ export interface TileDef {
   y: number;
   /** Symbole des cases bonus. */
   suit?: Suit;
-  /** Équipe propriétaire au départ (obligatoire pour un camp). */
+  /** Équipe propriétaire au départ (obligatoire pour un camp, sauf camp fantôme). */
   owner?: TeamId;
+  /** Camp fantôme : camp sans propriétaire au départ (option d'escarmouche, voir ghosts.ts). */
+  ghost?: boolean;
 }
 
 export interface MapDef {
