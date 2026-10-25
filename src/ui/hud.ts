@@ -93,10 +93,12 @@ export class Hud {
       chip.classList.toggle('ally', ally);
       chip.classList.toggle('breaking', ally && view?.breakingIn != null);
       chip.classList.toggle('open', t === this.panelTeam);
-      setText(chip.querySelector('.chip-count')!, String(s.units));
+      // Brouillard de guerre : on ne connaît pas l'effectif des équipes non alliées.
+      const hidden = !!world.rules.fog && t !== playerTeam && !ally;
+      setText(chip.querySelector('.chip-count')!, hidden ? '?' : String(s.units));
       setText(chip.querySelector('.chip-camps')!, s.camps > 1 ? `×${s.camps}` : '');
       const c = world.teamColors[t];
-      const label = `${TEAM_NAMES[c]} : ${s.units} élève${s.units > 1 ? 's' : ''}${s.camps > 1 ? `, ${s.camps} camps` : ''}${ally ? ', allié' : ''}${t === playerTeam ? ' (toi)' : '. Toucher pour la diplomatie'}`;
+      const label = `${TEAM_NAMES[c]} : ${hidden ? 'effectif inconnu' : `${s.units} élève${s.units > 1 ? 's' : ''}`}${s.camps > 1 ? `, ${s.camps} camps` : ''}${ally ? ', allié' : ''}${t === playerTeam ? ' (toi)' : '. Toucher pour la diplomatie'}`;
       if (chip.getAttribute('aria-label') !== label) chip.setAttribute('aria-label', label);
     }
     this.refreshPanel();

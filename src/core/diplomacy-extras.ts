@@ -223,7 +223,7 @@ export class DiplomacyExtras {
     let best: Tile | null = null;
     let bd = Infinity;
     for (const t of this.world.tiles) {
-      if (t.isCamp || t.owner !== owner) continue;
+      if (t.kind !== 'bonus' || t.owner !== owner) continue;
       for (const p of pts) {
         const d = Math.hypot(t.cx - p.x, t.cy - p.y);
         if (d < bd) {
@@ -237,7 +237,7 @@ export class DiplomacyExtras {
 
   /** Change le propriétaire d'une case bonus (jamais un camp) ; les bonus sont recalculés. */
   transferTile(tile: Tile, from: number, to: number): boolean {
-    if (tile.isCamp || tile.owner !== from || !this.valid(to) || from === to) return false;
+    if (tile.kind !== 'bonus' || tile.owner !== from || !this.valid(to) || from === to) return false;
     tile.owner = to;
     tile.cap = 0;
     tile.capTeam = NO_TEAM;

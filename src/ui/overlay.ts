@@ -33,6 +33,9 @@ export class Overlay {
       onMenu: () => void;
       stats?: EndStats;
       winText?: string;
+      /** Titre de victoire (hors alliance) et texte de défaite propres au mode de jeu. */
+      winTitle?: string;
+      loseText?: string;
       extras?: HTMLElement[];
       /** Couleurs des équipes d'une alliance victorieuse (victoire partagée). */
       alliance?: number[];
@@ -40,9 +43,9 @@ export class Overlay {
   ): void {
     const alliance = opts.alliance && opts.alliance.length > 1 ? opts.alliance : null;
     const names = alliance ? listFr(alliance.map((c) => teamPlural(c))) : '';
-    const winText = win && opts.winText ? opts.winText : win ? `La cour « ${mapName} » est à toi.${opts.nextAvailable ? ' Une nouvelle carte est débloquée.' : ' Tu as terminé toutes les cartes !'}` : 'Tes élèves ont été mis KO et tes cases reprises.';
+    const winText = win && opts.winText ? opts.winText : win ? `La cour « ${mapName} » est à toi.${opts.nextAvailable ? ' Une nouvelle carte est débloquée.' : ' Tu as terminé toutes les cartes !'}` : opts.loseText ?? 'Tes élèves ont été mis KO et tes cases reprises.';
     const card = this.card(
-      win ? (alliance ? 'Victoire de l’alliance !' : 'Victoire !') : 'Défaite…',
+      win ? (alliance ? 'Victoire de l’alliance !' : opts.winTitle ?? 'Victoire !') : 'Défaite…',
       alliance ? (win ? `${names.charAt(0).toUpperCase()}${names.slice(1)} gagnent ensemble. ${winText}` : `L’alliance ${listFr(alliance.map((c) => `des ${TEAM_PLURALS[c] ?? '?'}`))} l’emporte.`) : winText,
     );
     card.classList.add(win ? 'win' : 'lose');

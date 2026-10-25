@@ -15,6 +15,7 @@ import { Menu, type MenuState } from './ui/menu';
 import { Overlay } from './ui/overlay';
 import { TacticsHud } from './ui/tactics-hud';
 import { codeBlock, medalsBlock } from './ui/share';
+import { KingHud, kingEnd } from './ui/king-hud';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const minimapCanvas = document.getElementById('minimap') as HTMLCanvasElement;
@@ -57,6 +58,7 @@ const hud = new Hud(
 );
 new ControlsHud(hudRoot, () => game, (text) => hud.showHint(text));
 new DiplomacyExtrasHud(hudRoot, () => game, hud, (text, ms) => hud.showHint(text, ms));
+const kingHud = new KingHud(hudRoot);
 
 // Bloc tactique : bascule Fuir / Charger.
 const tactics = new TacticsHud(hudRoot, {
@@ -112,7 +114,7 @@ function launch(opts: GameOptions, code: MapCode): void {
   menu.hide();
   hud.show();
   game = new Game(canvas, minimapCanvas, sfx, opts, {
-    onHud: (world, selected) => hud.update(world, selected, 0),
+    onHud: (world, selected) => (hud.update(world, selected, 0), kingHud.update(world, 0)),
     onRally: (cleared) =>
       hud.showHint(cleared ? 'Point de ralliement effacé.' : 'Point de ralliement posé : les nouveaux élèves de ce camp iront au drapeau.', 2400),
     onAnnounce: (text) => hud.showHint(text, 2600),
@@ -141,6 +143,8 @@ function launch(opts: GameOptions, code: MapCode): void {
         saveProgress(progress);
         menu.setProgress(progress);
       }
+      const king = game ? kingEnd(game.world, game.playerTeam) : null;
+      if (king) extras.push(king.block);
       extras.push(codeBlock(codeText, () => play(code, o)));
       const nextAvailable = win && campaign && o.mapIndex + 1 < LEVELS.length;
       // Victoire partagée : l'alliance gagne ensemble (couleurs des alliés sur l'écran de fin).
@@ -155,12 +159,15 @@ function launch(opts: GameOptions, code: MapCode): void {
         onReplay: () => play({ spec: code.spec, seed: randomSeed() }, o),
         onNext: () => play({ spec: { kind: 'campagne', level: o.mapIndex + 1 }, seed: randomSeed() }, o),
         onMenu: () => backToMenu(),
-        winText: campaign ? undefined : 'L’escarmouche est à toi !',
+        winText: campaign ? undefined : king?.winText ?? 'L’escarmouche est à toi !',
+        winTitle: king?.winTitle,
+        loseText: king?.loseText,
         extras,
       });
     },
   });
   hud.update(game.world, 0, 0);
+  kingHud.update(game.world, 0);
   tactics.set(game.charge);
   hud.showHint('Touche un élève puis le sol pour le déplacer (il fuit sans se battre) ; touche un ennemi pour attaquer.', 4200);
   // Puis, à partir de 3 équipes, un mot sur la diplomatie.

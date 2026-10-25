@@ -35,6 +35,7 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
 - **Victoire.** Une équipe gagne quand elle est la dernière à avoir encore des élèves ou un camp, ou quand elle possède tous les camps. Si toutes les équipes encore en vie sont alliées entre elles (ou si une alliance tient tous les camps), **l'alliance gagne ensemble** : « Victoire de l'alliance ! », avec les couleurs alliées. Tu perds dès que tu n'as plus ni élèves ni camp, même si ton alliance l'emporte.
 - **Cartes.** Six niveaux de taille croissante (du Préau au Campus, de 14 à 22 cases bonus, puis « Le tournoi » : 8 équipes, 26 × 26, 28 cases, débloqué après le 5e). La disposition des cases et des obstacles est tirée au sort à chaque partie, de façon symétrique pour rester équitable. Chaque victoire débloque le niveau suivant ; la progression est sauvegardée sur l'appareil.
 - **Escarmouche.** Partie libre : nombre d'équipes (2 à 8), taille de la cour (petite, moyenne, grande, immense), nombre de cases bonus (10 à 30 ; au moins 20 à partir de 5 équipes), difficulté et couleur parmi les huit. La cour grandit de deux cellules par équipe au-delà de quatre. Les victoires d'escarmouche ne débloquent rien dans la campagne.
+- **Roi de la cour** (mode d'escarmouche). Un trône doré de 2 × 2 cellules, marqué d'une couronne, occupe le centre de la cour (les cases bonus et obstacles qui le touchaient sont retirés, de façon symétrique et reproductible). Il ne donne ni bonus ni élèves : il se capture comme un camp, et son propriétaire accumule du temps de règne tant que des ennemis ne le contestent pas. Le règne est compté par équipe et ne se transmet pas ; la première équipe à **2 minutes cumulées** gagne, avec ses alliés encore en vie (comme une alliance qui tient tous les camps) : « Roi de la cour ! ». Les autres victoires restent possibles. Un cadre sous les bonus affiche ton règne, celui du meneur et du tenant du trône ; annonces « Les Verts prennent le trône ! », « Plus que 20 s pour les Jaunes ! » ; l'écran de fin donne le temps de règne de chaque équipe. Les IA visent le trône en priorité (d'autant plus que son tenant approche des 2 minutes) et y laissent une garnison quand elles le tiennent.
 - **Code de carte.** Chaque partie a un code de 6 caractères (sans 0, 1, I ni O), affiché dans le menu pause et sur l'écran de fin avec un bouton « Copier ». Saisi dans le menu, il redonne exactement la même disposition (niveau ou réglages d'escarmouche compris, de 2 à 8 équipes). Les codes des versions précédentes restent valides et redonnent la même carte.
 - **Médailles.** Chaque niveau de campagne propose trois médailles : victoire, victoire sans perdre son camp, victoire en moins de 3 minutes de jeu. Elles sont sauvegardées et affichées sous forme de pastilles dans la liste des cartes.
 - **Difficulté.** Facile, Normal ou Difficile : les IA réagissent plus vite, attaquent avec de plus petits groupes, gardent moins de défenseurs et frappent plus fort.
@@ -48,13 +49,19 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
 - **Rompre.** Une rupture est annoncée 5 s à l'avance (« Les Verts vont rompre l'alliance dans 5 s ! »), pour l'IA comme pour toi. Une même paire d'équipes ne peut pas changer d'alliance plus d'une fois toutes les 30 s.
 - **Ce que pense l'IA.** Chaque IA estime la puissance de chaque équipe (vie et dégâts de ses élèves, camps, cases) et garde une attitude envers chacune (rancune quand on lui met des élèves KO, méfiance pendant 2 minutes envers qui l'a trahie). Elle accepte une alliance face à une menace commune (une équipe au moins 1,5 fois plus forte que les deux), ou si le proposeur n'est pas plus fort qu'elle et qu'elle ne lui en veut pas ; jamais si l'alliance réunirait toutes les équipes restantes (ce serait la fin de la partie). Les IA s'allient aussi entre elles face à une menace, et parfois sans raison. Elles rompent quand leur allié devient trop fort ou quand l'ennemi commun est presque éliminé, plus souvent en Difficile. Une IA ne cible pas les cases de ses alliés et peut venir défendre une case alliée qu'un ennemi est en train de prendre.
 
-## Options de diplomatie (escarmouche)
+## Options et modes d’escarmouche
 
-Trois options, désactivées par défaut et jamais actives en campagne, se cochent dans le menu d’escarmouche :
+Toutes les options sont désactivées par défaut, jamais actives en campagne, et se cochent dans le menu d’escarmouche (onglet « Escarmouche », rubrique « Options »). Elles se combinent librement.
 
 - **Cadeaux entre alliés.** Dans le panneau « Diplomatie » d’un allié : « Donner des élèves » (tes élèves sélectionnés passent dans son équipe avec leurs points de vie) et « Céder une case » (ta case bonus la plus proche de lui ; jamais un camp). Les IA alliées aident parfois un allié en difficulté, toi compris (annoncé).
 - **Appel à l’aide.** Bouton « SOS » contre le bord droit : chaque allié IA envoie 30 à 50 % de ses élèves libres (moins si son propre camp est menacé) défendre ton camp le plus menacé pendant 25 s, puis les rend à sa stratégie. Recharge de 60 s affichée sur le bouton. Les IA s’appellent aussi entre elles ; tu es prévenu quand un allié appelle à l’aide.
 - **Tribut.** Dans le panneau d’une équipe non alliée : « Payer un tribut » lui cède ta case bonus la plus proche d’elle contre 30 s de trêve (ni combat ni capture entre vous ; drapeau blanc et compte à rebours sur sa puce). Elle refuse si tu n’as pas de case bonus, ou si elle est sur le point de t’écraser. Une IA en mauvaise posture face à toi peut te proposer un tribut : « Accepter » ou « Refuser », la proposition expire au bout de 8 s. Une trêve n’est pas une alliance : elle ne compte pas pour la victoire.
+- **Surveillants.** Deux à quatre adultes neutres patrouillent ; au coup de sifflet, les élèves qui se battent près d’eux sont punis (combat arrêté, repoussés, immobiles 3 s). Ils ne prennent pas de coups et ne capturent rien ; les IA évitent de se battre près d’eux.
+- **Brouillard de guerre.** Tu ne vois que les abords de tes élèves, de tes cases et de ceux de tes alliés. Les zones déjà vues restent grisées avec le dernier propriétaire connu des cases ; les ennemis cachés ne s’affichent pas, ne se ciblent pas et leurs effectifs sont masqués dans les puces. Les IA jouent avec la même contrainte.
+- **Camps fantômes.** Un à trois camps sans propriétaire, placés équitablement : capturés, ils produisent des élèves comme un camp de départ et comptent pour la victoire.
+- **Mode « Roi de la cour ».** Un trône doré 2 × 2 au centre : l’équipe qui le tient cumule du temps de règne (figé s’il est contesté) et gagne, avec ses alliés, à 2 minutes. Les victoires classiques restent valables.
+
+Le code de carte reproduit la disposition, pas les options : choisis-les à nouveau dans le menu.
 
 ## Équilibrage et performances
 
@@ -132,6 +139,7 @@ src/
     ai.ts              IA d'équipe (évaluation des cases, regroupement, défense)
     diplomacy.ts       alliances : propositions, ruptures annoncées, attitude des IA
     diplomacy-extras.ts  options cadeaux, appel à l’aide, tribut et trêve
+    king.ts            mode Roi de la cour : trône, temps de règne, victoire, aide à l'IA
     pathfinding.ts     A* 8 voisins + lissage
     spatial.ts         hash spatial pour les voisinages
     grid.ts            grille de navigation et obstacles
@@ -147,6 +155,7 @@ src/
     suits.ts           symboles de cartes en vectoriel
     renderer.ts        sol iso, cases, obstacles, unités triées par profondeur, marqueurs
     minimap.ts         mini-carte
+    king.ts            trône doré, couronne pixel, repère sur la mini-carte
     camera.ts          zoom, déplacement, cadrage
   input/touch.ts       gestes tactiles et souris
   audio/sfx.ts         sons synthétisés (Web Audio)
@@ -157,6 +166,7 @@ tests/                 capture, combat, victoire, alliances, pathfinding, test d
 scripts/dev/           outils de développement (lancés avec `npx tsx`)
   balance.ts           équilibrage IA contre IA (modes 4, 4mix, 8, 8d)
   perf8.ts             temps de simulation à 8 équipes
+  roi.ts               parties IA contre IA en mode Roi de la cour (durée, type de victoire)
   render-check.ts      rendu hors navigateur (planches de sprites, scène de jeu)
   white-check.ts       comparaison Blanc / Rose pour la 8e couleur
 ```

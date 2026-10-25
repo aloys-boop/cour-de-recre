@@ -6,6 +6,7 @@ import type { World } from '../core/world';
 import type { Camera } from './camera';
 import { drawGoldenTile, drawStarvingBar } from './golden';
 import { drawGhostCamp } from './ghost';
+import { drawThroneTile } from './king';
 import { buildSheet, FEET_Y, FRAME_H, FRAME_W, frameFor, type SheetCanvas } from './sprites';
 import { drawSuit } from './suits';
 import { drawPunishedMark, drawSupervisor, lazySupervisorSheet, pushSupervisorItems } from './supervisors';
@@ -147,7 +148,8 @@ export class Renderer {
     const ownerColor = view.owner === NO_TEAM ? NO_TEAM : world.teamColors[view.owner];
     const inset = t.isCamp ? 0.06 : 0.1;
     this.diamondPath(cam, t.x + inset, t.y + inset, t.x + t.size - inset, t.y + t.size - inset);
-    if (t.isCamp) {
+    if (t.kind === 'throne') drawThroneTile(ctx, world, t, cam, time);
+    else if (t.isCamp) {
       // Camp : zone plate de la couleur de l'équipe.
       ctx.fillStyle = ownerColor === NO_TEAM ? '#bdbdc2' : TEAM_COLORS[ownerColor].main;
       ctx.fill();

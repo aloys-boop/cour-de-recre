@@ -7,6 +7,7 @@ import type { Tile } from './core/tile';
 import type { Unit } from './core/unit';
 import { World } from './core/world';
 import { rhythmAnnouncement } from './core/events';
+import { isKingMode, kingAnnouncement, withThrone } from './core/king';
 import { Diplomacy, diploMessage, type BreakResult, type DiploView, type ProposeResult } from './core/diplomacy';
 import { MAX_TEAMS } from './config';
 import { DiplomacyExtras } from './core/diplomacy-extras';
@@ -95,8 +96,10 @@ export class Game {
     // Le joueur est l'équipe 0 ; sa couleur est celle choisie, les autres suivent.
     const others = Array.from({ length: MAX_TEAMS }, (_, c) => c).filter((c) => c !== opts.playerColor);
     const seed = opts.seed ?? Date.now() % 100000;
-    this.world = new World(opts.map, opts.map.teams, seed, [opts.playerColor, ...others]);
-    this.world.rules = normalizeRules(opts.rules);
+    const rules = normalizeRules(opts.rules);
+    // Roi de la cour : trône au centre (jamais en campagne : pas de règles passées).
+    this.world = new World(isKingMode(rules) ? withThrone(opts.map) : opts.map, opts.map.teams, seed, [opts.playerColor, ...others]);
+    this.world.rules = rules;
     for (let t = 1; t < this.world.numTeams; t++) {
       const ai = new TeamAi(this.world, t, opts.difficulty);
       this.ais.push(ai);
@@ -254,7 +257,7 @@ export class Game {
           if (ev.team === this.playerTeam) this.sfx.play('spawn');
           break;
         default:
-          this.announce(rhythmAnnouncement(ev, this.playerTeam));
+          this.announce(rhythmAnnouncement(ev, this.playerTeam) ?? kingAnnouncement(ev, this.playerTeam, w.teamColors));
           break;
       }
     }

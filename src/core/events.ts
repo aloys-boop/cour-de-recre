@@ -47,7 +47,7 @@ export function goldenAiBonus(world: World, t: Tile): number {
  * c'est-à-dire à peu près à égale distance des camps encore tenus. Tirage parmi les meilleures.
  */
 export function pickGoldenTile(world: World): Tile | null {
-  const candidates = world.tiles.filter((t) => !t.isCamp && t !== world.rhythm.lastGolden);
+  const candidates = world.tiles.filter((t) => t.kind === 'bonus' && t !== world.rhythm.lastGolden);
   if (candidates.length === 0) return null;
   const mx = world.map.w / 2;
   const my = world.map.h / 2;
