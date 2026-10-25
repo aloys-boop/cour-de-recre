@@ -1,12 +1,21 @@
 import { SUIT_BONUS, TEAM_COLORS, TEAM_NAMES, TEAM_PROFILES } from '../config';
 import { LEVELS } from '../core/maps';
+import { decodeMapCode, describeSpec, normalizeCode, type MapCode } from '../core/mapcode';
+import { DEFAULT_SKIRMISH, type SkirmishSettings } from '../core/skirmish';
 import type { Progress } from '../core/save';
 import type { Difficulty, TeamId } from '../core/types';
+import { medalDots } from './share';
+import { skirmishPanel } from './skirmish';
 
 export interface MenuState {
   team: TeamId;
   difficulty: Difficulty;
   mapIndex: number;
+  /** Campagne (les 5 niveaux) ou escarmouche (réglages libres). */
+  mode: 'campagne' | 'escarmouche';
+  skirmish: SkirmishSettings;
+  /** Code de carte saisi : il prime sur le mode et la carte choisis. */
+  code?: MapCode;
 }
 
 export interface MenuHooks {
@@ -34,6 +43,8 @@ export class Menu {
       team: progress.lastTeam,
       difficulty: progress.lastDifficulty,
       mapIndex: Math.min(progress.unlocked - 1, LEVELS.length - 1),
+      mode: 'campagne',
+      skirmish: { ...DEFAULT_SKIRMISH },
     };
   }
 
@@ -116,9 +127,32 @@ export class Menu {
     left.append(teamSec, diffSec);
     inner.append(left);
 
-    // Cartes.
+    // Mode : campagne (cartes) ou escarmouche (réglages libres).
     const mapSec = el('div', 'menu-section');
-    mapSec.append(el('h2', '', 'Carte (disposition tirée au sort à chaque partie)'));
+    const tabs = el('div', 'mode-tabs');
+    const campPane = el('div');
+    const skirPane = el('div');
+    const modes = [
+      { id: 'campagne' as const, label: 'Campagne', pane: campPane },
+      { id: 'escarmouche' as const, label: 'Escarmouche', pane: skirPane },
+    ];
+    const tabBtns = modes.map((m) => {
+      const b = document.createElement('button');
+      b.className = 'mode-btn';
+      b.textContent = m.label;
+      b.addEventListener('click', () => setMode(m.id));
+      tabs.append(b);
+      return b;
+    });
+    const setMode = (mode: MenuState['mode']) => {
+      this.state.mode = mode;
+      modes.forEach((m, i) => {
+        tabBtns[i].classList.toggle('active', m.id === mode);
+        m.pane.classList.toggle('hidden', m.id !== mode);
+      });
+    };
+    campPane.append(el('h2', '', 'Carte (disposition tirée au sort à chaque partie)'));
+    skirPane.append(skirmishPanel(this.state.skirmish));
     const list = el('div', 'map-list');
     const mapBtns: HTMLButtonElement[] = [];
     LEVELS.forEach((m, i) => {
@@ -128,11 +162,14 @@ export class Menu {
       const wins = this.progress.wins[m.id] ?? 0;
       const left = document.createElement('span');
       left.textContent = `${i + 1}. ${m.name}`;
+      const meta = el('span', 'map-meta');
       const right = document.createElement('small');
       right.textContent = locked
         ? 'Verrouillée'
         : `${m.w}×${m.h} · ${m.teams} équipes · ${m.tiles} cases${wins ? ` · ${wins} victoire${wins > 1 ? 's' : ''}` : ''}`;
-      b.append(left, right);
+      meta.append(right);
+      if (!locked) meta.append(medalDots(this.progress.medals?.[m.id]));
+      b.append(left, meta);
       b.disabled = locked;
       b.addEventListener('click', () => {
         this.state.mapIndex = i;
@@ -141,7 +178,9 @@ export class Menu {
       mapBtns.push(b);
       list.append(b);
     });
-    mapSec.append(list);
+    campPane.append(list);
+    mapSec.append(tabs, campPane, skirPane);
+    setMode(this.state.mode);
     inner.append(mapSec);
 
     // Actions.
@@ -149,13 +188,57 @@ export class Menu {
     const play = document.createElement('button');
     play.className = 'btn btn-play';
     play.textContent = 'Jouer';
-    play.addEventListener('click', () => this.hooks.onPlay({ ...this.state }));
+    // Code de carte facultatif : rejouer exactement une disposition partagée.
+    const codeWrap = el('label', 'code-field');
+    const codeInput = document.createElement('input');
+    codeInput.type = 'text';
+    codeInput.className = 'code-input';
+    codeInput.placeholder = 'Code de carte';
+    codeInput.maxLength = 9;
+    codeInput.autocomplete = 'off';
+    codeInput.spellcheck = false;
+    codeInput.setAttribute('autocapitalize', 'characters');
+    codeInput.setAttribute('autocorrect', 'off');
+    codeInput.setAttribute('enterkeyhint', 'go');
+    codeInput.setAttribute('aria-label', 'Code de carte (facultatif)');
+    const codeHint = el('div', 'code-hint');
+    // Renvoie le code valide, null si le champ est vide, ou un message d'erreur.
+    const readCode = (): MapCode | null | string => {
+      const raw = normalizeCode(codeInput.value);
+      if (!raw) return null;
+      const code = decodeMapCode(raw);
+      if (!code) return raw.length < 6 ? 'Le code compte 6 caractères.' : 'Code de carte inconnu.';
+      if (code.spec.kind === 'campagne' && code.spec.level >= this.progress.unlocked)
+        return `Ce code correspond au niveau ${code.spec.level + 1}, pas encore débloqué.`;
+      return code;
+    };
+    const showCode = () => {
+      const c = readCode();
+      codeHint.classList.toggle('error', typeof c === 'string' && normalizeCode(codeInput.value).length >= 6);
+      codeHint.textContent = c === null ? 'Facultatif : saisis un code pour rejouer une carte partagée.' : typeof c === 'string' ? c : `Carte partagée : ${describeSpec(c.spec)}`;
+    };
+    codeInput.addEventListener('input', showCode);
+    codeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') play.click();
+    });
+    codeWrap.append(codeInput);
+    showCode();
+    play.addEventListener('click', () => {
+      const c = readCode();
+      if (typeof c === 'string') {
+        codeHint.classList.add('error');
+        codeHint.textContent = c;
+        return;
+      }
+      codeInput.blur();
+      this.hooks.onPlay({ ...this.state, skirmish: { ...this.state.skirmish }, code: c ?? undefined });
+    });
     const sound = document.createElement('button');
     sound.className = 'btn btn-secondary';
     const setSoundLabel = (muted: boolean) => (sound.textContent = muted ? 'Son : coupé' : 'Son : actif');
     setSoundLabel(this.progress.muted);
     sound.addEventListener('click', () => setSoundLabel(this.hooks.onToggleSound()));
-    actions.append(play, sound);
+    actions.append(codeWrap, play, sound, codeHint);
     inner.append(actions);
 
     const foot = el('div', 'menu-foot');

@@ -13,22 +13,23 @@ export class Overlay {
     this.root.classList.remove('hidden');
   }
 
-  pause(onResume: () => void, onQuit: () => void): void {
+  pause(onResume: () => void, onQuit: () => void, extras: HTMLElement[] = []): void {
     const card = this.card('Pause', 'La partie est en pause.');
-    card.append(this.row([this.btn('Reprendre', onResume), this.btn('Quitter', onQuit, 'btn-danger')]));
+    card.append(this.row([this.btn('Reprendre', onResume), this.btn('Quitter', onQuit, 'btn-danger')]), ...extras);
     this.show(card);
   }
 
   end(
     win: boolean,
     mapName: string,
-    opts: { nextAvailable: boolean; onReplay: () => void; onNext: () => void; onMenu: () => void },
+    opts: { nextAvailable: boolean; onReplay: () => void; onNext: () => void; onMenu: () => void; winText?: string; extras?: HTMLElement[] },
   ): void {
     const card = this.card(
       win ? 'Victoire !' : 'Défaite…',
-      win ? `La cour « ${mapName} » est à toi.${opts.nextAvailable ? ' Une nouvelle carte est débloquée.' : ' Tu as terminé toutes les cartes !'}` : 'Tes élèves ont été mis KO et tes cases reprises.',
+      win && opts.winText ? opts.winText : win ? `La cour « ${mapName} » est à toi.${opts.nextAvailable ? ' Une nouvelle carte est débloquée.' : ' Tu as terminé toutes les cartes !'}` : 'Tes élèves ont été mis KO et tes cases reprises.',
     );
     card.classList.add(win ? 'win' : 'lose');
+    card.append(...(opts.extras ?? []));
     const buttons = [this.btn('Rejouer', opts.onReplay, win ? 'btn-secondary' : '')];
     if (win && opts.nextAvailable) buttons.push(this.btn('Carte suivante', opts.onNext));
     buttons.push(this.btn('Menu', opts.onMenu, 'btn-secondary'));

@@ -408,6 +408,262 @@ button {
   opacity: 0.45;
 }
 
+/* Rejouabilité : onglets campagne / escarmouche, médailles, code de carte. */
+
+.mode-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 3px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.mode-btn,
+.opt-btn {
+  flex: 1 1 0;
+  min-height: 44px;
+  border-radius: 11px;
+  border: 2px solid transparent;
+  background: transparent;
+  color: #fff;
+  font-weight: 800;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.mode-btn.active,
+.opt-btn.active {
+  background: var(--accent);
+  color: var(--ink);
+}
+
+.map-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  text-align: right;
+}
+
+.medal-dots {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.medal-dots i {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-style: normal;
+  font-size: 10px;
+  line-height: 18px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.medal-dots i.on {
+  background: var(--accent);
+  color: var(--ink);
+}
+
+.skirmish {
+  display: grid;
+  gap: 6px;
+}
+
+.opt-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.opt-label {
+  font-size: 13px;
+  font-weight: 700;
+  min-width: 82px;
+}
+
+.opt-group,
+.stepper {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 4px;
+  padding: 2px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.opt-group {
+  flex: 1 1 220px;
+}
+
+.opt-btn {
+  min-width: 44px;
+  padding: 0 4px;
+  font-size: 13px;
+}
+
+.stepper {
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+.step-btn {
+  flex: 0 0 48px;
+  font-size: 20px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.step-btn:disabled {
+  opacity: 0.35;
+}
+
+.stepper-value {
+  min-width: 40px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.tiles-range {
+  width: 100%;
+  height: 44px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.skirmish-summary,
+.code-hint {
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.code-field {
+  display: flex;
+}
+
+.code-input {
+  width: 9.5em;
+  min-height: 46px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.code-input::placeholder {
+  font-family: 'Trebuchet MS', 'Segoe UI', Verdana, sans-serif;
+  letter-spacing: 0;
+  text-transform: none;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.code-hint {
+  flex-basis: 100%;
+  text-align: center;
+}
+
+.code-hint.error {
+  color: #ffb4ae;
+  opacity: 1;
+  font-weight: 700;
+}
+
+.card {
+  max-height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.code-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 10px;
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.code-label {
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0.7;
+}
+
+.code-value {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  -webkit-user-select: all;
+  user-select: all;
+}
+
+.btn-small {
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.medal-box {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin: 0 0 12px;
+}
+
+.medal {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 4px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.06);
+  opacity: 0.5;
+}
+
+.medal.on {
+  opacity: 1;
+  background: rgba(242, 194, 46, 0.3);
+}
+
+.medal.fresh {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.medal-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.12);
+  font-size: 14px;
+}
+
+.medal.on .medal-icon {
+  background: var(--accent);
+}
+
 .menu-actions {
   grid-column: 1 / -1;
   display: flex;

@@ -1,4 +1,5 @@
 import { STORAGE_KEY } from '../config';
+import { sanitizeMedals, type MedalMap } from './challenges';
 import type { Difficulty, TeamId } from './types';
 
 export interface Progress {
@@ -9,6 +10,8 @@ export interface Progress {
   muted: boolean;
   lastTeam: TeamId;
   lastDifficulty: Difficulty;
+  /** Médailles de campagne par niveau (facultatif : absent des anciennes sauvegardes). */
+  medals?: MedalMap;
 }
 
 const DEFAULT: Progress = { unlocked: 1, wins: {}, muted: false, lastTeam: 0, lastDifficulty: 'normal' };
@@ -41,6 +44,7 @@ export function loadProgress(store: StorageLike | null = storage()): Progress {
       lastDifficulty: (['facile', 'normal', 'difficile'] as Difficulty[]).includes(parsed.lastDifficulty as Difficulty)
         ? (parsed.lastDifficulty as Difficulty)
         : 'normal',
+      medals: sanitizeMedals(parsed.medals),
     };
   } catch {
     return { ...DEFAULT, wins: {} };

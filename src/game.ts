@@ -1,6 +1,7 @@
 import type { Sfx } from './audio/sfx';
 import { TeamAi } from './core/ai';
 import { NO_TEAM, type Difficulty, type MapDef } from './core/types';
+import type { Tile } from './core/tile';
 import type { Unit } from './core/unit';
 import { World } from './core/world';
 import { TouchInput } from './input/touch';
@@ -49,6 +50,9 @@ export class Game {
   private dpr = 1;
   private ac = new AbortController();
   private endTimer = 0;
+  /** Défis : le camp de départ du joueur a-t-il été pris au moins une fois ? */
+  homeCampLost = false;
+  private homeCamp?: Tile;
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -81,6 +85,7 @@ export class Game {
     // On cadre d'abord la base du joueur (ouest), puis on laisse voir toute la carte.
     this.cam.zoom = Math.min(this.cam.maxZoom, this.cam.zoom * 1.35);
     const home = this.world.tiles.find((t) => t.isCamp && t.owner === this.playerTeam);
+    this.homeCamp = home;
     if (home) {
       // Entre la base du joueur et le centre de la cour, pour voir d'où l'on part.
       const cx = opts.map.w / 2;
@@ -206,6 +211,7 @@ export class Game {
       this.hudTimer = 0;
       this.hooks.onHud(w, this.selected.size);
     }
+    if (this.homeCamp && this.homeCamp.owner !== this.playerTeam) this.homeCampLost = true;
     // Fin de partie.
     const winner = w.winner();
     const me = w.stats()[this.playerTeam];
