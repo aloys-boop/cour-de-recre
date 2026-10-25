@@ -1049,3 +1049,10 @@ button {
     padding: 2px 4px;
   }
 }
+
+/* Options d'escarmouche (rules.ts) */
+.rules-panel { margin-top: 8px; }
+.rules-title { display: block; margin: 6px 0 4px; }
+.rule-toggle { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; min-height: 44px; text-align: left; margin-bottom: 6px; padding: 6px 10px; }
+.rule-toggle small { font-weight: 600; opacity: 0.8; font-size: 11px; }
+.rule-toggle.active strong::before { content: "\2713  "; }

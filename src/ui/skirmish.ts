@@ -1,3 +1,4 @@
+import { GAME_MODES, RULE_TOGGLES, type GameRules } from '../core/rules';
 import {
   COUR_SIZES,
   SKIRMISH_TEAMS_MAX,
@@ -121,4 +122,50 @@ function stepBtn(text: string, aria: string): HTMLButtonElement {
   b.textContent = text;
   b.setAttribute('aria-label', aria);
   return b;
+}
+
+/**
+ * Mode et options de l'escarmouche (toutes désactivées par défaut). `rules` est modifié sur place.
+ * Les entrées viennent de GAME_MODES et RULE_TOGGLES (src/core/rules.ts).
+ */
+export function rulesPanel(rules: GameRules): HTMLElement {
+  const box = document.createElement('div');
+  box.className = 'skirmish rules-panel';
+  if (GAME_MODES.length > 1) {
+    const modes = GAME_MODES.map((m, i) => ({ v: i, label: m.label }));
+    const desc = document.createElement('div');
+    desc.className = 'skirmish-summary';
+    const sync = () => (desc.textContent = GAME_MODES.find((m) => m.id === (rules.mode ?? 'classique'))?.description ?? '');
+    box.append(
+      optionRow('Mode', modes, () => Math.max(0, GAME_MODES.findIndex((m) => m.id === (rules.mode ?? 'classique'))), (v) => {
+        rules.mode = GAME_MODES[v].id;
+        sync();
+      }),
+      desc,
+    );
+    sync();
+  }
+  if (RULE_TOGGLES.length) {
+    const title = document.createElement('div');
+    title.className = 'opt-label rules-title';
+    title.textContent = 'Options';
+    box.append(title);
+    for (const t of RULE_TOGGLES) {
+      const b = document.createElement('button');
+      b.className = 'opt-btn rule-toggle' + (rules[t.key] ? ' active' : '');
+      b.setAttribute('aria-pressed', String(!!rules[t.key]));
+      const name = document.createElement('strong');
+      name.textContent = t.label;
+      const d = document.createElement('small');
+      d.textContent = t.description;
+      b.append(name, d);
+      b.addEventListener('click', () => {
+        rules[t.key] = !rules[t.key];
+        b.classList.toggle('active', !!rules[t.key]);
+        b.setAttribute('aria-pressed', String(!!rules[t.key]));
+      });
+      box.append(b);
+    }
+  }
+  return box;
 }

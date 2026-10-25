@@ -6,6 +6,7 @@ import { Rng } from './rng';
 import { SpatialHash } from './spatial';
 import { RhythmState, bonusWeight, updateRhythm, type RhythmEvent } from './events';
 import { Tile, updateCapture } from './tile';
+import { DEFAULT_RULES, type GameRules } from './rules';
 import { NO_TEAM, type MapDef, type Suit, type Vec2 } from './types';
 import { Unit, punchDamage, resetUnitIds } from './unit';
 
@@ -45,6 +46,8 @@ export class World {
   readonly hash = new SpatialHash<Unit>(1);
   /** Couleur d'uniforme (index dans TEAM_COLORS / TEAM_PROFILES) de chaque équipe de la partie. */
   teamColors: number[] = Array.from({ length: MAX_TEAMS }, (_, i) => i);
+  /** Règles optionnelles de la partie (escarmouche) ; voir rules.ts. */
+  rules: GameRules = { ...DEFAULT_RULES };
   /** Multiplicateur de dégâts par équipe (handicap / bonus des IA selon la difficulté). */
   damageScale: number[] = new Array<number>(MAX_TEAMS).fill(1);
   /** Alliances en cours : `allied[a][b]` (symétrique). Deux alliés ne se battent pas. */

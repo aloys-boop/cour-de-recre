@@ -90,13 +90,13 @@ function startGame(state: MenuState): void {
     spec: state.mode === 'escarmouche' ? { kind: 'escarmouche', ...state.skirmish } : { kind: 'campagne', level: state.mapIndex },
     seed: randomSeed(),
   };
-  play(code, { playerColor: state.team, difficulty: state.difficulty });
+  play(code, { playerColor: state.team, difficulty: state.difficulty, rules: code.spec.kind === 'escarmouche' ? { ...state.rules } : undefined });
 }
 
 /** Lance une partie à partir d'un code de carte (type de partie + graine) : même code, même disposition. */
-function play(code: MapCode, o: Pick<GameOptions, 'playerColor' | 'difficulty'>): void {
+function play(code: MapCode, o: Pick<GameOptions, 'playerColor' | 'difficulty' | 'rules'>): void {
   const mapIndex = code.spec.kind === 'campagne' ? code.spec.level : -1;
-  launch({ map: mapForCode(code), mapIndex, playerColor: o.playerColor, difficulty: o.difficulty, seed: code.seed }, code);
+  launch({ map: mapForCode(code), mapIndex, playerColor: o.playerColor, difficulty: o.difficulty, seed: code.seed, rules: code.spec.kind === 'escarmouche' ? o.rules : undefined }, code);
 }
 
 let tipTimer = 0;

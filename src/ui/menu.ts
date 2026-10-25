@@ -1,11 +1,12 @@
 import { SUIT_BONUS, TEAM_COLORS, TEAM_NAMES, TEAM_PROFILES } from '../config';
 import { LEVELS } from '../core/maps';
 import { decodeMapCode, describeSpec, normalizeCode, type MapCode } from '../core/mapcode';
+import { DEFAULT_RULES, type GameRules } from '../core/rules';
 import { DEFAULT_SKIRMISH, type SkirmishSettings } from '../core/skirmish';
 import type { Progress } from '../core/save';
 import type { Difficulty, TeamId } from '../core/types';
 import { medalDots } from './share';
-import { skirmishPanel } from './skirmish';
+import { rulesPanel, skirmishPanel } from './skirmish';
 
 export interface MenuState {
   team: TeamId;
@@ -14,6 +15,8 @@ export interface MenuState {
   /** Campagne (les 5 niveaux) ou escarmouche (réglages libres). */
   mode: 'campagne' | 'escarmouche';
   skirmish: SkirmishSettings;
+  /** Options et mode de l'escarmouche. */
+  rules: GameRules;
   /** Code de carte saisi : il prime sur le mode et la carte choisis. */
   code?: MapCode;
 }
@@ -46,6 +49,7 @@ export class Menu {
       mapIndex: Math.min(progress.unlocked - 1, LEVELS.length - 1),
       mode: 'campagne',
       skirmish: { ...DEFAULT_SKIRMISH },
+      rules: { ...DEFAULT_RULES },
     };
   }
 
@@ -153,7 +157,7 @@ export class Menu {
       });
     };
     campPane.append(el('h2', '', 'Carte (disposition tirée au sort à chaque partie)'));
-    skirPane.append(skirmishPanel(this.state.skirmish));
+    skirPane.append(skirmishPanel(this.state.skirmish), rulesPanel(this.state.rules));
     const list = el('div', 'map-list');
     const mapBtns: HTMLButtonElement[] = [];
     LEVELS.forEach((m, i) => {
@@ -232,7 +236,7 @@ export class Menu {
         return;
       }
       codeInput.blur();
-      this.hooks.onPlay({ ...this.state, skirmish: { ...this.state.skirmish }, code: c ?? undefined });
+      this.hooks.onPlay({ ...this.state, skirmish: { ...this.state.skirmish }, rules: { ...this.state.rules }, code: c ?? undefined });
     });
     const sound = document.createElement('button');
     sound.className = 'btn btn-secondary';

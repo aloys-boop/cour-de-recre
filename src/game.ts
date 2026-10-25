@@ -1,3 +1,4 @@
+import { normalizeRules, type GameRules } from './core/rules';
 import type { Sfx } from './audio/sfx';
 import { TeamAi } from './core/ai';
 import { GameStats } from './core/stats';
@@ -27,6 +28,8 @@ export interface GameOptions {
   playerColor: number; // 0..7
   difficulty: Difficulty;
   seed?: number;
+  /** Règles optionnelles (escarmouche). */
+  rules?: GameRules;
 }
 
 export interface GameHooks {
@@ -87,6 +90,7 @@ export class Game {
     const others = Array.from({ length: MAX_TEAMS }, (_, c) => c).filter((c) => c !== opts.playerColor);
     const seed = opts.seed ?? Date.now() % 100000;
     this.world = new World(opts.map, opts.map.teams, seed, [opts.playerColor, ...others]);
+    this.world.rules = normalizeRules(opts.rules);
     for (let t = 1; t < this.world.numTeams; t++) {
       const ai = new TeamAi(this.world, t, opts.difficulty);
       this.ais.push(ai);
