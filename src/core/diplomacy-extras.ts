@@ -177,6 +177,7 @@ export class DiplomacyExtras {
       u.maxHp = Math.max(maxHp, u.hp);
       u.clearOrder();
       u.engagedId = -1;
+      u.supId = 0;
       u.pendingHit = 0;
       u.aiTag = TAG_FREE;
       this.loans = this.loans.filter((l) => l.unitId !== u.id);

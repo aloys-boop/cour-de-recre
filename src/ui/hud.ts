@@ -3,6 +3,7 @@ import type { DiploView } from '../core/diplomacy';
 import { teamPlural } from '../core/diplomacy';
 import type { Suit } from '../core/types';
 import type { World } from '../core/world';
+import { SUPERVISOR_BUFF, supervisorBuffLeft } from '../core/supervisors';
 
 const SUIT_GLYPH: Record<Suit, string> = { heart: '\u2665', spade: '\u2660', club: '\u2663', diamond: '\u2666' };
 
@@ -109,7 +110,10 @@ export class Hud {
       const n = m.suits[suit];
       if (n > 0) bits.push(`${SUIT_GLYPH[suit]} ${SUIT_BONUS[suit].label} +${Math.round(SUIT_BONUS[suit].perTile * n * 100)} %`);
     });
-    this.bonus.textContent = bits.join('   ');
+    // Option « Surveillants » : bonus de dégâts après un KO.
+    const buff = Math.ceil(supervisorBuffLeft(world, playerTeam));
+    if (buff > 0) bits.push(`Surveillant KO\u00a0: dégâts +${Math.round(SUPERVISOR_BUFF * 100)}\u00a0% (${buff}\u00a0s)`);
+    setText(this.bonus, bits.join('   '));
     this.selCount.textContent = selected > 0 ? `${selected} sélectionné${selected > 1 ? 's' : ''}` : '';
   }
 

@@ -1,6 +1,5 @@
-import { PUNISH_SECONDS, SUPERVISOR_SCALE, supervisorsOf, type Supervisor } from '../core/supervisors';
+import { SUPERVISOR_SCALE, supervisorActive, supervisorsOf, type Supervisor } from '../core/supervisors';
 import type { Dir, Vec2 } from '../core/types';
-import type { Unit } from '../core/unit';
 import type { World } from '../core/world';
 import type { Camera } from './camera';
 import { FEET_Y, FRAME_H, FRAME_W, type SheetCanvas } from './sprites';
@@ -8,13 +7,18 @@ import { FEET_Y, FRAME_H, FRAME_W, type SheetCanvas } from './sprites';
 /**
  * Rendu des surveillants (option « Surveillants ») : adultes en blouse blanche à liseré
  * bleu canard, sifflet argenté au cordon rouge, dessinés pixel par pixel dans le style des
- * élèves (même taille d'image), puis affichés 1,3 fois plus grands.
- * Planche : 8 directions (lignes) × 6 images (repos, 4 de marche, coup de sifflet).
+ * élèves (même taille d'image), puis affichés 1,45 fois plus grands (mini-boss).
+ * Planche : 8 directions (lignes) × 10 images (repos, 4 de marche, coup de sifflet,
+ * élan et coup de poing, chute et KO au sol avec le sifflet tombé).
  */
-const SUP_FRAMES = 6;
+const SUP_FRAMES = 10;
 const F_IDLE = 0;
 const F_WALK = 1;
 const F_WHISTLE = 5;
+const F_WINDUP = 6;
+const F_PUNCH = 7;
+const F_FALL = 8;
+const F_KO = 9;
 
 const C = {
   outline: '#1b1b24',
@@ -36,6 +40,7 @@ const C = {
   eye: '#1b1b24',
   mouth: '#a45a5a',
   sound: '#ffffff',
+  star: '#ffe066',
 };
 
 const DIR_SIDE: Record<Dir, number> = { 0: 1, 1: 0, 2: -1, 3: -1, 4: -1, 5: 0, 6: 1, 7: 1 };
@@ -88,12 +93,21 @@ function thick(p: Pen, x0: number, y0: number, x1: number, y1: number, size: num
 /** Dessine un surveillant dans une case FRAME_W × FRAME_H (pieds sur FEET_Y). */
 export function drawSupervisorFrame(ctx: Ctx, ox: number, oy: number, dir: Dir, frame: number): void {
   const p: Pen = { ctx, ox, oy };
+  if (frame === F_KO) return drawLying(p, DIR_SIDE[dir] < 0 ? -1 : 1);
+  if (frame === F_FALL) {
+    // Chute : on dessine la pose de repos plus bas, penchée, puis on écrase (voir drawSupervisor).
+    p.oy += 4;
+    p.ox += DIR_SIDE[dir] < 0 ? 2 : -2;
+  }
   const side = DIR_SIDE[dir];
   const front = DIR_FRONT[dir];
   const away = front < 0;
   const profile = front === 0;
   const walk = frame >= F_WALK && frame < F_WALK + 4 ? frame - F_WALK : -1;
   const blowing = frame === F_WHISTLE;
+  const windup = frame === F_WINDUP;
+  const punching = frame === F_PUNCH;
+  const falling = frame === F_FALL;
   const bob = walk >= 0 ? [1, 0, 1, 0][walk] : 0;
   const liftL = walk >= 0 ? [0, 0, 2, 1][walk] : 0;
   const liftR = walk >= 0 ? [2, 1, 0, 0][walk] : 0;
@@ -191,12 +205,41 @@ export function drawSupervisorFrame(ctx: Ctx, ox: number, oy: number, dir: Dir, 
       rect(p, ex, headY + 6, 2, 2, C.eye);
       rect(p, ex + 6, headY + 6, 2, 2, C.eye);
       rect(p, headX + 3 + Math.round(side * 1.5), headY + 9, 6, 1, C.hairDark); // moustache
-      if (!blowing) rect(p, headX + 5 + Math.round(side * 1.5), headY + 11, 2, 1, C.mouth);
+      if (windup || punching || falling) rect(p, headX + 4 + Math.round(side * 1.5), headY + 11, 4, 2, C.outline); // bouche ouverte
+      else if (!blowing) rect(p, headX + 5 + Math.round(side * 1.5), headY + 11, 2, 1, C.mouth);
     }
   }
 
-  // ---- Bras avant : le long du corps, ou main portant le sifflet à la bouche.
-  if (blowing && !away) {
+  // ---- Bras avant : le long du corps, poing levé ou lancé, ou main portant le sifflet à la bouche.
+  if (windup || punching) {
+    const sx = frontArmX + 1;
+    const sy = shoulderY + 1;
+    let ex: number;
+    let ey: number;
+    if (windup) {
+      ex = side !== 0 ? sx - side * 4 : sx - 3;
+      ey = shoulderY - 4;
+    } else {
+      ex = side !== 0 ? sx + side * 10 : 15;
+      ey = shoulderY + 6 + Math.round(front * 4);
+    }
+    thick(p, sx, sy, ex, ey, 4, C.coat);
+    rect(p, ex, ey, 4, 1, C.trim);
+    rectO(p, ex - 1, ey - 1, 6, 5, C.skin); // gros poing
+    rect(p, ex - 1, ey + 3, 6, 1, C.skinShade);
+    if (punching) {
+      // Traits de vitesse derrière le poing.
+      const dx = side >= 0 ? -1 : 1;
+      const bx = side !== 0 ? ex - side * 3 : ex - 2;
+      rect(p, bx + dx * 2, ey - 3, 1, 3, C.sound);
+      rect(p, bx + dx * 4, ey, 1, 3, C.sound);
+      rect(p, bx + dx * 2, ey + 4, 1, 3, C.sound);
+    }
+  } else if (falling) {
+    // Bras ballants, sifflet qui s'échappe.
+    drawArm(frontArmX, 2, side > 0);
+    rectO(p, side >= 0 ? 33 : 3, 40, 4, 2, C.whistle);
+  } else if (blowing && !away) {
     const hx = profile ? (side > 0 ? headX + 10 : headX - 3) : headX + 4 + Math.round(side * 1.5);
     const hy = headY + 10;
     // Bras replié : coude près du flanc, avant-bras remontant vers la bouche.
@@ -219,12 +262,63 @@ export function drawSupervisorFrame(ctx: Ctx, ox: number, oy: number, dir: Dir, 
   }
 }
 
-/** Construit la planche des surveillants (8 lignes × 6 images). */
+/** Surveillant KO, allongé sur le dos, sifflet tombé à côté, étoiles au-dessus de la tête. */
+function drawLying(p: Pen, flip: number): void {
+  const X = (x: number, w: number) => (flip > 0 ? x : 40 - x - w);
+  const y = 44;
+  // Jambes et chaussures (pieds vers la gauche si flip > 0).
+  rectO(p, X(3, 12), y + 3, 12, 4, C.trousers);
+  rect(p, X(3, 12), y + 3, 12, 1, C.trousersLight);
+  rectO(p, X(1, 2), y + 1, 2, 6, C.shoes);
+  // Blouse.
+  blobO(p, X(14, 15), y, 15, 9, C.coat, 2);
+  rect(p, X(14, 15), y + 7, 15, 1, C.coatShade);
+  rect(p, X(15, 1), y + 1, 1, 7, C.trim); // ourlet
+  rect(p, X(22, 6), y + 3, 6, 1, C.trim); // liseré
+  // Bras écarté.
+  rectO(p, X(18, 4), y - 4, 4, 4, C.coat);
+  rectO(p, X(18, 3), y - 7, 3, 3, C.skin);
+  // Tête de profil, yeux en croix.
+  blobO(p, X(29, 9), y - 1, 9, 9, C.skin, 3);
+  blobO(p, X(36, 3), y - 1, 3, 9, C.hair, 1);
+  const ex = X(31, 3);
+  rect(p, ex, y + 2, 1, 1, C.eye);
+  rect(p, ex + 2, y + 2, 1, 1, C.eye);
+  rect(p, ex + 1, y + 3, 1, 1, C.eye);
+  rect(p, ex, y + 4, 1, 1, C.eye);
+  rect(p, ex + 2, y + 4, 1, 1, C.eye);
+  rect(p, X(31, 4), y + 6, 4, 1, C.hairDark); // moustache
+  // Sifflet tombé au sol, cordon rouge déroulé.
+  rect(p, X(24, 6), y + 10, 6, 1, C.cord);
+  rectO(p, X(19, 4), y + 9, 4, 2, C.whistle);
+  rect(p, X(19, 4), y + 10, 4, 1, C.whistleDark);
+  // Étoiles qui tournent au-dessus de la tête.
+  for (const [sx, sy] of [
+    [27, y - 9],
+    [33, y - 12],
+    [38, y - 8],
+  ]) {
+    const x = X(sx, 3);
+    rect(p, x + 1, sy, 1, 3, C.star);
+    rect(p, x, sy + 1, 3, 1, C.star);
+  }
+}
+
+/** Construit la planche des surveillants (8 lignes × 10 images). */
 export function buildSupervisorSheet(makeCanvas: (w: number, h: number) => SheetCanvas): SheetCanvas {
   const sheet = makeCanvas(FRAME_W * SUP_FRAMES, FRAME_H * 8);
   const ctx = sheet.getContext('2d') as Ctx;
   ctx.imageSmoothingEnabled = false;
-  for (let d = 0; d < 8; d++) for (let f = 0; f < SUP_FRAMES; f++) drawSupervisorFrame(ctx, f * FRAME_W, d * FRAME_H, d as Dir, f);
+  for (let d = 0; d < 8; d++)
+    for (let f = 0; f < SUP_FRAMES; f++) {
+      // Chaque image reste dans sa case (la chute déborde vers le bas).
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(f * FRAME_W, d * FRAME_H, FRAME_W, FRAME_H);
+      ctx.clip();
+      drawSupervisorFrame(ctx, f * FRAME_W, d * FRAME_H, d as Dir, f);
+      ctx.restore();
+    }
   return sheet;
 }
 
@@ -234,50 +328,74 @@ export function lazySupervisorSheet(makeCanvas: (w: number, h: number) => SheetC
   return () => (sheet ??= buildSupervisorSheet(makeCanvas));
 }
 
+/** Délai d'élan du coup (doit suivre WINDUP de core/supervisors.ts). */
+const WINDUP_SECONDS = 0.28;
+
 function supFrame(s: Supervisor): number {
+  if (s.anim === 'ko') return s.animTime < 0.35 ? F_FALL : F_KO;
+  if (s.anim === 'punch') return s.animTime < WINDUP_SECONDS ? F_WINDUP : s.animTime < 0.55 ? F_PUNCH : F_IDLE;
   if (s.anim === 'whistle') return s.animTime < 0.9 ? F_WHISTLE : F_IDLE;
   if (s.anim === 'walk') return F_WALK + (Math.floor(s.animTime * 5) % 4);
   return F_IDLE;
 }
 
-/** Ajoute les surveillants à la liste d'objets triés par profondeur du renderer. */
+/** Ajoute les surveillants présents (debout ou KO) à la liste d'objets triés par profondeur du renderer. */
 export function pushSupervisorItems(world: World, items: Array<{ depth: number; sup?: Supervisor }>): void {
-  for (const s of supervisorsOf(world)) items.push({ depth: s.x + s.y, sup: s });
+  for (const s of supervisorsOf(world)) if (s.mode !== 'away') items.push({ depth: s.x + s.y, sup: s });
 }
 
-/** Dessine un surveillant (ombre + sprite agrandi), pieds en (s.x, s.y). */
-export function drawSupervisor(ctx: Ctx, sheet: SheetCanvas, s: Supervisor, cam: Camera): void {
+/** Couleurs de la barre de vie des surveillants (orange, plus large que celle des élèves). */
+const BAR = { frame: 'rgba(20,16,10,0.75)', back: '#5a3a1c', fill: '#ff8c1a', light: '#ffc46b' };
+
+/** Dessine un surveillant (ombre + sprite agrandi + barre de vie), pieds en (s.x, s.y). */
+export function drawSupervisor(ctx: Ctx, sheet: SheetCanvas, s: Supervisor, cam: Camera, time = 0): void {
+  if (s.mode === 'away') return;
   const p = cam.gridToScreen(s.x, s.y);
   const z = cam.zoom;
   const k = SUPERVISOR_SCALE * z;
   const m = 90 * z;
   if (p.x < -m || p.y < -m || p.x > cam.viewW + m || p.y > cam.viewH + m) return;
+  // KO : il disparaît en fondu à la fin de l'animation.
+  const fade = s.mode === 'ko' ? Math.max(0, Math.min(1, s.timer / 0.6)) : 1;
+  ctx.globalAlpha = fade;
   ctx.fillStyle = 'rgba(20,20,30,0.42)';
   ctx.beginPath();
-  ctx.ellipse(p.x + 5 * z, p.y + 1 * z, 15 * z, 7 * z, 0, 0, Math.PI * 2);
+  ctx.ellipse(p.x + 5 * z, p.y + 1 * z, (s.mode === 'ko' ? 22 : 15) * z, 7 * z, 0, 0, Math.PI * 2);
   ctx.fill();
   const frame = supFrame(s);
   const dw = FRAME_W * k;
   const dh = FRAME_H * k;
-  ctx.drawImage(sheet as CanvasImageSource, frame * FRAME_W, s.dir * FRAME_H, FRAME_W, FRAME_H, Math.round(p.x - dw / 2), Math.round(p.y - FEET_Y * k), dw, dh);
+  // Petit tremblement quand il encaisse un coup.
+  const shake = time - s.hurtAt < 0.12 && supervisorActive(s) ? (Math.floor(time * 60) % 2 ? 1 : -1) * Math.max(1, z) : 0;
+  ctx.drawImage(sheet as CanvasImageSource, frame * FRAME_W, s.dir * FRAME_H, FRAME_W, FRAME_H, Math.round(p.x - dw / 2 + shake), Math.round(p.y - FEET_Y * k), dw, dh);
+  ctx.globalAlpha = 1;
 }
 
-/** Point d'exclamation pixel au-dessus d'un élève puni (clignote à la fin de la punition). */
-export function drawPunishedMark(ctx: Ctx, u: Unit, p: Vec2, z: number, time: number): void {
-  const left = u.punishedUntil - time;
-  if (left <= 0 || !u.alive) return;
-  if (left < 0.8 && Math.floor(left * 8) % 2 === 0) return;
-  const s = Math.max(1, Math.round(1.6 * z * 2) / 2);
-  const x = Math.round(p.x - 2.5 * s);
-  const top = Math.round(p.y - (FEET_Y + 20) * z - (left > PUNISH_SECONDS - 0.2 ? 2 * s : 0));
-  // Bulle jaune à contour sombre, « ! » rouge.
-  ctx.fillStyle = '#1b1b24';
-  ctx.fillRect(x - s, top - s, 7 * s, 11 * s);
-  ctx.fillStyle = '#ffe066';
-  ctx.fillRect(x, top, 5 * s, 9 * s);
-  ctx.fillStyle = '#d8322a';
-  ctx.fillRect(x + 1.5 * s, top + 1 * s, 2 * s, 4.5 * s);
-  ctx.fillRect(x + 1.5 * s, top + 6.5 * s, 2 * s, 1.5 * s);
+/**
+ * Barre de vie orange au-dessus d'un surveillant debout, deux fois plus large que celle d'un élève.
+ * Dessinée après tous les personnages pour rester lisible au milieu d'une mêlée.
+ */
+export function drawSupervisorBar(ctx: Ctx, s: Supervisor, cam: Camera): void {
+  if (!supervisorActive(s)) return;
+  const p = cam.gridToScreen(s.x, s.y);
+  const z = cam.zoom;
+  const k = SUPERVISOR_SCALE * z;
+  const bw = 44 * z;
+  const bh = Math.max(3, 4 * z);
+  const bx = p.x - bw / 2;
+  const by = p.y - (FEET_Y + 6) * k;
+  const r = Math.max(0, Math.min(1, s.hp / s.maxHp));
+  ctx.fillStyle = BAR.frame;
+  ctx.fillRect(bx - 1.5, by - 1.5, bw + 3, bh + 3);
+  ctx.fillStyle = BAR.back;
+  ctx.fillRect(bx, by, bw, bh);
+  ctx.fillStyle = BAR.fill;
+  ctx.fillRect(bx, by, bw * r, bh);
+  ctx.fillStyle = BAR.light;
+  ctx.fillRect(bx, by, bw * r, Math.max(1, bh * 0.3));
+  // Graduations : une par tranche de 10 % (≈ un élève).
+  ctx.fillStyle = BAR.frame;
+  for (let i = 1; i < 10; i++) ctx.fillRect(Math.round(bx + (bw * i) / 10), by, 1, bh);
 }
 
 /** Surveillants sur la mini-carte : carré blanc cerclé de gris foncé, plus gros qu'un élève. */
@@ -290,7 +408,7 @@ export function drawSupervisorsMinimap(
   const list = supervisorsOf(world);
   if (list.length === 0) return;
   for (const s of list) {
-    if (!visible(s.x, s.y)) continue;
+    if (!supervisorActive(s) || !visible(s.x, s.y)) continue;
     const p = toMini(s.x, s.y);
     ctx.fillStyle = '#26262e';
     ctx.fillRect(p.x - 2.5, p.y - 2.5, 5, 5);

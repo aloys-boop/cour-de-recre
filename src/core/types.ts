@@ -61,6 +61,8 @@ export interface UnitOrder {
   target: Vec2;
   /** Identifiant de l'unité visée (ordre d'attaque). */
   unitId?: number;
+  /** Identifiant du surveillant visé (ordre d'attaque, option « Surveillants »). */
+  supId?: number;
   /**
    * Déplacement « offensif » : l'élève se bat contre ce qu'il croise (IA).
    * Sans ce drapeau, un ordre de déplacement est un repli : l'élève court sans riposter.

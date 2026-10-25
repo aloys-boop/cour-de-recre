@@ -21,11 +21,15 @@ import { centroid, ControlGroups, DoubleTap, nearestOwnCamp, onScreen } from './
 import { drawArrow, type OrderArrow } from './render/arrow';
 import { magnetTile, neighbourRadius, orderMoveExact, pickUnit, startFocus, startZoom, tileGoals, type AimTile, type PickResult } from './core/aim';
 import { drawTileFlash, type TileFlash } from './render/aimfx';
-import { eventPerceived, unitVisible } from './core/fog';
-import { takeWhistles } from './core/supervisors';
+import { eventPerceived, pointVisible, unitVisible } from './core/fog';
+import { isSupervisor, supervisorActive, supervisorAnnouncement, supervisorsOf, takeWhistles, type Supervisor } from './core/supervisors';
+import { teamPlural } from './core/diplomacy';
 import { playWhistle } from './audio/whistle';
 
 export type GameResult = 'victoire' | 'defaite';
+
+/** Ce qu'un doigt peut viser : un élève, ou un surveillant (option « Surveillants »). */
+type Target = Unit | Supervisor;
 
 export interface GameOptions {
   map: MapDef;
@@ -257,7 +261,11 @@ export class Game {
           if (ev.team === this.playerTeam) this.sfx.play('spawn');
           break;
         default:
-          this.announce(rhythmAnnouncement(ev, this.playerTeam) ?? kingAnnouncement(ev, this.playerTeam, w.teamColors));
+          this.announce(
+            rhythmAnnouncement(ev, this.playerTeam) ??
+              kingAnnouncement(ev, this.playerTeam, w.teamColors) ??
+              supervisorAnnouncement(ev, this.playerTeam, (t) => teamPlural(w.teamColors[t] ?? t)),
+          );
           break;
       }
     }
@@ -309,20 +317,36 @@ export class Game {
 
   // ---------------------------------------------------------------- entrées
 
-  /** Élève sous un point de l'écran (zone tactile généreuse), ou null. */
-  private unitAt(sx: number, sy: number): Unit | null {
+  /** Élève (ou surveillant) sous un point de l'écran (zone tactile généreuse), ou null. */
+  private unitAt(sx: number, sy: number): Target | null {
     return this.pick(sx, sy)?.unit ?? null;
   }
 
-  /** Élève visé par le doigt (voir pickUnit) : rayon généreux, priorités selon la sélection. */
-  private pick(sx: number, sy: number): PickResult<Unit> | null {
-    const cands = [];
+  /**
+   * Élève visé par le doigt (voir pickUnit) : rayon généreux, priorités selon la sélection.
+   * Les surveillants debout et visibles comptent comme des ennemis.
+   */
+  private pick(sx: number, sy: number): PickResult<Target> | null {
+    const cands: Array<{ unit: Target; team: number; sx: number; sy: number; depth: number }> = [];
     for (const u of this.world.units) {
       if (!u.alive || !unitVisible(this.world, this.playerTeam, u)) continue;
       const p = this.cam.gridToScreen(u.x, u.y);
       cands.push({ unit: u, team: u.team, sx: p.x, sy: p.y, depth: u.x + u.y });
     }
+    for (const s of supervisorsOf(this.world)) {
+      if (!supervisorActive(s) || !pointVisible(this.world, this.playerTeam, s.x, s.y)) continue;
+      const p = this.cam.gridToScreen(s.x, s.y);
+      cands.push({ unit: s, team: s.team, sx: p.x, sy: p.y, depth: s.x + s.y });
+    }
     return pickUnit(cands, sx, sy, this.cam.zoom, this.playerTeam, this.selected.size > 0, FEET_Y);
+  }
+
+  /** Ordre d'attaque de la sélection contre un élève ennemi ou un surveillant. */
+  private attack(units: Unit[], hit: Target): void {
+    if (isSupervisor(hit)) this.world.orderAttackSupervisor(units, hit);
+    else this.world.orderAttack(units, hit.id);
+    this.markers.push({ x: hit.x, y: hit.y, t: 0, kind: 'attack', team: this.opts.playerColor });
+    this.sfx.play('order');
   }
 
   private tap(sx: number, sy: number): void {
@@ -346,12 +370,7 @@ export class Game {
     }
     if (this.selected.size === 0) return;
     const units = this.selectedUnits();
-    if (hit && this.hostile(hit)) {
-      this.world.orderAttack(units, hit.id);
-      this.markers.push({ x: hit.x, y: hit.y, t: 0, kind: 'attack', team: this.opts.playerColor });
-      this.sfx.play('order');
-      return;
-    }
+    if (hit && this.hostile(hit)) return this.attack(units, hit);
     // Un tap sur un allié (pas d'attaque possible) vaut un déplacement à cet endroit.
     this.moveTo(units, sx, sy);
   }
@@ -480,9 +499,9 @@ export class Game {
     this.hooks.onHud(this.world, this.selected.size);
   }
 
-  /** L'élève est-il un ennemi du joueur (ni à lui, ni allié) ? */
-  private hostile(u: Unit): boolean {
-    return !this.world.isFriend(u.team, this.playerTeam);
+  /** L'élève est-il un ennemi du joueur (ni à lui, ni allié) ? Un surveillant l'est toujours. */
+  private hostile(u: Target): boolean {
+    return isSupervisor(u) || !this.world.isFriend(u.team, this.playerTeam);
   }
 
   destroy(): void {
@@ -573,7 +592,7 @@ export class Game {
   private canArrowFrom(sx: number, sy: number): boolean {
     if (this.paused || this.over || this.selected.size === 0) return false;
     const hit = this.unitAt(sx, sy);
-    return !!hit && this.selected.has(hit.id);
+    return !!hit && !isSupervisor(hit) && this.selected.has(hit.id);
   }
 
   private arrowMove(x0: number, y0: number, x1: number, y1: number): void {
@@ -591,12 +610,7 @@ export class Game {
     const units = this.selectedUnits();
     if (units.length === 0) return;
     const hit = this.unitAt(sx, sy);
-    if (hit && this.hostile(hit)) {
-      this.world.orderAttack(units, hit.id);
-      this.markers.push({ x: hit.x, y: hit.y, t: 0, kind: 'attack', team: this.opts.playerColor });
-      this.sfx.play('order');
-      return;
-    }
+    if (hit && this.hostile(hit)) return this.attack(units, hit);
     this.moveTo(units, sx, sy);
   }
 

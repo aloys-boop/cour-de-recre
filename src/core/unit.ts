@@ -43,8 +43,8 @@ export class Unit {
   aiTag = 0;
   /** Instant (temps du monde) du dernier soin reçu sur un camp ou un cœur, -1 sinon. */
   healedAt = -1;
-  /** Option « Surveillants » : instant (temps du monde) de fin de punition ; puni tant que > time. */
-  punishedUntil = 0;
+  /** Option « Surveillants » : identifiant du surveillant combattu (0 : aucun ; exclusif avec engagedId). */
+  supId = 0;
 
   constructor(team: number, x: number, y: number) {
     this.id = nextId++;
@@ -99,6 +99,7 @@ export class Unit {
       this.setAnim('ko');
       this.clearOrder();
       this.engagedId = -1;
+      this.supId = 0;
       return true;
     }
     return false;

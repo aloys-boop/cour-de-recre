@@ -7,7 +7,18 @@ import { SpatialHash } from './spatial';
 import { RhythmState, bonusWeight, updateRhythm, type RhythmEvent } from './events';
 import { Tile, updateCapture } from './tile';
 import { DEFAULT_RULES, type GameRules } from './rules';
-import { holdPunished, updateSupervisors } from './supervisors';
+import {
+  SUPERVISOR_BODY,
+  SUPERVISOR_HIT_RANGE,
+  hitSupervisor,
+  nearestSupervisor,
+  supervisorActive,
+  supervisorById,
+  supervisorDamageBonus,
+  updateSupervisors,
+  type Supervisor,
+  type SupervisorEvent,
+} from './supervisors';
 import { KingState, kingVictors, updateKing, type KingEvent } from './king';
 import { NO_TEAM, type MapDef, type Suit, type Vec2 } from './types';
 import { Unit, punchDamage, resetUnitIds } from './unit';
@@ -19,7 +30,8 @@ export type WorldEvent =
   | { kind: 'captured'; x: number; y: number; team: number; camp: boolean }
   | { kind: 'spawn'; x: number; y: number; team: number }
   | RhythmEvent
-  | KingEvent;
+  | KingEvent
+  | SupervisorEvent;
 
 export interface TeamStats {
   units: number;
@@ -268,6 +280,7 @@ export class World {
       const goal = this.grid.clampPos({ x: target.x + Math.cos(a) * r, y: target.y + Math.sin(a) * r }, 0.3);
       u.order = { kind: 'move', target: goal, engage };
       u.engagedId = -1;
+      u.supId = 0;
       u.pendingHit = 0;
       this.computePath(u, goal);
       u.state = u.path.length ? 'moving' : 'idle';
@@ -281,7 +294,22 @@ export class World {
       if (!u.alive || this.isFriend(u.team, target.team)) continue;
       u.order = { kind: 'attack', target: target.pos, unitId: targetId };
       u.engagedId = targetId;
+      u.supId = 0;
       this.computePath(u, target.pos);
+      u.state = 'moving';
+    }
+  }
+
+  /** Ordre d'attaque contre un surveillant (option « Surveillants ») : neutre, il est attaquable par tous. */
+  orderAttackSupervisor(units: Unit[], s: Supervisor): void {
+    if (!supervisorActive(s)) return;
+    for (const u of units) {
+      if (!u.alive) continue;
+      u.order = { kind: 'attack', target: { x: s.x, y: s.y }, supId: s.id };
+      u.engagedId = -1;
+      u.supId = s.id;
+      u.pendingHit = 0;
+      this.computePath(u, { x: s.x, y: s.y });
       u.state = 'moving';
     }
   }
@@ -316,7 +344,7 @@ export class World {
     let best: Unit | null = null;
     let bd = radius * radius;
     this.hash.query(u.x, u.y, radius, (o) => {
-      if (!o.alive || this.isFriend(o.team, u.team) || o.punishedUntil > this.time) return;
+      if (!o.alive || this.isFriend(o.team, u.team)) return;
       const d = dist2(u.x, u.y, o.x, o.y);
       if (d < bd) {
         bd = d;
@@ -348,16 +376,18 @@ export class World {
       u.koTimer -= dt;
       return;
     }
-    if (u.punishedUntil > this.time) return holdPunished(u); // option « Surveillants »
 
     // Coup en cours : il porte après un court délai.
     if (u.pendingHit > 0) {
       u.pendingHit -= dt;
       if (u.pendingHit <= 0) {
         u.pendingHit = 0;
-        const target = this.byId.get(u.engagedId);
-        if (target && target.alive && !this.isFriend(u.team, target.team) && dist2(u.x, u.y, target.x, target.y) < (TUNING.punchRange * 1.5) ** 2) {
-          const scale = this.mods[u.team].dmg * (this.damageScale[u.team] ?? 1);
+        const scale = this.mods[u.team].dmg * (this.damageScale[u.team] ?? 1) * supervisorDamageBonus(this, u.team);
+        const sup = u.supId > 0 ? supervisorById(this, u.supId) : undefined;
+        const target = u.supId > 0 ? undefined : this.byId.get(u.engagedId);
+        if (sup && supervisorActive(sup) && dist2(u.x, u.y, sup.x, sup.y) < (SUPERVISOR_HIT_RANGE * 1.5) ** 2) {
+          hitSupervisor(this, sup, Math.max(1, Math.round(punchDamage(() => this.rng.next()) * scale)), u);
+        } else if (target && target.alive && !this.isFriend(u.team, target.team) && dist2(u.x, u.y, target.x, target.y) < (TUNING.punchRange * 1.5) ** 2) {
           const dmg = Math.max(1, Math.round(punchDamage(() => this.rng.next()) * scale));
           const ko = target.takeDamage(dmg, u.x, u.y);
           this.events.push({ kind: 'hit', x: target.x, y: target.y, team: target.team });
@@ -368,9 +398,17 @@ export class World {
 
     // Validation de l'ennemi engagé.
     let engaged = u.engagedId >= 0 ? this.byId.get(u.engagedId) : undefined;
-    if (engaged && (!engaged.alive || this.isFriend(u.team, engaged.team) || engaged.punishedUntil > this.time)) {
+    if (engaged && (!engaged.alive || this.isFriend(u.team, engaged.team))) {
       engaged = undefined;
       u.engagedId = -1;
+      if (u.order.kind === 'attack') u.clearOrder();
+      else if (u.order.kind === 'move') this.computePath(u, u.order.target);
+    }
+    // Surveillant visé (option « Surveillants ») : KO ou parti, on lâche.
+    let sup = u.supId > 0 ? supervisorById(this, u.supId) : undefined;
+    if (u.supId > 0 && (!sup || !supervisorActive(sup))) {
+      sup = undefined;
+      u.supId = 0;
       if (u.order.kind === 'attack') u.clearOrder();
       else if (u.order.kind === 'move') this.computePath(u, u.order.target);
     }
@@ -378,22 +416,30 @@ export class World {
     // Recherche d'une cible : à portée d'aggro si inoccupé, au contact en attaque-déplacement.
     // Un repli (déplacement sans `engage`) ne cherche jamais le combat.
     const canEngage = u.order.kind === 'none' || u.order.kind === 'attack' || u.order.engage === true;
-    if (!engaged && canEngage && this.time - u.lastScan > 0.2) {
+    if (!engaged && !sup && canEngage && this.time - u.lastScan > 0.2) {
       u.lastScan = this.time + u.phase * 0.2;
       const radius = u.order.kind === 'none' ? TUNING.aggroRange : TUNING.punchRange * 1.6;
       const e = this.nearestEnemy(u, radius);
       if (e) {
         engaged = e;
         u.engagedId = e.id;
+      } else if (this.rules.supervisors) {
+        // Pas d'élève ennemi à portée : un surveillant proche est combattu comme un ennemi.
+        const s = nearestSupervisor(this, u.x, u.y, radius + SUPERVISOR_BODY);
+        if (s) {
+          sup = s;
+          u.supId = s.id;
+        }
       }
     }
 
-    if (engaged) {
-      const d2 = dist2(u.x, u.y, engaged.x, engaged.y);
-      const range = TUNING.punchRange;
+    const foe: Vec2 | undefined = engaged ?? sup;
+    if (foe) {
+      const d2 = dist2(u.x, u.y, foe.x, foe.y);
+      const range = engaged ? TUNING.punchRange : SUPERVISOR_HIT_RANGE;
       if (d2 <= range * range) {
         u.state = 'attacking';
-        u.face(engaged.x, engaged.y);
+        u.face(foe.x, foe.y);
         if (u.attackCooldown <= 0 && u.pendingHit === 0) {
           u.attackCooldown = TUNING.punchInterval * (0.9 + 0.2 * this.rng.next());
           u.pendingHit = 0.16;
@@ -405,8 +451,8 @@ export class World {
         return;
       }
       const g = u.pathGoal;
-      if (!g || dist2(g.x, g.y, engaged.x, engaged.y) > 0.6 || u.path.length === 0) {
-        this.computePath(u, engaged.pos);
+      if (!g || dist2(g.x, g.y, foe.x, foe.y) > 0.6 || u.path.length === 0) {
+        this.computePath(u, { x: foe.x, y: foe.y });
       }
       u.state = 'moving';
       this.followPath(u, dt);

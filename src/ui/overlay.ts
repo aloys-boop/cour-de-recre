@@ -89,7 +89,9 @@ export class Overlay {
     wrap.className = stats.rows.length > 5 ? 'end-stats many' : 'end-stats';
     const table = document.createElement('table');
     const head = document.createElement('tr');
-    for (const label of ['Équipe', 'Élèves', 'KO infligés', 'KO subis', 'Cases prises']) {
+    const labels = ['Équipe', 'Élèves', 'KO infligés', 'KO subis', 'Cases prises'];
+    if (stats.supervisors) labels.push('Surveillants KO');
+    for (const label of labels) {
       const th = document.createElement('th');
       th.textContent = label;
       head.append(th);
@@ -104,7 +106,9 @@ export class Overlay {
       dot.style.background = TEAM_COLORS[r.color]?.ui ?? '#888';
       name.append(dot, document.createTextNode(`${TEAM_NAMES[r.color] ?? '?'}${r.isPlayer ? ' (toi)' : ''}`));
       tr.append(name);
-      for (const v of [r.produced, r.koDealt, r.koTaken, r.captured]) {
+      const values = [r.produced, r.koDealt, r.koTaken, r.captured];
+      if (stats.supervisors) values.push(r.supKo ?? 0);
+      for (const v of values) {
         const td = document.createElement('td');
         td.textContent = String(v);
         tr.append(td);

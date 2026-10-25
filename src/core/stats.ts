@@ -11,6 +11,8 @@ export interface TeamTally {
   koTaken: number;
   /** Cases capturées (cases bonus et camps). */
   captured: number;
+  /** Surveillants mis KO (option « Surveillants »). */
+  supKo?: number;
 }
 
 /** Statistiques de partie, alimentées par les événements du monde (logique pure). */
@@ -18,7 +20,7 @@ export class GameStats {
   readonly teams: TeamTally[] = [];
 
   constructor(numTeams = MAX_TEAMS) {
-    for (let t = 0; t < numTeams; t++) this.teams.push({ produced: 0, koDealt: 0, koTaken: 0, captured: 0 });
+    for (let t = 0; t < numTeams; t++) this.teams.push({ produced: 0, koDealt: 0, koTaken: 0, captured: 0, supKo: 0 });
   }
 
   private tally(team: number | undefined): TeamTally | undefined {
@@ -46,6 +48,11 @@ export class GameStats {
         if (t) t.captured++;
         break;
       }
+      case 'supKo': {
+        const t = this.tally(ev.team);
+        if (t) t.supKo = (t.supKo ?? 0) + 1;
+        break;
+      }
     }
   }
 
@@ -66,6 +73,8 @@ export interface EndStats {
   /** Durée de la partie en secondes (temps de simulation, pauses exclues). */
   duration: number;
   rows: EndStatsRow[];
+  /** Option « Surveillants » active : une colonne de plus (surveillants mis KO). */
+  supervisors?: boolean;
 }
 
 export function endStats(stats: GameStats, world: World, playerTeam: number): EndStats {
@@ -74,7 +83,7 @@ export function endStats(stats: GameStats, world: World, playerTeam: number): En
     const tally = stats.teams[t] ?? { produced: 0, koDealt: 0, koTaken: 0, captured: 0 };
     rows.push({ ...tally, team: t, color: world.teamColors[t] ?? t, isPlayer: t === playerTeam });
   }
-  return { duration: world.time, rows };
+  return { duration: world.time, rows, supervisors: !!world.rules.supervisors };
 }
 
 /** Durée lisible : « 45 s », « 3 min 05 s ». */

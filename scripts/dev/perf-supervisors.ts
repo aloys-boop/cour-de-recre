@@ -14,6 +14,7 @@ for (const on of [false, true]) {
   const ais = Array.from({ length: map.teams }, (_, t) => new TeamAi(world, t, 'normal'));
   const step = 1 / 60;
   let whistles = 0;
+  let kos = 0;
   let maxUnits = 0;
   let worst = 0;
   const t0 = performance.now();
@@ -22,12 +23,12 @@ for (const on of [false, true]) {
     const a = performance.now();
     for (const ai of ais) ai.update(step);
     world.update(step);
-    world.drainEvents();
+    kos += world.drainEvents().filter((e) => e.kind === 'supKo').length;
     worst = Math.max(worst, performance.now() - a);
     whistles += takeWhistles(world);
     maxUnits = Math.max(maxUnits, world.units.length);
     n++;
   }
   const ms = performance.now() - t0;
-  console.log(`surveillants ${on ? 'oui' : 'non'} (${supervisorsOf(world).length}) : ${(ms / n).toFixed(3)} ms/pas en moyenne, pire ${worst.toFixed(1)} ms, élèves max ${maxUnits}, coups de sifflet ${whistles}`);
+  console.log(`surveillants ${on ? 'oui' : 'non'} (${supervisorsOf(world).length}) : ${(ms / n).toFixed(3)} ms/pas en moyenne, pire ${worst.toFixed(1)} ms, élèves max ${maxUnits}, coups de sifflet ${whistles}, surveillants mis KO ${kos}`);
 }

@@ -9,7 +9,7 @@ import { drawGhostCamp } from './ghost';
 import { drawThroneTile } from './king';
 import { buildSheet, FEET_Y, FRAME_H, FRAME_W, frameFor, type SheetCanvas } from './sprites';
 import { drawSuit } from './suits';
-import { drawPunishedMark, drawSupervisor, lazySupervisorSheet, pushSupervisorItems } from './supervisors';
+import { drawSupervisor, drawSupervisorBar, lazySupervisorSheet, pushSupervisorItems } from './supervisors';
 import type { Supervisor } from '../core/supervisors';
 import { CHARGE_COLOR, drawHealHeart, drawRallies, drawSpadeAura, spadeAuraTeams } from './tactics';
 import { tileView, unitVisible, pointVisible } from '../core/fog';
@@ -257,6 +257,7 @@ export class Renderer {
     items.sort((a, b) => a.depth - b.depth);
     const margin = 80 * z;
     const aura = spadeAuraTeams(world);
+    const shownSups: Supervisor[] = [];
     for (const it of items) {
       if (it.obstacle) {
         this.drawObstacle(it.obstacle, cam);
@@ -264,7 +265,8 @@ export class Renderer {
       }
       if (it.sup) {
         if (!pointVisible(world, playerTeam, it.sup.x, it.sup.y)) continue;
-        drawSupervisor(ctx, this.supSheet(), it.sup, cam);
+        drawSupervisor(ctx, this.supSheet(), it.sup, cam, world.time);
+        shownSups.push(it.sup);
         continue;
       }
       const u = it.unit!;
@@ -302,11 +304,11 @@ export class Renderer {
         ctx.fillStyle = r > 0.5 ? '#3ee05a' : r > 0.25 ? '#f2c22e' : '#e5453c';
         ctx.fillRect(bx, by, bw * r, bh);
         drawHealHeart(ctx, u, p, z, world.time);
-        drawPunishedMark(ctx, u, p, z, world.time);
         drawStarvingBar(ctx, world, u.team, bx, by, bw, bh);
       }
       ctx.globalAlpha = 1;
     }
+    for (const s of shownSups) drawSupervisorBar(ctx, s, cam);
   }
 
   private drawSprite(u: Unit, color: number, p: Vec2, z: number): void {

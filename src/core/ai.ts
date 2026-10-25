@@ -1,7 +1,7 @@
 import { AI_PROFILES, type AiProfile } from '../config';
 import { goldenAiBonus, goldenRetarget } from './events';
-import { unitVisible } from './fog';
-import { supervisorsNear } from './supervisors';
+import { pointVisible, unitVisible } from './fog';
+import { nearestSupervisor, supervisorsNear, type Supervisor } from './supervisors';
 import { ghostAiBonus } from './ghosts';
 import { kingAiScore, kingDefenseExtra, kingGarrison, kingRetarget } from './king';
 import type { Tile } from './tile';
@@ -13,6 +13,11 @@ const TAG_FREE = 0;
 const TAG_DEFEND = 1;
 const TAG_ATTACK = 2;
 const TAG_RALLY = 3;
+/** Option « Surveillants » : taille de groupe à partir de laquelle l'IA va mettre un surveillant KO. */
+export const AI_SUPERVISOR_GROUP = 8;
+/** Groupe suffisant pour dégager un surveillant qui garde la cible visée. */
+export const AI_SUPERVISOR_BLOCK_GROUP = 6;
+
 /** Élève prêté à un allié (appel à l'aide, voir diplomacy-extras.ts) : l'IA ne le commande plus. */
 export const TAG_LOANED = 4;
 
@@ -38,6 +43,10 @@ export class TeamAi {
     this.profile = AI_PROFILES[difficulty];
     // Décalage initial pour que les IA ne jouent pas toutes au même instant.
     this.timer = 0.5 + team * 0.4;
+  }
+
+  private fightSupervisor(strikers: Unit[], target: Tile): boolean {
+    return planSupervisorFight(this, strikers, target);
   }
 
   update(dt: number): void {
@@ -120,6 +129,9 @@ export class TeamAi {
     const strikers = available.filter((u) => !guards.has(u));
     if (strikers.length === 0) return;
 
+    // Option « Surveillants » : une cible gardée par un surveillant n'est pas pour un petit groupe.
+    const fewForSup = strikers.length < AI_SUPERVISOR_BLOCK_GROUP;
+    if (this.target && fewForSup && w.time - this.targetSince > 3 && supervisorsNear(w, this.target.cx, this.target.cy, 2.5) > 0) this.target = null;
     if (this.target && (w.isFriend(this.target.owner, this.team) || w.time - this.targetSince > 25 || goldenRetarget(w, this.target, this.targetSince) || kingRetarget(w, this.team, this.target, this.targetSince))) this.target = null;
     if (!this.target) {
       let best: Tile | null = null;
@@ -135,7 +147,8 @@ export class TeamAi {
         else if (t.suit === 'diamond') score -= 0.1;
         score -= 0.09 * Math.hypot(t.cx - centroid.x, t.cy - centroid.y);
         score -= 0.22 * enemyNear;
-        score -= 0.35 * supervisorsNear(w, t.cx, t.cy, 2.5); // option « Surveillants » : éviter de se battre sous leurs yeux
+        // Option « Surveillants » : un petit groupe évite les cases gardées, un gros groupe s'en moque.
+        score -= (strikers.length >= AI_SUPERVISOR_GROUP ? 0.1 : 0.6) * supervisorsNear(w, t.cx, t.cy, 2.5);
         if (t.capTeam === this.team) score += 0.6;
         if (t.contested) score += 0.2;
         score += goldenAiBonus(w, t);
@@ -152,6 +165,8 @@ export class TeamAi {
     }
     const target = this.target;
     if (!target) return;
+
+    if (this.fightSupervisor(strikers, target)) return;
 
     const enemyAtTarget = enemies.filter((e) => Math.hypot(e.x - target.cx, e.y - target.cy) < 2.5).length;
     const needed = Math.max(this.profile.groupMin, Math.ceil(enemyAtTarget * 1.3) + 1);
@@ -177,6 +192,34 @@ export class TeamAi {
       }
     }
   }
+}
+
+export interface SupervisorPlanHost {
+  world: World;
+  team: number;
+}
+
+/**
+ * Option « Surveillants » : l'IA attaque un surveillant visible quand elle a un groupe nettement
+ * supérieur à proximité (AI_SUPERVISOR_GROUP élèves, moins s'il est déjà blessé), ou quand il garde
+ * la case visée et que le groupe est assez gros pour le dégager. Retourne vrai si l'ordre est donné.
+ */
+export function planSupervisorFight(host: SupervisorPlanHost, strikers: readonly Unit[], target: Tile): boolean {
+  const w = host.world;
+  if (!w.rules.supervisors || strikers.length === 0) return false;
+  const seen = (s: Supervisor) => pointVisible(w, host.team, s.x, s.y);
+  const c = center(strikers as Unit[]);
+  const blocking = nearestSupervisor(w, target.cx, target.cy, 2.8, seen);
+  const s = blocking ?? nearestSupervisor(w, c.x, c.y, 6, seen);
+  if (!s) return false;
+  const close = strikers.filter((u) => d2(u, s) < 36);
+  const hurt = Math.max(0.5, s.hp / s.maxHp);
+  const need = Math.ceil((blocking ? AI_SUPERVISOR_BLOCK_GROUP : AI_SUPERVISOR_GROUP) * hurt);
+  if (close.length < need) return false;
+  const go = close.filter((u) => u.supId !== s.id);
+  if (go.length) w.orderAttackSupervisor(go, s);
+  for (const u of close) u.aiTag = TAG_ATTACK;
+  return true;
 }
 
 function dist(u: Unit, t: Tile): number {
