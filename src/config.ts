@@ -72,3 +72,14 @@ export const AI_PROFILES: Record<Difficulty, AiProfile> = {
 };
 
 export const STORAGE_KEY = 'cour-de-recre.v2';
+
+/** Rythme de partie : case dorée périodique et épuisement des équipes sans camp. */
+export const RHYTHM = {
+  goldenFirstAt: 45, // secondes de jeu avant la première case dorée
+  goldenInterval: 60, // écart moyen entre deux cases dorées (début à début)
+  goldenJitter: 5, // variation aléatoire de cet écart (±)
+  goldenDuration: 30, // durée de vie d'une case dorée
+  goldenMultiplier: 2, // la case dorée compte pour autant de cases
+  goldenAiScore: 0.55, // attrait de la case dorée dans le choix de cible des IA
+  noCampDrainPerSec: 1, // points de vie perdus par seconde par les élèves d'une équipe sans camp
+};

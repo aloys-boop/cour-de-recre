@@ -4,6 +4,7 @@ import { dist2 } from './math';
 import { findPath, smoothPath } from './pathfinding';
 import { Rng } from './rng';
 import { SpatialHash } from './spatial';
+import { RhythmState, bonusWeight, updateRhythm, type RhythmEvent } from './events';
 import { Tile, updateCapture } from './tile';
 import { NO_TEAM, type MapDef, type Suit, type Vec2 } from './types';
 import { Unit, punchDamage, resetUnitIds } from './unit';
@@ -13,7 +14,8 @@ export type WorldEvent =
   | { kind: 'hit'; x: number; y: number; team: number }
   | { kind: 'ko'; x: number; y: number; team: number }
   | { kind: 'captured'; x: number; y: number; team: number; camp: boolean }
-  | { kind: 'spawn'; x: number; y: number; team: number };
+  | { kind: 'spawn'; x: number; y: number; team: number }
+  | RhythmEvent;
 
 export interface TeamStats {
   units: number;
@@ -47,6 +49,8 @@ export class World {
   damageScale: number[] = [1, 1, 1, 1];
   readonly mods: TeamMods[] = [];
   time = 0;
+  /** Rythme de partie : case dorée, épuisement des équipes sans camp (voir events.ts). */
+  readonly rhythm = new RhythmState();
   private presence: number[][] = [];
   private byId = new Map<number, Unit>();
 
@@ -138,7 +142,7 @@ export class World {
     for (let team = 0; team < this.numTeams; team++) {
       const prof = TEAM_PROFILES[this.teamColors[team]] ?? TEAM_PROFILES[0];
       const suits: Record<Suit, number> = { spade: 0, heart: 0, diamond: 0, club: 0 };
-      for (const t of this.tiles) if (t.owner === team && t.suit) suits[t.suit]++;
+      for (const t of this.tiles) if (t.owner === team && t.suit) suits[t.suit] += bonusWeight(this, t);
       const m = this.mods[team];
       const prevHp = m.hp;
       m.hp = prof.hp * (1 + SUIT_BONUS.heart.perTile * suits.heart);
@@ -219,6 +223,7 @@ export class World {
     for (const u of this.units) this.updateUnit(u, dt);
     this.separate();
     this.updateTiles(dt);
+    if (updateRhythm(this, dt)) this.refreshMods();
     this.removeDead();
   }
 
@@ -423,7 +428,7 @@ export class World {
       this.hash.query(t.cx, t.cy, t.half, (u) => {
         if (!u.alive || !t.contains(u.x, u.y)) return;
         pres[u.team]++;
-        if (heals && u.team === t.owner && u.hp < u.maxHp) u.hp = Math.min(u.maxHp, u.hp + TUNING.regenPerSec * dt);
+        if (heals && u.team === t.owner && u.hp < u.maxHp && !this.rhythm.starving[u.team]) u.hp = Math.min(u.maxHp, u.hp + TUNING.regenPerSec * dt);
       });
       const ev = updateCapture(t, pres, dt);
       if (ev && ev.kind === 'captured') {

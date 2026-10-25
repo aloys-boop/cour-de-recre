@@ -69,6 +69,7 @@ function launch(opts: GameOptions): void {
   hud.show();
   game = new Game(canvas, minimapCanvas, sfx, opts, {
     onHud: (world, selected) => hud.update(world, selected, 0),
+    onAnnounce: (text) => hud.showHint(text, 2600),
     onPauseChange: (paused) => {
       if (paused) {
         overlay.pause(

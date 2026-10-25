@@ -1,4 +1,5 @@
 import { AI_PROFILES, type AiProfile } from '../config';
+import { goldenAiBonus, goldenRetarget } from './events';
 import type { Tile } from './tile';
 import { NO_TEAM, type Difficulty } from './types';
 import type { Unit } from './unit';
@@ -84,7 +85,7 @@ export class TeamAi {
     const strikers = available.filter((u) => !guards.has(u));
     if (strikers.length === 0) return;
 
-    if (this.target && (this.target.owner === this.team || w.time - this.targetSince > 25)) this.target = null;
+    if (this.target && (this.target.owner === this.team || w.time - this.targetSince > 25 || goldenRetarget(w, this.target, this.targetSince))) this.target = null;
     if (!this.target) {
       let best: Tile | null = null;
       let bestScore = -Infinity;
@@ -99,6 +100,7 @@ export class TeamAi {
         score -= 0.22 * enemyNear;
         if (t.capTeam === this.team) score += 0.6;
         if (t.contested) score += 0.2;
+        score += goldenAiBonus(w, t);
         score += w.rng.next() * 0.15;
         if (score > bestScore) {
           bestScore = score;
