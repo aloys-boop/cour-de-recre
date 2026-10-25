@@ -23,7 +23,10 @@
 
       <div id="hud" class="layer hidden">
         <div class="hud-top">
-          <div id="team-chips" class="chips"></div>
+          <div class="hud-top-left">
+            <div id="team-chips" class="chips"></div>
+            <div id="bonus-line" class="bonus-line"></div>
+          </div>
           <div class="hud-top-right">
             <button id="btn-sound" class="icon-btn" aria-label="Couper le son"></button>
             <button id="btn-pause" class="icon-btn" aria-label="Pause"></button>
@@ -31,10 +34,10 @@
         </div>
         <div class="hud-bottom-left">
           <button id="btn-select-all" class="btn">Tout sélectionner</button>
-          <button id="btn-cancel" class="btn btn-secondary">Annuler</button>
           <div id="sel-count" class="sel-count"></div>
         </div>
         <div class="hud-bottom-right">
+          <button id="btn-cancel" class="btn btn-secondary">Annuler</button>
           <canvas id="minimap" aria-label="Mini-carte"></canvas>
         </div>
         <div id="hint" class="hint hidden"></div>

@@ -1,4 +1,4 @@
-import { TEAM_COLORS, TEAM_TILE_COLORS } from '../config';
+import { TEAM_COLORS } from '../config';
 import { gridToScreen, TILE_H, TILE_W } from '../core/math';
 import { NO_TEAM, type Vec2 } from '../core/types';
 import type { World } from '../core/world';
@@ -76,8 +76,11 @@ export class Minimap {
     // Cases.
     for (const t of world.tiles) {
       const p = this.toMini(t.cx, t.cy);
-      const s = Math.max(2.5, (TILE_W / 2) * this.scale * 0.9);
-      ctx.fillStyle = t.owner === NO_TEAM ? '#ffffff' : TEAM_TILE_COLORS[world.teamColors[t.owner]];
+      const s = Math.max(2.5, (TILE_W / 2) * this.scale * 0.9 * t.size);
+      const ownerColor = t.owner === NO_TEAM ? NO_TEAM : world.teamColors[t.owner];
+      ctx.fillStyle = t.isCamp
+        ? ownerColor === NO_TEAM ? '#bdbdc2' : TEAM_COLORS[ownerColor].main
+        : ownerColor === NO_TEAM ? '#ffffff' : TEAM_COLORS[ownerColor].light;
       ctx.beginPath();
       ctx.moveTo(p.x, p.y - s / 2);
       ctx.lineTo(p.x + s, p.y);

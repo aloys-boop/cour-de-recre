@@ -1,4 +1,4 @@
-import { TEAM_COLORS, TEAM_NAMES } from '../config';
+import { SUIT_BONUS, TEAM_COLORS, TEAM_NAMES, TEAM_PROFILES } from '../config';
 import { MAPS } from '../core/maps';
 import type { Progress } from '../core/save';
 import type { Difficulty, TeamId } from '../core/types';
@@ -60,11 +60,21 @@ export class Menu {
     title.append(el('h1', '', 'Cour de Récré'), el('p', '', 'Stratégie en temps réel. Capture toutes les cases, élimine les autres équipes.'));
     inner.append(title);
 
-    // Équipe.
+    // Équipe : chaque uniforme a ses forces et ses faiblesses.
     const teamSec = el('div', 'menu-section');
     teamSec.append(el('h2', '', 'Ton équipe'));
     const teamRow = el('div', 'team-row');
     const teamBtns: HTMLButtonElement[] = [];
+    const profileBox = el('div', 'team-profile');
+    const renderProfile = (i: number) => {
+      const p = TEAM_PROFILES[i];
+      profileBox.innerHTML =
+        `<div class="team-blurb">${p.blurb}</div>` +
+        statRow('Vie', p.hp) +
+        statRow('Dégâts', p.dmg) +
+        statRow('Production', p.prod) +
+        statRow('Vitesse', p.speed);
+    };
     TEAM_NAMES.forEach((name, i) => {
       const b = document.createElement('button');
       b.className = 'team-btn' + (this.state.team === i ? ' active' : '');
@@ -74,11 +84,13 @@ export class Menu {
       b.addEventListener('click', () => {
         this.state.team = i as TeamId;
         teamBtns.forEach((x, j) => x.classList.toggle('active', j === i));
+        renderProfile(i);
       });
       teamBtns.push(b);
       teamRow.append(b);
     });
-    teamSec.append(teamRow);
+    renderProfile(this.state.team);
+    teamSec.append(teamRow, profileBox);
 
     // Difficulté.
     const diffSec = el('div', 'menu-section');
@@ -147,7 +159,11 @@ export class Menu {
     inner.append(actions);
 
     const foot = el('div', 'menu-foot');
+    const bonusText = (['heart', 'spade', 'club', 'diamond'] as const)
+      .map((s) => `${SUIT_GLYPHS[s]} ${SUIT_BONUS[s].label.toLowerCase()}`)
+      .join(' · ');
     foot.append(
+      el('div', '', `Prends les cases entre les camps : ${bonusText}. Capture le camp adverse pour couper sa production.`),
       document.createTextNode('Tap : sélectionner · appui long + glisser : rectangle · deux doigts : zoom et caméra. '),
     );
     const install = document.createElement('button');
@@ -158,6 +174,16 @@ export class Menu {
 
     r.append(inner);
   }
+}
+
+const SUIT_GLYPHS = { heart: '\u2665', spade: '\u2660', club: '\u2663', diamond: '\u2666' } as const;
+
+/** Ligne de statistique : libellé + cinq cases, remplies selon le multiplicateur (1 = trois cases). */
+function statRow(label: string, mult: number): string {
+  const n = Math.max(1, Math.min(5, Math.round(1 + (mult - 0.5) * 3.2)));
+  let boxes = '';
+  for (let i = 0; i < 5; i++) boxes += `<i class="${i < n ? 'on' : ''}"></i>`;
+  return `<div class="stat"><span>${label}</span><span class="boxes">${boxes}</span></div>`;
 }
 
 function el(tag: string, cls = '', text = ''): HTMLElement {

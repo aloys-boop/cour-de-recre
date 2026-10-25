@@ -14,8 +14,8 @@ const ARENA: MapDef = {
   spawnInterval: 1000,
   startUnits: 0,
   tiles: [
-    { x: 0, y: 0, suit: 'spade', owner: 0 },
-    { x: 7, y: 7, suit: 'heart', owner: 1 },
+    { kind: 'camp', x: 0, y: 0, owner: 0 },
+    { kind: 'camp', x: 6, y: 6, owner: 1 },
   ],
 };
 

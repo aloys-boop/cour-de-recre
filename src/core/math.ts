@@ -1,7 +1,7 @@
 import type { Dir, Vec2 } from './types';
 
-export const TILE_W = 64; // largeur d'une cellule iso à l'écran (zoom 1)
-export const TILE_H = 32;
+export const TILE_W = 80; // largeur d'une cellule iso à l'écran (zoom 1)
+export const TILE_H = 40;
 
 export function clamp(v: number, a: number, b: number): number {
   return v < a ? a : v > b ? b : v;

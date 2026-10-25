@@ -1,5 +1,8 @@
-import { TEAM_COLORS, TEAM_NAMES } from '../config';
+import { SUIT_BONUS, TEAM_COLORS, TEAM_NAMES } from '../config';
+import type { Suit } from '../core/types';
 import type { World } from '../core/world';
+
+const SUIT_GLYPH: Record<Suit, string> = { heart: '\u2665', spade: '\u2660', club: '\u2663', diamond: '\u2666' };
 
 export interface HudHooks {
   onSelectAll(): void;
@@ -11,6 +14,7 @@ export interface HudHooks {
 /** Barre de jeu : compteurs par équipe, boutons de sélection, pause et son. */
 export class Hud {
   private chips: HTMLElement;
+  private bonus: HTMLElement;
   private selCount: HTMLElement;
   private btnSound: HTMLButtonElement;
   private hint: HTMLElement;
@@ -22,6 +26,7 @@ export class Hud {
     muted: boolean,
   ) {
     this.chips = root.querySelector('#team-chips')!;
+    this.bonus = root.querySelector('#bonus-line')!;
     this.selCount = root.querySelector('#sel-count')!;
     this.hint = root.querySelector('#hint')!;
     this.btnSound = root.querySelector('#btn-sound')!;
@@ -58,10 +63,18 @@ export class Hud {
       parts.push(
         `<span class="chip${t === playerTeam ? ' me' : ''}${s.alive ? '' : ' dead'}">` +
           `<span class="dot" style="background:${TEAM_COLORS[c].ui}"></span>` +
-          `${TEAM_NAMES[c]} ${s.units} · ${s.tiles}/${world.tiles.length}</span>`,
+          `${TEAM_NAMES[c]} ${s.units}${s.camps > 1 ? ` · ${s.camps} camps` : ''}</span>`,
       );
     }
     this.chips.innerHTML = parts.join('');
+    // Bonus actifs du joueur, par symbole.
+    const m = world.mods[playerTeam];
+    const bits: string[] = [];
+    (Object.keys(SUIT_BONUS) as Suit[]).forEach((suit) => {
+      const n = m.suits[suit];
+      if (n > 0) bits.push(`${SUIT_GLYPH[suit]} ${SUIT_BONUS[suit].label} +${Math.round(SUIT_BONUS[suit].perTile * n * 100)} %`);
+    });
+    this.bonus.textContent = bits.join('   ');
     this.selCount.textContent = selected > 0 ? `${selected} sélectionné${selected > 1 ? 's' : ''}` : '';
   }
 

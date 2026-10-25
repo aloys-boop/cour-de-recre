@@ -14,11 +14,19 @@ export interface Vec2 {
   y: number;
 }
 
+/**
+ * Une case au sol.
+ *  - `camp` : base d'une équipe (2 × 2 cellules), produit les élèves ;
+ *  - `bonus` : case blanche marquée d'un symbole, donne un bonus à son propriétaire.
+ */
 export interface TileDef {
+  kind: 'camp' | 'bonus';
+  /** Coin nord de la case (cellule). */
   x: number;
   y: number;
-  suit: Suit;
-  /** Équipe qui possède la case au départ (facultatif). */
+  /** Symbole des cases bonus. */
+  suit?: Suit;
+  /** Équipe propriétaire au départ (obligatoire pour un camp). */
   owner?: TeamId;
 }
 
@@ -32,7 +40,7 @@ export interface MapDef {
   teams: number;
   /** Plafond d'unités par équipe. */
   unitCap: number;
-  /** Secondes entre deux apparitions sur une case possédée. */
+  /** Secondes entre deux apparitions dans un camp (avant bonus et profil d'équipe). */
   spawnInterval: number;
   /** Nombre d'élèves de départ par équipe. */
   startUnits: number;

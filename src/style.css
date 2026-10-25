@@ -198,6 +198,31 @@ button {
   position: absolute;
   right: calc(10px + var(--sar));
   bottom: calc(10px + var(--sab));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.hud-top-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.bonus-line {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  white-space: pre;
+  width: fit-content;
+}
+
+.bonus-line:empty {
+  display: none;
 }
 
 #minimap {
@@ -293,6 +318,41 @@ button {
 .team-btn.active {
   border-color: #fff;
   box-shadow: 0 0 0 2px var(--ink);
+}
+
+.team-profile {
+  margin-top: 8px;
+  display: grid;
+  gap: 3px;
+  font-size: 12px;
+}
+
+.team-blurb {
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.stat .boxes {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.stat i {
+  width: 14px;
+  height: 8px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.stat i.on {
+  background: var(--accent);
 }
 
 .diff-btn {

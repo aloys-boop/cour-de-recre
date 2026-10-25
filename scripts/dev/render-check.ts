@@ -27,8 +27,8 @@ for (let t = 0; t < 4; t++) {
 const mapIdx = Number(process.argv[2] ?? 2);
 const seconds = Number(process.argv[3] ?? 40);
 const map = MAPS[mapIdx];
-const world = new World(map, map.teams, 7);
-world.teamColors = [2, 0, 1, 3];
+const world = new World(map, map.teams, 7, [2, 0, 1, 3]);
+void 0;
 const ais = [1, 2, 3].slice(0, map.teams - 1).map((t) => new TeamAi(world, t, 'difficile'));
 const ai0 = new TeamAi(world, 0, 'normal');
 const step = 1 / 60;
@@ -56,7 +56,7 @@ for (const zoom of [1, 1.8]) {
   cam.setView(W, H);
   cam.fit();
   cam.zoom *= zoom;
-  const home = world.tiles[0];
+  const home = world.camps[0];
   if (zoom > 1) cam.centerOnGrid(home.cx + 2, home.cy - 2);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const selected = new Set(world.units.filter((u) => u.team === 0).slice(0, 5).map((u) => u.id));

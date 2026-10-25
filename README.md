@@ -6,11 +6,16 @@ Quatre équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet) se disputent 
 
 ## Règles du jeu
 
-- **Les cases.** La cour est parsemée de cases blanches marquées d'un symbole de carte (pique, cœur, carreau, trèfle). Une case prend la couleur de l'équipe qui la contrôle.
-- **Capturer.** Des élèves d'une seule équipe doivent rester sur une case pendant environ 3 secondes (jauge visible sous le symbole). Plus ils sont nombreux, plus c'est rapide (jusqu'à 2 fois). Si une autre équipe tient déjà une jauge, il faut d'abord la vider. Une case occupée par plusieurs équipes est **contestée** (pointillés rouges) : rien ne bouge tant que le combat n'est pas tranché.
-- **Renforts.** Chaque case possédée fait apparaître régulièrement un nouvel élève de son équipe, dans la limite d'un plafond par équipe (18 à 30 selon la carte).
+- **Les camps.** Chaque équipe part d'un camp (grande zone colorée dans un coin de la cour). Le camp produit régulièrement un nouvel élève, dans la limite d'un plafond par équipe (20 à 30 selon la carte).
+- **Les cases bonus.** Entre les camps, des cases blanches marquées d'un symbole de carte. Chaque case possédée renforce toute l'équipe :
+  - ♥ cœur : plus de points de vie (+30 % par case) ;
+  - ♠ pique : plus de dégâts (+30 %) ;
+  - ♣ trèfle : production plus rapide (+35 %) ;
+  - ♦ carreau : déplacement plus rapide (+15 %).
+- **Capturer.** Des élèves d'une seule équipe doivent rester sur une case pendant environ 3 secondes (jauge visible). Plus ils sont nombreux, plus c'est rapide (jusqu'à 2 fois). Si une autre équipe tient déjà une jauge, il faut d'abord la vider. Une case occupée par plusieurs équipes est **contestée** (pointillés rouges) : rien ne bouge tant que le combat n'est pas tranché. Un camp se prend aussi, mais 2,5 fois plus lentement ; l'équipe qui le perd ne produit plus.
+- **Des équipes inégales.** Chaque uniforme a ses forces : Noir, solide et équilibré ; Vert, production très rapide mais élèves fragiles ; Jaune, très rapide ; Violet, très fort mais lent à produire. Le menu affiche le profil de chaque équipe.
 - **Combat.** Les élèves se battent à coups de poing au corps à corps. Un élève inoccupé engage de lui-même les ennemis qui s'approchent. À zéro point de vie, il s'assoit, KO, puis disparaît.
-- **Victoire.** Une équipe gagne quand elle contrôle toutes les cases ou qu'elle est la dernière à avoir encore des élèves ou des cases. Tu perds dès que tu n'as plus ni élèves ni cases.
+- **Victoire.** Une équipe gagne quand elle est la dernière à avoir encore des élèves ou un camp, ou quand elle possède tous les camps. Tu perds dès que tu n'as plus ni élèves ni camp.
 - **Progression.** Cinq cartes de taille croissante (du Préau au Campus). Chaque victoire débloque la suivante ; la progression est sauvegardée sur l'appareil.
 - **Difficulté.** Facile, Normal ou Difficile : les IA réagissent plus vite, attaquent avec de plus petits groupes, gardent moins de défenseurs et frappent plus fort.
 
@@ -67,12 +72,12 @@ src/
   core/                logique pure, sans navigateur (testée par Vitest)
     world.ts           simulation : unités, combats, captures, apparitions, victoire
     unit.ts            état d'un élève (ordres, chemin, points de vie, KO)
-    tile.ts            règles de capture d'une case
+    tile.ts            camps et cases bonus, règles de capture
     ai.ts              IA d'équipe (évaluation des cases, regroupement, défense)
     pathfinding.ts     A* 8 voisins + lissage
     spatial.ts         hash spatial pour les voisinages
     grid.ts            grille de navigation et obstacles
-    maps.ts            les 5 cartes
+    maps.ts            les 5 cartes (camps, cases bonus, obstacles)
     save.ts            progression (localStorage)
   render/              rendu canvas 2D
     sprites.ts         élèves dessinés pixel par pixel : 8 directions, marche, coup, KO

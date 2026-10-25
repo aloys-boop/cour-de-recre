@@ -1,15 +1,25 @@
 import { TUNING } from '../config';
 import { NO_TEAM, type Suit, type TileDef } from './types';
 
-export type CaptureEvent = { kind: 'captured'; team: number } | { kind: 'neutralized' } | null;
+export type CaptureEvent = { kind: 'captured'; team: number } | null;
 
-/** Une case marquée d'un symbole : possession, jauge de capture, minuterie d'apparition. */
+/**
+ * Une case au sol : camp d'équipe (2 × 2) ou case bonus (1 × 1) marquée d'un symbole.
+ * Porte la possession, la jauge de capture et, pour un camp, la minuterie d'apparition.
+ */
 export class Tile {
+  readonly kind: 'camp' | 'bonus';
+  /** Coin nord (cellule). */
   readonly x: number;
   readonly y: number;
+  /** Centre (continu). */
   readonly cx: number;
   readonly cy: number;
-  readonly suit: Suit;
+  /** Côté en cellules (1 ou 2). */
+  readonly size: number;
+  readonly suit: Suit | null;
+  /** Demi-côté de la zone de capture. */
+  readonly half: number;
   /** Équipe propriétaire ou NO_TEAM. */
   owner: number;
   /** Équipe qui remplit la jauge, ou NO_TEAM. */
@@ -21,17 +31,24 @@ export class Tile {
   spawnTimer = 0;
 
   constructor(def: TileDef) {
+    this.kind = def.kind;
     this.x = def.x;
     this.y = def.y;
-    this.cx = def.x + 0.5;
-    this.cy = def.y + 0.5;
-    this.suit = def.suit;
+    this.size = def.kind === 'camp' ? 2 : 1;
+    this.cx = def.x + this.size / 2;
+    this.cy = def.y + this.size / 2;
+    this.suit = def.suit ?? null;
+    this.half = def.kind === 'camp' ? TUNING.campHalf : TUNING.bonusTileHalf;
     this.owner = def.owner ?? NO_TEAM;
   }
 
+  get isCamp(): boolean {
+    return this.kind === 'camp';
+  }
+
   /** La position (continue) est-elle sur la case ? */
-  contains(px: number, py: number, r = TUNING.tileRadius): boolean {
-    return Math.abs(px - this.cx) <= r && Math.abs(py - this.cy) <= r;
+  contains(px: number, py: number, half = this.half): boolean {
+    return Math.abs(px - this.cx) <= half && Math.abs(py - this.cy) <= half;
   }
 }
 
@@ -44,6 +61,7 @@ export class Tile {
  *    puis remplit la sienne ; jauge pleine → la case change de main ;
  *  - le propriétaire seul : il efface la jauge adverse ;
  *  - personne : la jauge se vide lentement.
+ * Un camp se capture plus lentement qu'une case bonus.
  */
 export function updateCapture(tile: Tile, presence: number[], dt: number): CaptureEvent {
   let present = -1;
@@ -75,10 +93,10 @@ export function updateCapture(tile: Tile, presence: number[], dt: number): Captu
   }
 
   // Une seule équipe présente.
-  const speed = Math.min(2, Math.sqrt(count)) / TUNING.captureSeconds;
+  const seconds = TUNING.captureSeconds * (tile.isCamp ? TUNING.campCaptureFactor : 1);
+  const speed = Math.min(2, Math.sqrt(count)) / seconds;
 
   if (present === tile.owner) {
-    // Le propriétaire défend : la jauge adverse recule.
     if (tile.capTeam !== NO_TEAM) {
       tile.cap -= speed * dt;
       if (tile.cap <= 0) {

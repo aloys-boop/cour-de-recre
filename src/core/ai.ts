@@ -55,7 +55,8 @@ export class TeamAi {
       const capturing = t.capTeam !== NO_TEAM && t.capTeam !== this.team;
       if (threat === 0 && !capturing) continue;
       const defendersNear = mine.filter((u) => Math.hypot(u.x - t.cx, u.y - t.cy) < 2.2).length;
-      const need = Math.ceil(threat * 1.2 + (capturing ? 2 : 0)) - defendersNear;
+      // Un camp menacé est défendu en priorité et plus largement.
+      const need = Math.ceil(threat * (t.isCamp ? 1.6 : 1.2) + (capturing ? (t.isCamp ? 4 : 2) : 0)) - defendersNear;
       if (need <= 0) continue;
       const candidates = mine
         .filter((u) => u.aiTag !== TAG_DEFEND && u.state !== 'attacking')
@@ -91,6 +92,9 @@ export class TeamAi {
         if (t.owner === this.team) continue;
         const enemyNear = enemies.filter((e) => Math.hypot(e.x - t.cx, e.y - t.cy) < 2.5).length;
         let score = t.owner === NO_TEAM ? 1.0 : this.profile.aggression;
+        if (t.isCamp) score = this.profile.aggression * 1.3; // prendre un camp coupe la production adverse
+        else if (t.suit === 'heart' || t.suit === 'club') score += 0.15;
+        else if (t.suit === 'diamond') score -= 0.1;
         score -= 0.09 * Math.hypot(t.cx - centroid.x, t.cy - centroid.y);
         score -= 0.22 * enemyNear;
         if (t.capTeam === this.team) score += 0.6;

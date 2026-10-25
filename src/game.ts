@@ -7,7 +7,7 @@ import { TouchInput } from './input/touch';
 import { Camera } from './render/camera';
 import { Minimap } from './render/minimap';
 import { Renderer, type Marker, type SelectionBox } from './render/renderer';
-import { FRAME_H } from './render/sprites';
+import { FEET_Y } from './render/sprites';
 
 export type GameResult = 'victoire' | 'defaite';
 
@@ -57,10 +57,9 @@ export class Game {
     readonly opts: GameOptions,
     private hooks: GameHooks,
   ) {
-    this.world = new World(opts.map, opts.map.teams, opts.seed ?? (Date.now() % 100000));
     // Le joueur est l'équipe 0 ; sa couleur est celle choisie, les autres suivent.
     const others = [0, 1, 2, 3].filter((c) => c !== opts.playerColor);
-    this.world.teamColors = [opts.playerColor, ...others];
+    this.world = new World(opts.map, opts.map.teams, opts.seed ?? (Date.now() % 100000), [opts.playerColor, ...others]);
     for (let t = 1; t < this.world.numTeams; t++) {
       const ai = new TeamAi(this.world, t, opts.difficulty);
       this.ais.push(ai);
@@ -81,7 +80,7 @@ export class Game {
     this.cam.fit();
     // On cadre d'abord la base du joueur (ouest), puis on laisse voir toute la carte.
     this.cam.zoom = Math.min(this.cam.maxZoom, this.cam.zoom * 1.35);
-    const home = this.world.tiles.find((t) => t.owner === this.playerTeam);
+    const home = this.world.tiles.find((t) => t.isCamp && t.owner === this.playerTeam);
     if (home) {
       // Entre la base du joueur et le centre de la cour, pour voir d'où l'on part.
       const cx = opts.map.w / 2;
@@ -189,7 +188,7 @@ export class Game {
           this.sfx.play('ko');
           break;
         case 'captured':
-          this.sfx.play('capture');
+          this.sfx.play(ev.camp ? 'victory' : 'capture');
           this.markers.push({ x: ev.x, y: ev.y, t: 0, kind: 'capture', team: color });
           break;
         case 'spawn':
@@ -244,13 +243,13 @@ export class Game {
     for (const u of this.world.units) {
       if (!u.alive) continue;
       const p = this.cam.gridToScreen(u.x, u.y);
-      const inside = Math.abs(sx - p.x) <= 15 * z && sy >= p.y - (FRAME_H + 2) * z && sy <= p.y + 7 * z;
+      const inside = Math.abs(sx - p.x) <= 18 * z && sy >= p.y - (FEET_Y + 4) * z && sy <= p.y + 8 * z;
       const depth = u.x + u.y;
       if (inside && depth > bestDepth) {
         best = u;
         bestDepth = depth;
       }
-      const d = Math.hypot(sx - p.x, sy - (p.y - 20 * z));
+      const d = Math.hypot(sx - p.x, sy - (p.y - 26 * z));
       if (d < nearestD) {
         nearestD = d;
         nearest = u;
@@ -304,7 +303,7 @@ export class Game {
     for (const u of this.world.units) {
       if (u.team !== this.playerTeam || !u.alive) continue;
       const p = this.cam.gridToScreen(u.x, u.y);
-      const cy = p.y - 20 * z;
+      const cy = p.y - 26 * z;
       if (p.x >= xa - 6 && p.x <= xb + 6 && cy >= ya - 10 && cy <= yb + 10) this.selected.add(u.id);
     }
     if (this.selected.size) this.sfx.play('select');

@@ -14,7 +14,7 @@ function run(tile: Tile, presence: number[], seconds: number, step = 1 / 60) {
 
 describe('capture des cases', () => {
   it('une équipe seule capture une case neutre après quelques secondes', () => {
-    const tile = new Tile({ x: 0, y: 0, suit: 'spade' });
+    const tile = new Tile({ kind: 'bonus', x: 0, y: 0, suit: 'spade' });
     const ev = run(tile, [1, 0], TUNING.captureSeconds + 0.1);
     expect(tile.owner).toBe(0);
     expect(ev).toEqual({ kind: 'captured', team: 0 });
@@ -23,8 +23,8 @@ describe('capture des cases', () => {
   });
 
   it('plusieurs élèves capturent plus vite (plafonné à 2×)', () => {
-    const solo = new Tile({ x: 0, y: 0, suit: 'heart' });
-    const group = new Tile({ x: 0, y: 0, suit: 'heart' });
+    const solo = new Tile({ kind: 'bonus', x: 0, y: 0, suit: 'heart' });
+    const group = new Tile({ kind: 'bonus', x: 0, y: 0, suit: 'heart' });
     run(solo, [1, 0], 1.0);
     run(group, [9, 0], 1.0);
     expect(group.cap).toBeGreaterThan(solo.cap);
@@ -36,7 +36,7 @@ describe('capture des cases', () => {
   });
 
   it('une case occupée par deux équipes est contestée et ne bouge pas', () => {
-    const tile = new Tile({ x: 0, y: 0, suit: 'club' });
+    const tile = new Tile({ kind: 'bonus', x: 0, y: 0, suit: 'club' });
     run(tile, [1, 0], 1);
     const before = tile.cap;
     run(tile, [1, 1], 2);
@@ -46,7 +46,7 @@ describe('capture des cases', () => {
   });
 
   it('le propriétaire présent seul efface la jauge adverse', () => {
-    const tile = new Tile({ x: 0, y: 0, suit: 'diamond', owner: 1 });
+    const tile = new Tile({ kind: 'bonus', x: 0, y: 0, suit: 'diamond', owner: 1 });
     run(tile, [1, 0], 1.5);
     expect(tile.capTeam).toBe(0);
     expect(tile.cap).toBeGreaterThan(0);
@@ -57,7 +57,7 @@ describe('capture des cases', () => {
   });
 
   it('un attaquant doit d’abord vider la jauge d’une autre équipe', () => {
-    const tile = new Tile({ x: 0, y: 0, suit: 'spade' });
+    const tile = new Tile({ kind: 'bonus', x: 0, y: 0, suit: 'spade' });
     run(tile, [1, 0], 1.5); // équipe 0 à mi-chemin
     const halfway = tile.cap;
     run(tile, [0, 1], 1.0); // équipe 1 arrive : elle vide d'abord
@@ -67,7 +67,7 @@ describe('capture des cases', () => {
   });
 
   it('une jauge abandonnée se vide lentement', () => {
-    const tile = new Tile({ x: 0, y: 0, suit: 'spade' });
+    const tile = new Tile({ kind: 'bonus', x: 0, y: 0, suit: 'spade' });
     run(tile, [1, 0], 1.5);
     const c = tile.cap;
     run(tile, [0, 0], 1);
@@ -78,7 +78,7 @@ describe('capture des cases', () => {
   });
 
   it('une case reprise change de propriétaire et relance sa minuterie', () => {
-    const tile = new Tile({ x: 0, y: 0, suit: 'spade', owner: 0 });
+    const tile = new Tile({ kind: 'bonus', x: 0, y: 0, suit: 'spade', owner: 0 });
     tile.spawnTimer = 4;
     run(tile, [0, 2], 5);
     expect(tile.owner).toBe(1);
