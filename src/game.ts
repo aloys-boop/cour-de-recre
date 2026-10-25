@@ -48,6 +48,7 @@ export class Game {
   over = false;
   private dpr = 1;
   private ac = new AbortController();
+  private endTimer = 0;
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -214,7 +215,7 @@ export class Game {
       const result: GameResult = winner === this.playerTeam ? 'victoire' : 'defaite';
       this.sfx.play(result === 'victoire' ? 'victory' : 'defeat');
       this.hooks.onHud(w, this.selected.size);
-      setTimeout(() => this.hooks.onEnd(result, this.opts), 900);
+      this.endTimer = window.setTimeout(() => this.hooks.onEnd(result, this.opts), 900);
     }
   }
 
@@ -333,6 +334,7 @@ export class Game {
 
   destroy(): void {
     this.stop();
+    clearTimeout(this.endTimer);
     this.input.destroy();
     this.ac.abort();
   }
