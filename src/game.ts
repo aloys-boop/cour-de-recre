@@ -16,6 +16,8 @@ import { Renderer, type Marker, type SelectionBox } from './render/renderer';
 import { FEET_Y } from './render/sprites';
 import { centroid, ControlGroups, DoubleTap, nearestOwnCamp, onScreen } from './core/controls';
 import { drawArrow, type OrderArrow } from './render/arrow';
+import { magnetTile, neighbourRadius, orderMoveExact, pickUnit, startFocus, startZoom, tileGoals, type AimTile, type PickResult } from './core/aim';
+import { drawTileFlash, type TileFlash } from './render/aimfx';
 
 export type GameResult = 'victoire' | 'defaite';
 
@@ -110,14 +112,15 @@ export class Game {
     this.resize();
     this.cam.fit();
     // On cadre d'abord la base du joueur (ouest), puis on laisse voir toute la carte.
-    this.cam.zoom = Math.min(this.cam.maxZoom, this.cam.zoom * 1.35);
+    this.cam.zoom = startZoom(Math.min(this.cam.maxZoom, this.cam.zoom * 1.35), this.cam.maxZoom);
     const home = this.world.tiles.find((t) => t.isCamp && t.owner === this.playerTeam);
     this.homeCamp = home;
     if (home) {
       // Entre la base du joueur et le centre de la cour, pour voir d'où l'on part.
       const cx = opts.map.w / 2;
       const cy = opts.map.h / 2;
-      this.cam.centerOnGrid(home.cx + (cx - home.cx) * 0.45, home.cy + (cy - home.cy) * 0.45);
+      const f = startFocus({ x: home.cx, y: home.cy }, { x: cx, y: cy }, this.cam.zoom, this.cam.viewW, this.cam.viewH);
+      this.cam.centerOnGrid(f.x, f.y);
     }
 
     this.input = new TouchInput(canvas, {
@@ -137,7 +140,7 @@ export class Game {
       canArrowFrom: (x, y) => this.canArrowFrom(x, y),
       onArrowMove: (x0, y0, x1, y1) => this.arrowMove(x0, y0, x1, y1),
       onArrowEnd: (_x0, _y0, x1, y1) => this.arrowEnd(x1, y1),
-      onArrowCancel: () => (this.arrow = null),
+      onArrowCancel: () => (this.arrow = this.flash = null),
       onLongPress: (x, y) => this.longPress(x, y),
     });
 
@@ -203,6 +206,7 @@ export class Game {
       this.fx.update(dt);
       for (const m of this.markers) m.t += dt;
       this.markers = this.markers.filter((m) => m.t < 1);
+      if (this.flash && this.flash.t >= 0) this.flash.t += dt;
     }
     this.render();
   }
@@ -279,6 +283,7 @@ export class Game {
       playerTeam: this.playerTeam,
       time: this.time,
     });
+    if (this.flash) drawTileFlash(ctx, this.cam, this.flash);
     if (this.arrow) drawArrow(ctx, this.arrow);
     this.fx.draw(ctx, this.cam);
     this.minimap.draw(this.world, this.cam);
@@ -288,33 +293,26 @@ export class Game {
 
   /** Élève sous un point de l'écran (zone tactile généreuse), ou null. */
   private unitAt(sx: number, sy: number): Unit | null {
-    const z = this.cam.zoom;
-    let best: Unit | null = null;
-    let bestDepth = -Infinity;
-    let nearest: Unit | null = null;
-    let nearestD = 30 * Math.max(0.8, z);
+    return this.pick(sx, sy)?.unit ?? null;
+  }
+
+  /** Élève visé par le doigt (voir pickUnit) : rayon généreux, priorités selon la sélection. */
+  private pick(sx: number, sy: number): PickResult<Unit> | null {
+    const cands = [];
     for (const u of this.world.units) {
       if (!u.alive) continue;
       const p = this.cam.gridToScreen(u.x, u.y);
-      const inside = Math.abs(sx - p.x) <= 18 * z && sy >= p.y - (FEET_Y + 4) * z && sy <= p.y + 8 * z;
-      const depth = u.x + u.y;
-      if (inside && depth > bestDepth) {
-        best = u;
-        bestDepth = depth;
-      }
-      const d = Math.hypot(sx - p.x, sy - (p.y - 26 * z));
-      if (d < nearestD) {
-        nearestD = d;
-        nearest = u;
-      }
+      cands.push({ unit: u, team: u.team, sx: p.x, sy: p.y, depth: u.x + u.y });
     }
-    return best ?? nearest;
+    return pickUnit(cands, sx, sy, this.cam.zoom, this.playerTeam, this.selected.size > 0, FEET_Y);
   }
 
   private tap(sx: number, sy: number): void {
     if (this.paused || this.over) return;
     this.sfx.unlock();
-    const hit = this.unitAt(sx, sy);
+    const pk = this.pick(sx, sy);
+    // Avec une sélection, un tap à côté (pas sur) de ses élèves mais visant une case donne l'ordre.
+    const hit = pk && (pk.direct || pk.unit.team !== this.playerTeam || !this.selected.size || !this.aimTile(sx, sy)) ? pk.unit : null;
     const dbl = this.unitTaps.hit(performance.now(), hit && hit.team === this.playerTeam ? 'own' : 'other', { x: sx, y: sy });
     if (dbl && hit && hit.team === this.playerTeam) return this.selectVisible();
     if (hit && hit.team === this.playerTeam) {
@@ -322,7 +320,7 @@ export class Game {
       this.selected.clear();
       for (const u of this.world.units) {
         if (u.team !== this.playerTeam || !u.alive) continue;
-        if (Math.hypot(u.x - hit.x, u.y - hit.y) <= 0.9) this.selected.add(u.id);
+        if (Math.hypot(u.x - hit.x, u.y - hit.y) <= neighbourRadius(this.cam.zoom)) this.selected.add(u.id);
       }
       this.sfx.play('select');
       this.hooks.onHud(this.world, this.selected.size);
@@ -337,15 +335,40 @@ export class Game {
       return;
     }
     // Un tap sur un allié (pas d'attaque possible) vaut un déplacement à cet endroit.
+    this.moveTo(units, sx, sy);
+  }
+
+  /** Case vers laquelle un ordre donné en ce point de l'écran serait aimanté, ou null. */
+  private aimTile(sx: number, sy: number): AimTile | null {
+    return magnetTile(this.world.tiles, this.cam.screenToGrid(sx, sy));
+  }
+
+  /**
+   * Ordre de déplacement (fuir ou charger) vers un point de l'écran. Près d'une case bonus
+   * ou d'un camp, l'ordre est aimanté : les élèves se répartissent dans la zone de capture.
+   */
+  private moveTo(units: Unit[], sx: number, sy: number): void {
     const g = this.cam.screenToGrid(sx, sy);
-    if (g.x < 0 || g.y < 0 || g.x >= this.world.map.w || g.y >= this.world.map.h) return;
-    const target = this.world.grid.walkable(g.x, g.y) ? g : (() => {
+    const tile = magnetTile(this.world.tiles, g);
+    let target = g;
+    if (tile) {
+      target = { x: tile.cx, y: tile.cy };
+      this.orderIntoTile(units, tile, this.charge);
+      this.flash = { tile, t: 0 };
+    } else {
+      if (g.x < 0 || g.y < 0 || g.x >= this.world.map.w || g.y >= this.world.map.h) return;
       const c = this.world.grid.nearestFree(g.x, g.y);
-      return { x: c.x + 0.5, y: c.y + 0.5 };
-    })();
-    this.world.orderMove(units, target, this.charge);
+      if (!this.world.grid.walkable(g.x, g.y)) target = { x: c.x + 0.5, y: c.y + 0.5 };
+      this.world.orderMove(units, target, this.charge);
+    }
     this.markers.push({ x: target.x, y: target.y, t: 0, kind: this.charge ? 'charge' : 'move', team: this.opts.playerColor });
     this.sfx.play('order');
+  }
+
+  /** Envoie chaque élève sur sa propre place à l'intérieur de la zone de capture d'une case. */
+  private orderIntoTile(units: Unit[], tile: AimTile, engage: boolean): void {
+    const goals = tileGoals(units.map((u) => u.pos), tile, (x, y) => this.world.grid.walkable(x, y));
+    orderMoveExact(this.world, units, goals, engage);
   }
 
   private boxSelect(x0: number, y0: number, x1: number, y1: number): void {
@@ -456,6 +479,8 @@ export class Game {
   readonly groups = new ControlGroups();
   private unitTaps = new DoubleTap();
   private arrow: OrderArrow | null = null;
+  /** Case surlignée sous le doigt (ordre donné) ou sous la pointe de la flèche. */
+  private flash: TileFlash | null = null;
 
   private isMine = (id: number): boolean => {
     const u = this.world.unitById(id);
@@ -509,7 +534,8 @@ export class Game {
     const camp = nearestOwnCamp(this.world.tiles, this.playerTeam, c);
     if (!camp) return 'sans-camp';
     const target = { x: camp.cx, y: camp.cy };
-    this.world.orderMove(units, target);
+    this.orderIntoTile(units, camp, false);
+    this.flash = { tile: camp, t: 0 };
     this.markers.push({ x: target.x, y: target.y, t: 0, kind: 'move', team: this.opts.playerColor });
     this.sfx.play('order');
     return 'ok';
@@ -535,11 +561,14 @@ export class Game {
   private arrowMove(x0: number, y0: number, x1: number, y1: number): void {
     const hit = this.unitAt(x1, y1);
     this.arrow = { x0, y0, x1, y1, attack: !!hit && this.hostile(hit) };
+    const tile = this.arrow.attack ? null : this.aimTile(x1, y1);
+    this.flash = tile ? { tile, t: -1 } : this.flash && this.flash.t >= 0 ? this.flash : null;
   }
 
   /** Fin du glissé : attaque si on relâche sur un ennemi, sinon déplacement (repli) vers ce point. */
   private arrowEnd(sx: number, sy: number): void {
     this.arrow = null;
+    if (this.flash && this.flash.t < 0) this.flash = null;
     if (this.paused || this.over) return;
     const units = this.selectedUnits();
     if (units.length === 0) return;
@@ -550,13 +579,7 @@ export class Game {
       this.sfx.play('order');
       return;
     }
-    const g = this.cam.screenToGrid(sx, sy);
-    if (g.x < 0 || g.y < 0 || g.x >= this.world.map.w || g.y >= this.world.map.h) return;
-    const c = this.world.grid.nearestFree(g.x, g.y);
-    const target = this.world.grid.walkable(g.x, g.y) ? g : { x: c.x + 0.5, y: c.y + 0.5 };
-    this.world.orderMove(units, target, this.charge);
-    this.markers.push({ x: target.x, y: target.y, t: 0, kind: this.charge ? 'charge' : 'move', team: this.opts.playerColor });
-    this.sfx.play('order');
+    this.moveTo(units, sx, sy);
   }
 
   /**
