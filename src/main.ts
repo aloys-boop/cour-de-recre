@@ -7,6 +7,7 @@ import { Hud } from './ui/hud';
 import { ControlsHud } from './ui/controls-hud';
 import { Menu, type MenuState } from './ui/menu';
 import { Overlay } from './ui/overlay';
+import { TacticsHud } from './ui/tactics-hud';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const minimapCanvas = document.getElementById('minimap') as HTMLCanvasElement;
@@ -41,6 +42,19 @@ const hud = new Hud(
 );
 new ControlsHud(hudRoot, () => game, (text) => hud.showHint(text));
 
+// Bloc tactique : bascule Fuir / Charger.
+const tactics = new TacticsHud(hudRoot, {
+  onToggleCharge: () => {
+    if (!game) return false;
+    game.charge = !game.charge;
+    hud.showHint(
+      game.charge ? 'Charger : tes élèves se battent contre ce qu’ils croisent en chemin.' : 'Fuir : tes élèves courent sans riposter jusqu’à destination.',
+      2400,
+    );
+    return game.charge;
+  },
+});
+
 const menu = new Menu(menuRoot, progress, {
   onPlay: (state) => startGame(state),
   onToggleSound: toggleSound,
@@ -71,6 +85,8 @@ function launch(opts: GameOptions): void {
   hud.show();
   game = new Game(canvas, minimapCanvas, sfx, opts, {
     onHud: (world, selected) => hud.update(world, selected, 0),
+    onRally: (cleared) =>
+      hud.showHint(cleared ? 'Point de ralliement effacé.' : 'Point de ralliement posé : les nouveaux élèves de ce camp iront au drapeau.', 2400),
     onPauseChange: (paused) => {
       if (paused) {
         overlay.pause(
@@ -100,6 +116,7 @@ function launch(opts: GameOptions): void {
     },
   });
   hud.update(game.world, 0, 0);
+  tactics.set(game.charge);
   hud.showHint('Touche un élève puis le sol pour le déplacer (il fuit sans se battre) ; touche un ennemi pour attaquer.', 4200);
   game.start();
 }

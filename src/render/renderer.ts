@@ -6,12 +6,13 @@ import type { World } from '../core/world';
 import type { Camera } from './camera';
 import { buildSheet, FEET_Y, FRAME_H, FRAME_W, frameFor, type SheetCanvas } from './sprites';
 import { drawSuit } from './suits';
+import { CHARGE_COLOR, drawHealHeart, drawRallies, drawSpadeAura, spadeAuraTeams } from './tactics';
 
 export interface Marker {
   x: number; // grille
   y: number;
   t: number; // âge en secondes
-  kind: 'move' | 'attack' | 'hit' | 'capture';
+  kind: 'move' | 'attack' | 'hit' | 'capture' | 'charge';
   team: number; // couleur d'uniforme
 }
 
@@ -67,6 +68,7 @@ export class Renderer {
     this.drawFloor(world, cam);
     for (const t of world.tiles) this.drawTile(world, t, cam, opts.time);
     this.drawMarkers(opts.markers, cam, 'floor');
+    drawRallies(ctx, world, cam, opts.playerTeam, opts.time);
     this.drawUnitsAndObstacles(world, cam, opts.selected, opts.playerTeam);
     this.drawMarkers(opts.markers, cam, 'air');
     if (opts.box) this.drawBox(opts.box);
@@ -236,6 +238,7 @@ export class Renderer {
     for (const o of world.map.obstacles ?? []) items.push({ depth: o.x + o.y + 1, obstacle: o });
     items.sort((a, b) => a.depth - b.depth);
     const margin = 80 * z;
+    const aura = spadeAuraTeams(world);
     for (const it of items) {
       if (it.obstacle) {
         this.drawObstacle(it.obstacle, cam);
@@ -246,6 +249,7 @@ export class Renderer {
       if (p.x < -margin || p.y < -margin || p.x > cam.viewW + margin || p.y > cam.viewH + margin) continue;
       const fade = u.state === 'ko' ? Math.min(1, u.koTimer / 0.5) : 1;
       ctx.globalAlpha = fade;
+      if (aura[u.team] && u.alive) drawSpadeAura(ctx, p, z);
       // Ombre portée, décalée vers le bas-droite comme dans les rendus 3D d'époque.
       ctx.fillStyle = 'rgba(20,20,30,0.42)';
       ctx.beginPath();
@@ -270,6 +274,7 @@ export class Renderer {
         const r = u.hp / u.maxHp;
         ctx.fillStyle = r > 0.5 ? '#3ee05a' : r > 0.25 ? '#f2c22e' : '#e5453c';
         ctx.fillRect(bx, by, bw * r, bh);
+        drawHealHeart(ctx, u, p, z, world.time);
       }
       ctx.globalAlpha = 1;
     }
@@ -292,11 +297,11 @@ export class Renderer {
     const z = cam.zoom;
     for (const m of markers) {
       const p = cam.gridToScreen(m.x, m.y);
-      if (layer === 'floor' && (m.kind === 'move' || m.kind === 'attack' || m.kind === 'capture')) {
+      if (layer === 'floor' && (m.kind === 'move' || m.kind === 'charge' || m.kind === 'attack' || m.kind === 'capture')) {
         const life = m.kind === 'capture' ? 0.9 : 0.7;
         const k = Math.min(1, m.t / life);
         ctx.globalAlpha = 1 - k;
-        ctx.strokeStyle = m.kind === 'attack' ? '#ff3b2f' : m.kind === 'capture' ? TEAM_COLORS[m.team].light : '#ffffff';
+        ctx.strokeStyle = m.kind === 'attack' ? '#ff3b2f' : m.kind === 'capture' ? TEAM_COLORS[m.team].light : m.kind === 'charge' ? CHARGE_COLOR : '#ffffff';
         ctx.lineWidth = Math.max(1.5, 2.5 * z);
         // Losange au sol (dans le plan iso), qui se resserre sur la cible.
         const r = (m.kind === 'capture' ? 0.4 + 1.2 * k : 0.9 - 0.45 * k) * (z * 40);
