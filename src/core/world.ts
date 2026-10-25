@@ -1,0 +1,396 @@
+import { TUNING } from '../config';
+import { Grid } from './grid';
+import { dist2 } from './math';
+import { findPath, smoothPath } from './pathfinding';
+import { Rng } from './rng';
+import { SpatialHash } from './spatial';
+import { Tile, updateCapture } from './tile';
+import { NO_TEAM, type MapDef, type Vec2 } from './types';
+import { Unit, punchDamage, resetUnitIds } from './unit';
+
+export type WorldEvent =
+  | { kind: 'punch'; x: number; y: number; team: number }
+  | { kind: 'hit'; x: number; y: number; team: number }
+  | { kind: 'ko'; x: number; y: number; team: number }
+  | { kind: 'captured'; x: number; y: number; team: number }
+  | { kind: 'spawn'; x: number; y: number; team: number };
+
+export interface TeamStats {
+  units: number;
+  tiles: number;
+  alive: boolean;
+}
+
+/** Simulation complète d'une partie : unités, cases, combats, captures, apparitions. */
+export class World {
+  readonly map: MapDef;
+  readonly grid: Grid;
+  readonly tiles: Tile[];
+  readonly units: Unit[] = [];
+  readonly numTeams: number;
+  readonly rng: Rng;
+  readonly events: WorldEvent[] = [];
+  readonly hash = new SpatialHash<Unit>(1);
+  /** Couleur d'uniforme (index dans TEAM_COLORS) de chaque équipe de la partie. */
+  teamColors: number[] = [0, 1, 2, 3];
+  /** Multiplicateur de dégâts par équipe (handicap / bonus des IA selon la difficulté). */
+  damageScale: number[] = [1, 1, 1, 1];
+  time = 0;
+  private presence: number[][] = [];
+  private byId = new Map<number, Unit>();
+
+  constructor(map: MapDef, numTeams = map.teams, seed = 1) {
+    resetUnitIds();
+    this.map = map;
+    this.numTeams = numTeams;
+    this.rng = new Rng(seed);
+    this.grid = new Grid(map.w, map.h, map.obstacles ?? []);
+    this.tiles = map.tiles.map((t) => new Tile(t));
+    for (const t of this.tiles) if (t.owner >= numTeams) t.owner = NO_TEAM;
+    this.presence = this.tiles.map(() => new Array<number>(numTeams).fill(0));
+    // Unités de départ sur les cases possédées.
+    for (let team = 0; team < numTeams; team++) {
+      const home = this.tiles.filter((t) => t.owner === team);
+      for (let i = 0; i < map.startUnits; i++) {
+        const t = home[i % Math.max(1, home.length)];
+        if (!t) break;
+        const a = (i / map.startUnits) * Math.PI * 2;
+        const r = 0.35 + 0.15 * (i % 2);
+        this.spawnUnit(team, t.cx + Math.cos(a) * r, t.cy + Math.sin(a) * r, false);
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------- accès
+
+  unitById(id: number): Unit | undefined {
+    return this.byId.get(id);
+  }
+
+  teamUnitCount(team: number): number {
+    let n = 0;
+    for (const u of this.units) if (u.team === team && u.alive) n++;
+    return n;
+  }
+
+  teamTileCount(team: number): number {
+    let n = 0;
+    for (const t of this.tiles) if (t.owner === team) n++;
+    return n;
+  }
+
+  stats(): TeamStats[] {
+    const out: TeamStats[] = [];
+    for (let t = 0; t < this.numTeams; t++) {
+      const units = this.teamUnitCount(t);
+      const tiles = this.teamTileCount(t);
+      out.push({ units, tiles, alive: units > 0 || tiles > 0 });
+    }
+    return out;
+  }
+
+  /** Équipe gagnante (toutes les cases, ou seule survivante), ou NO_TEAM. */
+  winner(): number {
+    const s = this.stats();
+    const aliveTeams = s.filter((x) => x.alive).length;
+    for (let t = 0; t < this.numTeams; t++) {
+      if (s[t].alive && (s[t].tiles === this.tiles.length || aliveTeams === 1)) return t;
+    }
+    return NO_TEAM;
+  }
+
+  tileAt(px: number, py: number): Tile | null {
+    for (const t of this.tiles) if (t.contains(px, py, 0.5)) return t;
+    return null;
+  }
+
+  // ---------------------------------------------------------------- ordres
+
+  spawnUnit(team: number, x: number, y: number, announce = true): Unit {
+    const p = this.grid.clampPos({ x, y }, 0.3);
+    const u = new Unit(team, p.x, p.y);
+    this.units.push(u);
+    this.byId.set(u.id, u);
+    if (announce) this.events.push({ kind: 'spawn', x: u.x, y: u.y, team });
+    return u;
+  }
+
+  orderMove(units: Unit[], target: Vec2): void {
+    const n = units.length;
+    // Formation légère : les élèves se répartissent autour du point visé.
+    const spread = Math.min(1.6, 0.25 + Math.sqrt(n) * 0.18);
+    units.forEach((u, i) => {
+      if (!u.alive) return;
+      const a = (i / n) * Math.PI * 2 + 0.7;
+      const r = n === 1 ? 0 : spread * Math.sqrt((i + 1) / n);
+      const goal = this.grid.clampPos({ x: target.x + Math.cos(a) * r, y: target.y + Math.sin(a) * r }, 0.3);
+      u.order = { kind: 'move', target: goal };
+      u.engagedId = -1;
+      this.computePath(u, goal);
+      u.state = u.path.length ? 'moving' : 'idle';
+    });
+  }
+
+  orderAttack(units: Unit[], targetId: number): void {
+    const target = this.byId.get(targetId);
+    if (!target || !target.alive) return;
+    for (const u of units) {
+      if (!u.alive || u.team === target.team) continue;
+      u.order = { kind: 'attack', target: target.pos, unitId: targetId };
+      u.engagedId = targetId;
+      this.computePath(u, target.pos);
+      u.state = 'moving';
+    }
+  }
+
+  private computePath(u: Unit, goal: Vec2): void {
+    const raw = findPath(this.grid, u.pos, goal);
+    u.path = smoothPath(this.grid, u.pos, raw);
+    u.pathGoal = { x: goal.x, y: goal.y };
+  }
+
+  // ---------------------------------------------------------------- mise à jour
+
+  update(dt: number): void {
+    if (dt <= 0) return;
+    this.time += dt;
+    this.rebuildHash();
+    for (const u of this.units) this.updateUnit(u, dt);
+    this.separate();
+    this.updateTiles(dt);
+    this.removeDead();
+  }
+
+  private rebuildHash(): void {
+    this.hash.clear();
+    for (const u of this.units) if (u.alive) this.hash.insert(u);
+  }
+
+  private nearestEnemy(u: Unit, radius: number): Unit | null {
+    let best: Unit | null = null;
+    let bd = radius * radius;
+    this.hash.query(u.x, u.y, radius, (o) => {
+      if (o.team === u.team || !o.alive) return;
+      const d = dist2(u.x, u.y, o.x, o.y);
+      if (d < bd) {
+        bd = d;
+        best = o;
+      }
+    });
+    return best as Unit | null;
+  }
+
+  private updateUnit(u: Unit, dt: number): void {
+    // Recul (amorti).
+    if (u.kx !== 0 || u.ky !== 0) {
+      const nx = u.x + u.kx * dt;
+      const ny = u.y + u.ky * dt;
+      if (this.grid.walkable(nx, ny)) {
+        u.x = nx;
+        u.y = ny;
+      }
+      const f = Math.max(0, 1 - dt * 9);
+      u.kx *= f;
+      u.ky *= f;
+      if (Math.abs(u.kx) + Math.abs(u.ky) < 0.02) u.kx = u.ky = 0;
+    }
+
+    u.animTime += dt;
+    if (u.attackCooldown > 0) u.attackCooldown -= dt;
+
+    if (u.state === 'ko') {
+      u.koTimer -= dt;
+      return;
+    }
+
+    // Coup en cours : il porte après un court délai.
+    if (u.pendingHit > 0) {
+      u.pendingHit -= dt;
+      if (u.pendingHit <= 0) {
+        u.pendingHit = 0;
+        const target = this.byId.get(u.engagedId);
+        if (target && target.alive && dist2(u.x, u.y, target.x, target.y) < (TUNING.punchRange * 1.5) ** 2) {
+          const dmg = Math.max(1, Math.round(punchDamage(() => this.rng.next()) * (this.damageScale[u.team] ?? 1)));
+          const ko = target.takeDamage(dmg, u.x, u.y);
+          this.events.push({ kind: 'hit', x: target.x, y: target.y, team: target.team });
+          if (ko) this.events.push({ kind: 'ko', x: target.x, y: target.y, team: target.team });
+        }
+      }
+    }
+
+    // Validation de l'ennemi engagé.
+    let engaged = u.engagedId >= 0 ? this.byId.get(u.engagedId) : undefined;
+    if (engaged && !engaged.alive) {
+      engaged = undefined;
+      u.engagedId = -1;
+      if (u.order.kind === 'attack') u.clearOrder();
+      else if (u.order.kind === 'move') this.computePath(u, u.order.target);
+    }
+
+    // Recherche d'une cible au contact (ou à portée d'aggro si inoccupé).
+    if (!engaged && this.time - u.lastScan > 0.2) {
+      u.lastScan = this.time + u.phase * 0.2;
+      const radius = u.order.kind === 'none' ? TUNING.aggroRange : TUNING.punchRange * 1.6;
+      const e = this.nearestEnemy(u, radius);
+      if (e) {
+        engaged = e;
+        u.engagedId = e.id;
+      }
+    }
+
+    if (engaged) {
+      const d2 = dist2(u.x, u.y, engaged.x, engaged.y);
+      const range = TUNING.punchRange;
+      if (d2 <= range * range) {
+        // Au contact : on frappe.
+        u.state = 'attacking';
+        u.face(engaged.x, engaged.y);
+        if (u.attackCooldown <= 0 && u.pendingHit === 0) {
+          u.attackCooldown = TUNING.punchInterval * (0.9 + 0.2 * this.rng.next());
+          u.pendingHit = 0.16;
+          u.setAnim('punch');
+          this.events.push({ kind: 'punch', x: u.x, y: u.y, team: u.team });
+        } else if (u.anim === 'punch' && u.animTime > 0.4) {
+          u.setAnim('idle');
+        }
+        return;
+      }
+      // Hors de portée : on s'approche (chemin recalculé si la cible a bougé).
+      const g = u.pathGoal;
+      if (!g || dist2(g.x, g.y, engaged.x, engaged.y) > 0.6 || u.path.length === 0) {
+        this.computePath(u, engaged.pos);
+      }
+      u.state = 'moving';
+      this.followPath(u, dt);
+      return;
+    }
+
+    // Déplacement sur ordre.
+    if (u.order.kind === 'move' || u.order.kind === 'attack') {
+      if (u.path.length === 0) {
+        u.clearOrder();
+        u.state = 'idle';
+        u.setAnim('idle');
+      } else {
+        u.state = 'moving';
+        this.followPath(u, dt);
+      }
+      return;
+    }
+
+    u.state = 'idle';
+    if (u.anim === 'punch' && u.animTime > 0.4) u.setAnim('idle');
+    if (u.anim === 'walk') u.setAnim('idle');
+  }
+
+  private followPath(u: Unit, dt: number): void {
+    if (u.path.length === 0) return;
+    const wp = u.path[0];
+    const dx = wp.x - u.x;
+    const dy = wp.y - u.y;
+    const d = Math.hypot(dx, dy);
+    const step = TUNING.unitSpeed * dt;
+    if (d <= step || d < 0.08) {
+      u.x = wp.x;
+      u.y = wp.y;
+      u.path.shift();
+    } else {
+      const nx = u.x + (dx / d) * step;
+      const ny = u.y + (dy / d) * step;
+      if (this.grid.walkable(nx, ny)) {
+        u.x = nx;
+        u.y = ny;
+      } else {
+        u.path.shift();
+      }
+      u.face(wp.x, wp.y);
+    }
+    u.setAnim('walk');
+    if (u.path.length === 0 && u.anim === 'walk') u.setAnim('idle');
+  }
+
+  /** Les élèves se repoussent légèrement pour ne pas se superposer. */
+  private separate(): void {
+    const r = TUNING.unitRadius * 2;
+    const r2 = r * r;
+    for (const u of this.units) {
+      if (!u.alive) continue;
+      let px = 0;
+      let py = 0;
+      this.hash.query(u.x, u.y, r, (o) => {
+        if (o === u || !o.alive) return;
+        const dx = u.x - o.x;
+        const dy = u.y - o.y;
+        let d2 = dx * dx + dy * dy;
+        if (d2 >= r2) return;
+        if (d2 < 1e-6) {
+          // Superposition exacte : on écarte selon l'identifiant.
+          const a = (u.id * 2.399) % (Math.PI * 2);
+          px += Math.cos(a) * 0.02;
+          py += Math.sin(a) * 0.02;
+          return;
+        }
+        const d = Math.sqrt(d2);
+        const push = ((r - d) / r) * 0.5;
+        px += (dx / d) * push * r * 0.5;
+        py += (dy / d) * push * r * 0.5;
+      });
+      if (px !== 0 || py !== 0) {
+        const nx = u.x + px;
+        const ny = u.y + py;
+        if (this.grid.walkable(nx, ny)) {
+          u.x = nx;
+          u.y = ny;
+        } else {
+          const c = this.grid.clampPos({ x: nx, y: ny }, 0.25);
+          if (this.grid.walkable(c.x, c.y)) {
+            u.x = c.x;
+            u.y = c.y;
+          }
+        }
+      }
+    }
+  }
+
+  private updateTiles(dt: number): void {
+    for (let i = 0; i < this.tiles.length; i++) {
+      const t = this.tiles[i];
+      const pres = this.presence[i];
+      pres.fill(0);
+      this.hash.query(t.cx, t.cy, TUNING.tileRadius, (u) => {
+        if (u.alive && t.contains(u.x, u.y)) pres[u.team]++;
+      });
+      const ev = updateCapture(t, pres, dt);
+      if (ev && ev.kind === 'captured') this.events.push({ kind: 'captured', x: t.cx, y: t.cy, team: ev.team });
+
+      // Apparition.
+      if (t.owner !== NO_TEAM) {
+        t.spawnTimer += dt;
+        if (t.spawnTimer >= this.map.spawnInterval) {
+          t.spawnTimer = 0;
+          if (this.teamUnitCount(t.owner) < this.map.unitCap) {
+            const a = this.rng.next() * Math.PI * 2;
+            this.spawnUnit(t.owner, t.cx + Math.cos(a) * 0.3, t.cy + Math.sin(a) * 0.3);
+          }
+        }
+      }
+    }
+  }
+
+  private removeDead(): void {
+    for (let i = this.units.length - 1; i >= 0; i--) {
+      const u = this.units[i];
+      if (u.state === 'ko' && u.koTimer <= 0) {
+        this.units.splice(i, 1);
+        this.byId.delete(u.id);
+      }
+    }
+  }
+
+  /** Vide la file d'événements (sons, effets) et la retourne. */
+  drainEvents(): WorldEvent[] {
+    const out = this.events.slice();
+    this.events.length = 0;
+    return out;
+  }
+}

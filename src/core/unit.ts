@@ -1,0 +1,107 @@
+import { TUNING } from '../config';
+import { dirFromVector } from './math';
+import type { Anim, Dir, UnitOrder, Vec2 } from './types';
+
+export type UnitState = 'idle' | 'moving' | 'attacking' | 'ko';
+
+let nextId = 1;
+export function resetUnitIds(): void {
+  nextId = 1;
+}
+
+export class Unit {
+  readonly id: number;
+  readonly team: number;
+  x: number;
+  y: number;
+  hp: number;
+  maxHp: number;
+  dir: Dir = 1;
+  anim: Anim = 'idle';
+  animTime = 0;
+  state: UnitState = 'idle';
+  /** Ordre explicite donné par le joueur ou l'IA. */
+  order: UnitOrder = { kind: 'none', target: { x: 0, y: 0 } };
+  /** Chemin courant (centres de cellules). */
+  path: Vec2[] = [];
+  /** Identifiant de l'ennemi engagé au contact, ou -1. */
+  engagedId = -1;
+  attackCooldown = 0;
+  /** Temps restant avant que le coup en cours ne porte (0 si aucun). */
+  pendingHit = 0;
+  koTimer = 0;
+  /** Vitesse de recul. */
+  kx = 0;
+  ky = 0;
+  /** Décalage du tirage au sort pour étaler les recherches de cibles. */
+  phase: number;
+  /** Instant de la dernière recherche de cible. */
+  lastScan = 0;
+  /** Dernière destination du chemin calculé (pour re-calculer si la cible bouge). */
+  pathGoal: Vec2 | null = null;
+  /** Champ libre pour l'IA (rôle courant). */
+  aiTag = 0;
+
+  constructor(team: number, x: number, y: number) {
+    this.id = nextId++;
+    this.team = team;
+    this.x = x;
+    this.y = y;
+    this.hp = TUNING.unitHp;
+    this.maxHp = TUNING.unitHp;
+    this.phase = (this.id * 0.137) % 1;
+  }
+
+  get alive(): boolean {
+    return this.state !== 'ko';
+  }
+
+  get pos(): Vec2 {
+    return { x: this.x, y: this.y };
+  }
+
+  face(tx: number, ty: number): void {
+    const dx = tx - this.x;
+    const dy = ty - this.y;
+    if (dx !== 0 || dy !== 0) this.dir = dirFromVector(dx, dy);
+  }
+
+  setAnim(a: Anim): void {
+    if (this.anim !== a) {
+      this.anim = a;
+      this.animTime = 0;
+    }
+  }
+
+  clearOrder(): void {
+    this.order = { kind: 'none', target: { x: this.x, y: this.y } };
+    this.path = [];
+    this.pathGoal = null;
+  }
+
+  /** Inflige des dégâts ; retourne vrai si l'élève vient d'être mis KO. */
+  takeDamage(amount: number, fromX: number, fromY: number): boolean {
+    if (this.state === 'ko') return false;
+    this.hp -= amount;
+    const dx = this.x - fromX;
+    const dy = this.y - fromY;
+    const d = Math.hypot(dx, dy) || 1;
+    this.kx += (dx / d) * TUNING.knockback * 4;
+    this.ky += (dy / d) * TUNING.knockback * 4;
+    if (this.hp <= 0) {
+      this.hp = 0;
+      this.state = 'ko';
+      this.koTimer = TUNING.koSeconds;
+      this.setAnim('ko');
+      this.clearOrder();
+      this.engagedId = -1;
+      return true;
+    }
+    return false;
+  }
+}
+
+/** Dégâts d'un coup de poing (tirage dans l'intervalle de réglage). */
+export function punchDamage(random: () => number): number {
+  return Math.round(TUNING.punchDamageMin + (TUNING.punchDamageMax - TUNING.punchDamageMin) * random());
+}

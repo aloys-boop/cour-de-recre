@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#16234a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Cour de Récré" />
+    <meta name="description" content="Cour de Récré : jeu de stratégie en temps réel isométrique, jouable sur iPhone." />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+    <title>Cour de Récré</title>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="game" aria-label="Zone de jeu"></canvas>
+
+      <div id="hud" class="layer hidden">
+        <div class="hud-top">
+          <div id="team-chips" class="chips"></div>
+          <div class="hud-top-right">
+            <button id="btn-sound" class="icon-btn" aria-label="Couper le son"></button>
+            <button id="btn-pause" class="icon-btn" aria-label="Pause"></button>
+          </div>
+        </div>
+        <div class="hud-bottom-left">
+          <button id="btn-select-all" class="btn">Tout sélectionner</button>
+          <button id="btn-cancel" class="btn btn-secondary">Annuler</button>
+          <div id="sel-count" class="sel-count"></div>
+        </div>
+        <div class="hud-bottom-right">
+          <canvas id="minimap" aria-label="Mini-carte"></canvas>
+        </div>
+        <div id="hint" class="hint hidden"></div>
+      </div>
+
+      <div id="menu" class="layer menu"></div>
+      <div id="overlay" class="layer overlay hidden"></div>
+      <div id="rotate" class="layer rotate">
+        <div class="rotate-card">
+          <div class="rotate-icon" aria-hidden="true"></div>
+          <p>Tourne ton téléphone en mode paysage pour jouer.</p>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
