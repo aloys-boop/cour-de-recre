@@ -1,0 +1,116 @@
+/* ------------------------------------------------------------ Contrôles au doigt (groupes, camp) */
+
+/*
+ * Colonne verticale contre le bord gauche, centrée en hauteur : en paysage sur iPhone
+ * (≈ 844 × 390), elle tient entre les puces d'équipes en haut et « Tout sélectionner »
+ * en bas, loin de la mini-carte (en bas à droite).
+ */
+.hud-controls {
+  position: absolute;
+  left: calc(10px + var(--sal));
+  top: calc(50% + (var(--sat) - var(--sab)) / 2);
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.ctl-btn {
+  pointer-events: auto;
+  position: relative;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-family: inherit;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.ctl-btn:active {
+  transform: scale(0.96);
+  filter: brightness(1.15);
+}
+
+.ctl-num {
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.ctl-count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 20px;
+  text-align: center;
+}
+
+.ctl-count:empty {
+  display: none;
+}
+
+.ctl-group.empty .ctl-num {
+  opacity: 0.45;
+}
+
+.ctl-group.empty {
+  border-style: dashed;
+}
+
+.ctl-group.saved {
+  animation: ctl-saved 0.45s ease-out;
+}
+
+@keyframes ctl-saved {
+  0% {
+    background: var(--accent);
+    box-shadow: 0 0 0 0 rgba(242, 194, 46, 0.9);
+  }
+  100% {
+    background: rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 0 12px rgba(242, 194, 46, 0);
+  }
+}
+
+.ctl-camp {
+  gap: 1px;
+}
+
+.ctl-label {
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.ctl-camp.off {
+  opacity: 0.45;
+}
+
+/* Écrans très bas (paysage compact) : boutons au minimum tactile de 44 px. */
+@media (max-height: 360px) {
+  .hud-controls {
+    gap: 4px;
+  }
+  .ctl-btn {
+    width: 44px;
+    height: 44px;
+  }
+}

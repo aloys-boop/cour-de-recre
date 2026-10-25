@@ -3,6 +3,7 @@
  *  - tap court : sélection / ordre ;
  *  - glissé à un doigt : déplacement de la caméra ;
  *  - appui long puis glissé : rectangle de sélection ;
+ *  - glissé depuis un élève sélectionné : flèche d'ordre (déplacement ou attaque) ;
  *  - deux doigts : pincer pour zoomer, glisser pour déplacer ;
  *  - molette : zoom (ordinateur).
  */
@@ -13,6 +14,11 @@ export interface TouchCallbacks {
   onBoxEnd(x0: number, y0: number, x1: number, y1: number): void;
   onPan(dx: number, dy: number): void;
   onPinch(factor: number, cx: number, cy: number): void;
+  /** Le doigt part-il d'un élève sélectionné ? Si oui, le glissé trace une flèche d'ordre au lieu de déplacer la caméra. */
+  canArrowFrom?(x: number, y: number): boolean;
+  onArrowMove?(x0: number, y0: number, x1: number, y1: number): void;
+  onArrowEnd?(x0: number, y0: number, x1: number, y1: number): void;
+  onArrowCancel?(): void;
 }
 
 interface P {
@@ -28,7 +34,8 @@ const LONG_PRESS_MS = 340;
 
 export class TouchInput {
   private pointers = new Map<number, P>();
-  private mode: 'none' | 'pan' | 'box' | 'pinch' | 'dead' = 'none';
+  private mode: 'none' | 'pan' | 'box' | 'pinch' | 'dead' | 'arrow' = 'none';
+  private arrowOk = false;
   private downTime = 0;
   private longTimer: number | null = null;
   private boxStart = { x: 0, y: 0 };
@@ -80,6 +87,7 @@ export class TouchInput {
     if (this.pointers.size === 1) {
       this.mode = 'none';
       this.downTime = performance.now();
+      this.arrowOk = this.cb.canArrowFrom?.(p.x, p.y) ?? false;
       this.clearLong();
       this.longTimer = window.setTimeout(() => {
         this.longTimer = null;
@@ -92,6 +100,7 @@ export class TouchInput {
       }, LONG_PRESS_MS);
     } else if (this.pointers.size === 2) {
       this.clearLong();
+      if (this.mode === 'arrow') this.cb.onArrowCancel?.();
       this.mode = 'pinch';
       const [a, b] = [...this.pointers.values()];
       this.lastMid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
@@ -129,8 +138,12 @@ export class TouchInput {
       const moved = Math.hypot(p.x - rec.sx, p.y - rec.sy);
       if (moved > TAP_MAX_DIST) {
         this.clearLong();
-        this.mode = 'pan';
+        this.mode = this.arrowOk ? 'arrow' : 'pan';
       }
+    }
+    if (this.mode === 'arrow') {
+      this.cb.onArrowMove?.(rec.sx, rec.sy, p.x, p.y);
+      return;
     }
     if (this.mode === 'pan') this.cb.onPan(p.x - prevX, p.y - prevY);
   };
@@ -143,6 +156,10 @@ export class TouchInput {
     const p = this.local(e);
     if (this.mode === 'box') {
       this.cb.onBoxEnd(this.boxStart.x, this.boxStart.y, p.x, p.y);
+      this.mode = 'dead';
+    } else if (this.mode === 'arrow') {
+      if (e.type === 'pointercancel') this.cb.onArrowCancel?.();
+      else this.cb.onArrowEnd?.(rec.sx, rec.sy, p.x, p.y);
       this.mode = 'dead';
     } else if (this.mode === 'none') {
       this.clearLong();

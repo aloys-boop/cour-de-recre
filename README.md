@@ -32,6 +32,10 @@ Quatre équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet) se disputent 
 | Glisser à un doigt | Déplacer la caméra |
 | Pincer / glisser à deux doigts | Zoom et caméra |
 | Tap sur la mini-carte | Centrer la vue à cet endroit |
+| Double-tap sur un élève | Sélectionne tous tes élèves visibles à l'écran |
+| Glisser depuis un élève sélectionné | Flèche d'ordre : déplacement au relâchement, attaque si on relâche sur un ennemi |
+| Boutons « 1 », « 2 », « 3 » | Appui long : mémoriser la sélection ; tap : la rappeler ; second tap rapide : centrer la vue dessus |
+| Bouton « Camp » | Repli de la sélection (sans combat) sur ton camp le plus proche, pour se soigner |
 | Boutons | « Tout sélectionner », « Annuler », pause, son |
 
 À la souris : clic, clic maintenu pour le rectangle, glisser pour la caméra, molette pour zoomer.

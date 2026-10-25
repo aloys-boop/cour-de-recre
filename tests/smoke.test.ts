@@ -52,6 +52,15 @@ function pointer(type: string, x: number, y: number, id = 1): void {
   canvas.dispatchEvent(e);
 }
 
+function press(el: Element, type: string): void {
+  const Ctor = (globalThis as unknown as { PointerEvent?: typeof MouseEvent }).PointerEvent ?? MouseEvent;
+  const e = new Ctor(type, { bubbles: true, cancelable: true });
+  if (!('pointerId' in e)) Object.defineProperty(e, 'pointerId', { value: 7 });
+  el.dispatchEvent(e);
+}
+
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 describe('application complète', () => {
   it('démarre une partie depuis le menu et répond aux gestes', async () => {
     const main = await import('../src/main');
@@ -108,6 +117,68 @@ describe('application complète', () => {
     expect(game.selected.size).toBe(game.world.teamUnitCount(0));
     (document.getElementById('btn-cancel') as HTMLButtonElement).click();
     expect(game.selected.size).toBe(0);
+
+    // Groupes mémorisés : appui long sur « 1 » = enregistrer, tap = rappeler.
+    const g1 = document.getElementById('btn-group-1')!;
+    expect(g1).not.toBeNull();
+    expect(document.getElementById('btn-group-3')).not.toBeNull();
+    (document.getElementById('btn-select-all') as HTMLButtonElement).click();
+    const all = game.selected.size;
+    press(g1, 'pointerdown');
+    await wait(460);
+    press(g1, 'pointerup');
+    expect(game.groupSize(0)).toBe(all);
+    expect(g1.querySelector('.ctl-count')!.textContent).toBe(String(all));
+    expect(document.getElementById('hint')!.textContent).toMatch(/Groupe 1 enregistré/);
+    (document.getElementById('btn-cancel') as HTMLButtonElement).click();
+    press(g1, 'pointerdown');
+    press(g1, 'pointerup');
+    expect(game.selected.size).toBe(all);
+    // Second tap rapide : la caméra se centre sur le groupe.
+    game.cam.pan(400, 200);
+    const camBefore = { x: game.cam.x, y: game.cam.y };
+    press(g1, 'pointerdown');
+    press(g1, 'pointerup');
+    expect(Math.hypot(game.cam.x - camBefore.x, game.cam.y - camBefore.y)).toBeGreaterThan(1);
+    (document.getElementById('btn-cancel') as HTMLButtonElement).click();
+
+    // Double-tap sur un de nos élèves : tous ceux visibles à l'écran sont sélectionnés.
+    const sp = game.cam.gridToScreen(me.x, me.y);
+    pointer('pointerdown', sp.x, sp.y - 20);
+    pointer('pointerup', sp.x, sp.y - 20);
+    const neighbours = game.selected.size;
+    pointer('pointerdown', sp.x, sp.y - 20);
+    pointer('pointerup', sp.x, sp.y - 20);
+    const visible = game.world.units.filter((u) => {
+      if (u.team !== 0 || !u.alive) return false;
+      const q = game.cam.gridToScreen(u.x, u.y);
+      const y = q.y - 20 * game.cam.zoom;
+      return q.x >= 0 && q.x <= game.cam.viewW && y >= 0 && y <= game.cam.viewH;
+    }).length;
+    expect(game.selected.size).toBe(visible);
+    expect(game.selected.size).toBeGreaterThanOrEqual(neighbours);
+    expect(game.selected.has(me.id)).toBe(true);
+
+    // Glisser depuis un élève sélectionné : flèche d'ordre, la caméra ne bouge pas.
+    const camX = game.cam.x;
+    const dest = game.cam.gridToScreen(me.x - 2, me.y + 2);
+    pointer('pointerdown', sp.x, sp.y - 20);
+    pointer('pointermove', (sp.x + dest.x) / 2, (sp.y - 20 + dest.y) / 2);
+    pointer('pointermove', dest.x, dest.y);
+    advance(1 / 60); // la flèche est dessinée
+    pointer('pointerup', dest.x, dest.y);
+    expect(game.cam.x).toBe(camX);
+    expect(me.order.kind).toBe('move');
+    expect(Math.hypot(me.order.target.x - (me.x - 2), me.order.target.y - (me.y + 2))).toBeLessThan(2);
+
+    // Bouton « Camp » : repli (sans combat) de la sélection vers notre camp.
+    advance(1);
+    (document.getElementById('btn-camp') as HTMLButtonElement).click();
+    const home = game.world.tiles.find((t) => t.isCamp && t.owner === 0)!;
+    expect(me.order.kind).toBe('move');
+    expect(me.order.engage).toBeFalsy();
+    expect(Math.hypot(me.order.target.x - home.cx, me.order.target.y - home.cy)).toBeLessThan(2);
+    (document.getElementById('btn-cancel') as HTMLButtonElement).click();
 
     // Glissé à un doigt → la caméra se déplace.
     const cx = game.cam.x;

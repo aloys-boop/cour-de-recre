@@ -8,6 +8,8 @@ import { Camera } from './render/camera';
 import { Minimap } from './render/minimap';
 import { Renderer, type Marker, type SelectionBox } from './render/renderer';
 import { FEET_Y } from './render/sprites';
+import { centroid, ControlGroups, DoubleTap, nearestOwnCamp, onScreen } from './core/controls';
+import { drawArrow, type OrderArrow } from './render/arrow';
 
 export type GameResult = 'victoire' | 'defaite';
 
@@ -102,6 +104,10 @@ export class Game {
       },
       onPan: (dx, dy) => this.cam.pan(dx, dy),
       onPinch: (f, cx, cy) => this.cam.zoomAt(f, cx, cy),
+      canArrowFrom: (x, y) => this.canArrowFrom(x, y),
+      onArrowMove: (x0, y0, x1, y1) => this.arrowMove(x0, y0, x1, y1),
+      onArrowEnd: (_x0, _y0, x1, y1) => this.arrowEnd(x1, y1),
+      onArrowCancel: () => (this.arrow = null),
     });
 
     minimapCanvas.addEventListener(
@@ -228,6 +234,7 @@ export class Game {
       playerTeam: this.playerTeam,
       time: this.time,
     });
+    if (this.arrow) drawArrow(ctx, this.arrow);
     this.minimap.draw(this.world, this.cam);
   }
 
@@ -262,6 +269,8 @@ export class Game {
     if (this.paused || this.over) return;
     this.sfx.unlock();
     const hit = this.unitAt(sx, sy);
+    const dbl = this.unitTaps.hit(performance.now(), hit && hit.team === this.playerTeam ? 'own' : 'other', { x: sx, y: sy });
+    if (dbl && hit && hit.team === this.playerTeam) return this.selectVisible();
     if (hit && hit.team === this.playerTeam) {
       // Sélection de l'élève et de ses voisins proches (tap sur un groupe).
       this.selected.clear();
@@ -336,5 +345,113 @@ export class Game {
     clearTimeout(this.endTimer);
     this.input.destroy();
     this.ac.abort();
+  }
+
+  // ---------------------------------------------------------------- contrôles au doigt
+
+  readonly groups = new ControlGroups();
+  private unitTaps = new DoubleTap();
+  private arrow: OrderArrow | null = null;
+
+  private isMine = (id: number): boolean => {
+    const u = this.world.unitById(id);
+    return !!u && u.alive && u.team === this.playerTeam;
+  };
+
+  private setSelection(ids: Iterable<number>): void {
+    this.selected.clear();
+    for (const id of ids) this.selected.add(id);
+    if (this.selected.size) this.sfx.play('select');
+    this.hooks.onHud(this.world, this.selected.size);
+  }
+
+  /** Nombre d'élèves vivants d'un groupe mémorisé. */
+  groupSize(index: number): number {
+    return this.groups.aliveCount(index, this.isMine);
+  }
+
+  /** Enregistre la sélection courante dans un groupe ; renvoie le nombre d'élèves (0 : rien n'est enregistré). */
+  saveGroup(index: number): number {
+    if (this.over) return 0;
+    const ids = [...this.selected].filter(this.isMine);
+    if (ids.length === 0) return 0;
+    this.groups.save(index, ids);
+    return ids.length;
+  }
+
+  /** Sélectionne les élèves encore en vie d'un groupe ; renvoie leur nombre. */
+  recallGroup(index: number): number {
+    if (this.paused || this.over) return 0;
+    const ids = this.groups.recall(index, this.isMine);
+    if (ids.length) this.setSelection(ids);
+    return ids.length;
+  }
+
+  /** Centre la caméra sur un groupe (faux s'il est vide). */
+  centerOnGroup(index: number): boolean {
+    const pts = this.groups.recall(index, this.isMine).map((id) => this.world.unitById(id)!.pos);
+    const c = centroid(pts);
+    if (!c) return false;
+    this.cam.centerOnGrid(c.x, c.y);
+    return true;
+  }
+
+  /** Repli de la sélection sur le camp le plus proche (sans combat). */
+  sendToCamp(): 'ok' | 'vide' | 'sans-camp' {
+    if (this.paused || this.over) return 'vide';
+    const units = this.selectedUnits();
+    const c = centroid(units.map((u) => u.pos));
+    if (!c) return 'vide';
+    const camp = nearestOwnCamp(this.world.tiles, this.playerTeam, c);
+    if (!camp) return 'sans-camp';
+    const target = { x: camp.cx, y: camp.cy };
+    this.world.orderMove(units, target);
+    this.markers.push({ x: target.x, y: target.y, t: 0, kind: 'move', team: this.opts.playerColor });
+    this.sfx.play('order');
+    return 'ok';
+  }
+
+  /** Sélectionne tous les élèves du joueur visibles à l'écran. */
+  selectVisible(): void {
+    const ids: number[] = [];
+    for (const u of this.world.units) {
+      if (u.team !== this.playerTeam || !u.alive) continue;
+      const p = this.cam.gridToScreen(u.x, u.y);
+      if (onScreen({ x: p.x, y: p.y - 20 * this.cam.zoom }, this.cam.viewW, this.cam.viewH)) ids.push(u.id);
+    }
+    this.setSelection(ids);
+  }
+
+  private canArrowFrom(sx: number, sy: number): boolean {
+    if (this.paused || this.over || this.selected.size === 0) return false;
+    const hit = this.unitAt(sx, sy);
+    return !!hit && this.selected.has(hit.id);
+  }
+
+  private arrowMove(x0: number, y0: number, x1: number, y1: number): void {
+    const hit = this.unitAt(x1, y1);
+    this.arrow = { x0, y0, x1, y1, attack: !!hit && hit.team !== this.playerTeam };
+  }
+
+  /** Fin du glissé : attaque si on relâche sur un ennemi, sinon déplacement (repli) vers ce point. */
+  private arrowEnd(sx: number, sy: number): void {
+    this.arrow = null;
+    if (this.paused || this.over) return;
+    const units = this.selectedUnits();
+    if (units.length === 0) return;
+    const hit = this.unitAt(sx, sy);
+    if (hit && hit.team !== this.playerTeam) {
+      this.world.orderAttack(units, hit.id);
+      this.markers.push({ x: hit.x, y: hit.y, t: 0, kind: 'attack', team: this.opts.playerColor });
+      this.sfx.play('order');
+      return;
+    }
+    const g = this.cam.screenToGrid(sx, sy);
+    if (g.x < 0 || g.y < 0 || g.x >= this.world.map.w || g.y >= this.world.map.h) return;
+    const c = this.world.grid.nearestFree(g.x, g.y);
+    const target = this.world.grid.walkable(g.x, g.y) ? g : { x: c.x + 0.5, y: c.y + 0.5 };
+    this.world.orderMove(units, target);
+    this.markers.push({ x: target.x, y: target.y, t: 0, kind: 'move', team: this.opts.playerColor });
+    this.sfx.play('order');
   }
 }

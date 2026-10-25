@@ -4,6 +4,7 @@ import { generateMap, LEVELS } from './core/maps';
 import { loadProgress, recordWin, saveProgress, type Progress } from './core/save';
 import { Game, type GameOptions } from './game';
 import { Hud } from './ui/hud';
+import { ControlsHud } from './ui/controls-hud';
 import { Menu, type MenuState } from './ui/menu';
 import { Overlay } from './ui/overlay';
 
@@ -38,6 +39,7 @@ const hud = new Hud(
   },
   progress.muted,
 );
+new ControlsHud(hudRoot, () => game, (text) => hud.showHint(text));
 
 const menu = new Menu(menuRoot, progress, {
   onPlay: (state) => startGame(state),
