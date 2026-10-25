@@ -20,6 +20,9 @@ Quatre équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet) se disputent 
 - **Régénération.** Un élève qui se tient sur son propre camp, ou sur un cœur que son équipe possède, récupère ses points de vie (environ 7 par seconde) : de petits cœurs montent au-dessus de lui. Les élèves d'une équipe qui possède au moins un pique marchent sur une aura rougeâtre.
 - **Victoire.** Une équipe gagne quand elle est la dernière à avoir encore des élèves ou un camp, ou quand elle possède tous les camps. Tu perds dès que tu n'as plus ni élèves ni camp.
 - **Cartes.** Cinq niveaux de taille croissante (du Préau au Campus, de 14 à 22 cases bonus). La disposition des cases et des obstacles est tirée au sort à chaque partie, de façon symétrique pour rester équitable. Chaque victoire débloque le niveau suivant ; la progression est sauvegardée sur l'appareil.
+- **Escarmouche.** Partie libre : nombre d'équipes (2 à 4), taille de la cour (petite, moyenne, grande, immense), nombre de cases bonus (10 à 30), difficulté et équipe. Les victoires d'escarmouche ne débloquent rien dans la campagne.
+- **Code de carte.** Chaque partie a un code de 6 caractères (sans 0, 1, I ni O), affiché dans le menu pause et sur l'écran de fin avec un bouton « Copier ». Saisi dans le menu, il redonne exactement la même disposition (niveau ou réglages d'escarmouche compris).
+- **Médailles.** Chaque niveau de campagne propose trois médailles : victoire, victoire sans perdre son camp, victoire en moins de 3 minutes de jeu. Elles sont sauvegardées et affichées sous forme de pastilles dans la liste des cartes.
 - **Difficulté.** Facile, Normal ou Difficile : les IA réagissent plus vite, attaquent avec de plus petits groupes, gardent moins de défenseurs et frappent plus fort.
 
 ## Contrôles tactiles
@@ -87,6 +90,9 @@ src/
     grid.ts            grille de navigation et obstacles
     mapgen.ts          générateur de cartes aléatoires (camps, cases bonus, obstacles)
     maps.ts            les 5 niveaux
+    skirmish.ts        réglages d'escarmouche → niveau construit à la volée
+    mapcode.ts         code de carte partageable (type de partie + graine, base 32)
+    challenges.ts      médailles de campagne
     save.ts            progression (localStorage)
   render/              rendu canvas 2D
     sprites.ts         élèves dessinés pixel par pixel : 8 directions, marche, coup, KO

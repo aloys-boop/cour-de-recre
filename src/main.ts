@@ -2,7 +2,9 @@ import './style.css';
 import { Music } from './audio/music';
 import { Sfx } from './audio/sfx';
 import { endStats } from './core/stats';
-import { generateMap, LEVELS } from './core/maps';
+import { medalsFor, mergeMedals } from './core/challenges';
+import { LEVELS } from './core/maps';
+import { encodeMapCode, mapForCode, randomSeed, type MapCode } from './core/mapcode';
 import { loadProgress, recordWin, saveProgress, type Progress } from './core/save';
 import { Game, type GameOptions } from './game';
 import { Hud } from './ui/hud';
@@ -10,6 +12,7 @@ import { ControlsHud } from './ui/controls-hud';
 import { Menu, type MenuState } from './ui/menu';
 import { Overlay } from './ui/overlay';
 import { TacticsHud } from './ui/tactics-hud';
+import { codeBlock, medalsBlock } from './ui/share';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const minimapCanvas = document.getElementById('minimap') as HTMLCanvasElement;
@@ -78,20 +81,22 @@ function startGame(state: MenuState): void {
   sfx.unlock();
   progress = { ...progress, lastTeam: state.team, lastDifficulty: state.difficulty };
   saveProgress(progress);
-  launch({
-    map: generateMap(LEVELS[state.mapIndex], newSeed()),
-    mapIndex: state.mapIndex,
-    playerColor: state.team,
-    difficulty: state.difficulty,
-  });
+  const code: MapCode = state.code ?? {
+    spec: state.mode === 'escarmouche' ? { kind: 'escarmouche', ...state.skirmish } : { kind: 'campagne', level: state.mapIndex },
+    seed: randomSeed(),
+  };
+  play(code, { playerColor: state.team, difficulty: state.difficulty });
 }
 
-/** Graine de carte : un tirage différent à chaque partie. */
-function newSeed(): number {
-  return Math.floor(Math.random() * 1e9);
+/** Lance une partie à partir d'un code de carte (type de partie + graine) : même code, même disposition. */
+function play(code: MapCode, o: Pick<GameOptions, 'playerColor' | 'difficulty'>): void {
+  const mapIndex = code.spec.kind === 'campagne' ? code.spec.level : -1;
+  launch({ map: mapForCode(code), mapIndex, playerColor: o.playerColor, difficulty: o.difficulty, seed: code.seed }, code);
 }
 
-function launch(opts: GameOptions): void {
+function launch(opts: GameOptions, code: MapCode): void {
+  const codeText = encodeMapCode(code);
+  const campaign = code.spec.kind === 'campagne';
   game?.destroy();
   overlay.hide();
   menu.hide();
@@ -109,24 +114,34 @@ function launch(opts: GameOptions): void {
             game?.setPaused(false);
           },
           () => backToMenu(),
+          [codeBlock(codeText)],
         );
       } else overlay.hide();
     },
     onEnd: (result, o) => {
       const win = result === 'victoire';
-      if (win) {
+      const extras: HTMLElement[] = [];
+      // Les victoires d'escarmouche ne débloquent pas la campagne et ne donnent pas de médailles.
+      if (win && campaign) {
         progress = recordWin(progress, o.map.id, o.mapIndex, LEVELS.length);
+        const earned = medalsFor({ win, homeCampLost: game?.homeCampLost ?? true, seconds: game?.world.time ?? Infinity });
+        const merged = mergeMedals(progress.medals, o.map.id, earned);
+        progress = { ...progress, medals: merged.medals };
+        extras.push(medalsBlock(earned, merged.fresh));
         saveProgress(progress);
         menu.setProgress(progress);
       }
-      const nextAvailable = win && o.mapIndex + 1 < LEVELS.length;
+      extras.push(codeBlock(codeText, () => play(code, o)));
+      const nextAvailable = win && campaign && o.mapIndex + 1 < LEVELS.length;
       overlay.end(win, o.map.name, {
         nextAvailable,
         stats: game ? endStats(game.stats, game.world, game.playerTeam) : undefined,
         // Rejouer et carte suivante : nouvelle disposition tirée au sort.
-        onReplay: () => launch({ ...o, map: generateMap(LEVELS[o.mapIndex], newSeed()) }),
-        onNext: () => launch({ ...o, map: generateMap(LEVELS[o.mapIndex + 1], newSeed()), mapIndex: o.mapIndex + 1 }),
+        onReplay: () => play({ spec: code.spec, seed: randomSeed() }, o),
+        onNext: () => play({ spec: { kind: 'campagne', level: o.mapIndex + 1 }, seed: randomSeed() }, o),
         onMenu: () => backToMenu(),
+        winText: campaign ? undefined : 'L’escarmouche est à toi !',
+        extras,
       });
     },
   });

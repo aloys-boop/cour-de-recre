@@ -1,4 +1,5 @@
 import { STORAGE_KEY } from '../config';
+import { sanitizeMedals, type MedalMap } from './challenges';
 import type { Difficulty, TeamId } from './types';
 
 export interface Progress {
@@ -11,6 +12,8 @@ export interface Progress {
   lastDifficulty: Difficulty;
   /** Musique coupée (champ facultatif : absent des anciennes sauvegardes, la musique est alors active). */
   musicMuted?: boolean;
+  /** Médailles de campagne par niveau (facultatif : absent des anciennes sauvegardes). */
+  medals?: MedalMap;
 }
 
 const DEFAULT: Progress = { unlocked: 1, wins: {}, muted: false, lastTeam: 0, lastDifficulty: 'normal', musicMuted: false };
@@ -44,6 +47,7 @@ export function loadProgress(store: StorageLike | null = storage()): Progress {
         ? (parsed.lastDifficulty as Difficulty)
         : 'normal',
       musicMuted: !!parsed.musicMuted,
+      medals: sanitizeMedals(parsed.medals),
     };
   } catch {
     return { ...DEFAULT, wins: {} };
