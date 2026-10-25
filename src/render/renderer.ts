@@ -8,6 +8,8 @@ import { drawGoldenTile, drawStarvingBar } from './golden';
 import { buildSheet, FEET_Y, FRAME_H, FRAME_W, frameFor, type SheetCanvas } from './sprites';
 import { drawSuit } from './suits';
 import { CHARGE_COLOR, drawHealHeart, drawRallies, drawSpadeAura, spadeAuraTeams } from './tactics';
+import { tileView, unitVisible } from '../core/fog';
+import { drawFog } from './fog';
 
 export interface Marker {
   x: number; // grille
@@ -42,10 +44,12 @@ export const COLORS = {
 /** Rendu canvas 2D de la partie. */
 export class Renderer {
   readonly sheets: SheetCanvas[] = [];
+  /** Équipe dont on montre le point de vue (brouillard de guerre). */
+  private viewTeam = 0;
 
   constructor(
     private ctx: CanvasRenderingContext2D,
-    makeCanvas: (w: number, h: number) => SheetCanvas,
+    private makeCanvas: (w: number, h: number) => SheetCanvas,
   ) {
     for (let t = 0; t < TEAM_COLORS.length; t++) this.sheets.push(buildSheet(t, makeCanvas));
   }
@@ -64,6 +68,7 @@ export class Renderer {
     const ctx = this.ctx;
     ctx.save();
     ctx.imageSmoothingEnabled = false;
+    this.viewTeam = opts.playerTeam;
     ctx.fillStyle = COLORS.void;
     ctx.fillRect(0, 0, cam.viewW, cam.viewH);
     this.drawFloor(world, cam);
@@ -71,6 +76,7 @@ export class Renderer {
     this.drawMarkers(opts.markers, cam, 'floor');
     drawRallies(ctx, world, cam, opts.playerTeam, opts.time);
     this.drawUnitsAndObstacles(world, cam, opts.selected, opts.playerTeam);
+    drawFog(ctx, world, cam, opts.playerTeam, this.makeCanvas);
     this.drawMarkers(opts.markers, cam, 'air');
     if (opts.box) this.drawBox(opts.box);
     ctx.restore();
@@ -132,7 +138,8 @@ export class Renderer {
     const center = cam.gridToScreen(t.cx, t.cy);
     const reach = 120 * z;
     if (center.x < -reach || center.y < -reach || center.x > cam.viewW + reach || center.y > cam.viewH + reach) return;
-    const ownerColor = t.owner === NO_TEAM ? NO_TEAM : world.teamColors[t.owner];
+    const view = tileView(world, this.viewTeam, t);
+    const ownerColor = view.owner === NO_TEAM ? NO_TEAM : world.teamColors[view.owner];
     const inset = t.isCamp ? 0.06 : 0.1;
     this.diamondPath(cam, t.x + inset, t.y + inset, t.x + t.size - inset, t.y + t.size - inset);
     if (t.isCamp) {
@@ -163,7 +170,7 @@ export class Renderer {
         ctx.restore();
       }
     }
-    if (t.contested) {
+    if (t.contested && view.visible) {
       ctx.save();
       this.diamondPath(cam, t.x + inset, t.y + inset, t.x + t.size - inset, t.y + t.size - inset);
       ctx.setLineDash([5 * z, 4 * z]);
@@ -175,7 +182,7 @@ export class Renderer {
     }
     drawGoldenTile(ctx, world, t, cam, time);
     // Jauge de capture.
-    if (t.cap > 0 && t.capTeam !== NO_TEAM) {
+    if (view.visible && t.cap > 0 && t.capTeam !== NO_TEAM) {
       const bw = (t.isCamp ? 56 : 40) * z;
       const bh = Math.max(3, 4 * z);
       const bx = center.x - bw / 2;
@@ -247,6 +254,7 @@ export class Renderer {
         continue;
       }
       const u = it.unit!;
+      if (!unitVisible(world, playerTeam, u)) continue;
       const p = cam.gridToScreen(u.x, u.y);
       if (p.x < -margin || p.y < -margin || p.x > cam.viewW + margin || p.y > cam.viewH + margin) continue;
       const fade = u.state === 'ko' ? Math.min(1, u.koTimer / 0.5) : 1;

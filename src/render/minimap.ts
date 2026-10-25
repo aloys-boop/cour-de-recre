@@ -5,6 +5,8 @@ import type { World } from '../core/world';
 import type { Camera } from './camera';
 import { COLORS } from './renderer';
 import { drawGoldenMinimap } from './golden';
+import { tileView, unitVisible } from '../core/fog';
+import { drawFogMini } from './fog';
 
 /** Mini-carte : vue d'ensemble de la cour, des cases et des élèves, plus le cadre de la caméra. */
 export class Minimap {
@@ -78,7 +80,8 @@ export class Minimap {
     for (const t of world.tiles) {
       const p = this.toMini(t.cx, t.cy);
       const s = Math.max(2.5, (TILE_W / 2) * this.scale * 0.9 * t.size);
-      const ownerColor = t.owner === NO_TEAM ? NO_TEAM : world.teamColors[t.owner];
+      const seenOwner = tileView(world, playerTeam, t).owner;
+      const ownerColor = seenOwner === NO_TEAM ? NO_TEAM : world.teamColors[seenOwner];
       ctx.fillStyle = t.isCamp
         ? ownerColor === NO_TEAM ? '#bdbdc2' : TEAM_COLORS[ownerColor].main
         : ownerColor === NO_TEAM ? '#ffffff' : TEAM_COLORS[ownerColor].light;
@@ -90,7 +93,7 @@ export class Minimap {
       ctx.closePath();
       ctx.fill();
       // Camp d'un allié du joueur : liseré bleu clair.
-      const ally = t.isCamp && t.owner !== NO_TEAM && world.isAllied(t.owner, playerTeam);
+      const ally = t.isCamp && seenOwner !== NO_TEAM && world.isAllied(seenOwner, playerTeam);
       ctx.strokeStyle = ally ? '#9fdcff' : 'rgba(0,0,0,0.35)';
       ctx.lineWidth = ally ? 1.5 : 0.5;
       ctx.stroke();
@@ -98,11 +101,12 @@ export class Minimap {
     drawGoldenMinimap(ctx, world, (gx, gy) => this.toMini(gx, gy), Math.max(2.5, (TILE_W / 2) * this.scale * 0.9));
     // Élèves.
     for (const u of world.units) {
-      if (!u.alive) continue;
+      if (!u.alive || !unitVisible(world, playerTeam, u)) continue;
       const p = this.toMini(u.x, u.y);
       ctx.fillStyle = TEAM_COLORS[world.teamColors[u.team]].ui;
       ctx.fillRect(p.x - 1, p.y - 1, 2.5, 2.5);
     }
+    drawFogMini(ctx, world, playerTeam, this.scale, this.ox, this.oy);
     // Cadre de la caméra.
     const tl = cam.screenToWorld(0, 0);
     const br = cam.screenToWorld(cam.viewW, cam.viewH);

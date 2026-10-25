@@ -34,7 +34,9 @@ export interface RuleToggle {
 }
 
 /** Options affichées (case à cocher) dans le menu d'escarmouche, dans cet ordre. */
-export const RULE_TOGGLES: RuleToggle[] = [];
+export const RULE_TOGGLES: RuleToggle[] = [
+  { key: 'fog', label: 'Brouillard de guerre', description: 'Tu ne vois que les abords de tes élèves, de tes cases et de ceux de tes alliés.' },
+];
 
 export interface ModeDef {
   id: GameMode;

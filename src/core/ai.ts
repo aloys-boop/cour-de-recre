@@ -1,5 +1,6 @@
 import { AI_PROFILES, type AiProfile } from '../config';
 import { goldenAiBonus, goldenRetarget } from './events';
+import { unitVisible } from './fog';
 import type { Tile } from './tile';
 import { NO_TEAM, type Difficulty } from './types';
 import type { Unit } from './unit';
@@ -49,7 +50,7 @@ export class TeamAi {
     for (const u of mine) if (u.order.kind === 'none' && u.aiTag !== TAG_RALLY) u.aiTag = TAG_FREE;
 
     const owned = w.tiles.filter((t) => t.owner === this.team);
-    const enemies = w.units.filter((u) => u.alive && !w.isFriend(u.team, this.team));
+    const enemies = w.units.filter((u) => u.alive && !w.isFriend(u.team, this.team) && unitVisible(w, this.team, u));
 
     // --- Défense des cases menacées ---------------------------------------
     for (const t of owned) {

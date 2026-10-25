@@ -19,6 +19,7 @@ import { centroid, ControlGroups, DoubleTap, nearestOwnCamp, onScreen } from './
 import { drawArrow, type OrderArrow } from './render/arrow';
 import { magnetTile, neighbourRadius, orderMoveExact, pickUnit, startFocus, startZoom, tileGoals, type AimTile, type PickResult } from './core/aim';
 import { drawTileFlash, type TileFlash } from './render/aimfx';
+import { eventPerceived, unitVisible } from './core/fog';
 
 export type GameResult = 'victoire' | 'defaite';
 
@@ -225,6 +226,7 @@ export class Game {
       const color = w.teamColors[ev.team];
       this.stats.record(ev);
       this.diplomacy.record(ev);
+      if (!eventPerceived(w, this.playerTeam, ev)) continue; // brouillard : combat hors vue, ni son ni effet
       this.fx.onEvent(ev, this.cam);
       switch (ev.kind) {
         case 'punch':
@@ -304,7 +306,7 @@ export class Game {
   private pick(sx: number, sy: number): PickResult<Unit> | null {
     const cands = [];
     for (const u of this.world.units) {
-      if (!u.alive) continue;
+      if (!u.alive || !unitVisible(this.world, this.playerTeam, u)) continue;
       const p = this.cam.gridToScreen(u.x, u.y);
       cands.push({ unit: u, team: u.team, sx: p.x, sy: p.y, depth: u.x + u.y });
     }
