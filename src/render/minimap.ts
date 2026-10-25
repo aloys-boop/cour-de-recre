@@ -5,8 +5,9 @@ import type { World } from '../core/world';
 import type { Camera } from './camera';
 import { COLORS } from './renderer';
 import { drawGoldenMinimap } from './golden';
-import { tileView, unitVisible } from '../core/fog';
+import { pointVisible, tileView, unitVisible } from '../core/fog';
 import { drawFogMini } from './fog';
+import { drawSupervisorsMinimap } from './supervisors';
 
 /** Mini-carte : vue d'ensemble de la cour, des cases et des élèves, plus le cadre de la caméra. */
 export class Minimap {
@@ -107,6 +108,7 @@ export class Minimap {
       ctx.fillRect(p.x - 1, p.y - 1, 2.5, 2.5);
     }
     drawFogMini(ctx, world, playerTeam, this.scale, this.ox, this.oy);
+    drawSupervisorsMinimap(ctx, world, (gx, gy) => this.toMini(gx, gy), (x, y) => pointVisible(world, playerTeam, x, y));
     // Cadre de la caméra.
     const tl = cam.screenToWorld(0, 0);
     const br = cam.screenToWorld(cam.viewW, cam.viewH);

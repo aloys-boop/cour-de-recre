@@ -7,6 +7,7 @@ import { SpatialHash } from './spatial';
 import { RhythmState, bonusWeight, updateRhythm, type RhythmEvent } from './events';
 import { Tile, updateCapture } from './tile';
 import { DEFAULT_RULES, type GameRules } from './rules';
+import { holdPunished, updateSupervisors } from './supervisors';
 import { NO_TEAM, type MapDef, type Suit, type Vec2 } from './types';
 import { Unit, punchDamage, resetUnitIds } from './unit';
 
@@ -290,6 +291,7 @@ export class World {
     this.rebuildHash();
     for (const u of this.units) this.updateUnit(u, dt);
     this.separate();
+    updateSupervisors(this, dt);
     this.updateTiles(dt);
     if (updateRhythm(this, dt)) this.refreshMods();
     this.removeDead();
@@ -304,7 +306,7 @@ export class World {
     let best: Unit | null = null;
     let bd = radius * radius;
     this.hash.query(u.x, u.y, radius, (o) => {
-      if (!o.alive || this.isFriend(o.team, u.team)) return;
+      if (!o.alive || this.isFriend(o.team, u.team) || o.punishedUntil > this.time) return;
       const d = dist2(u.x, u.y, o.x, o.y);
       if (d < bd) {
         bd = d;
@@ -336,6 +338,7 @@ export class World {
       u.koTimer -= dt;
       return;
     }
+    if (u.punishedUntil > this.time) return holdPunished(u); // option « Surveillants »
 
     // Coup en cours : il porte après un court délai.
     if (u.pendingHit > 0) {
@@ -355,7 +358,7 @@ export class World {
 
     // Validation de l'ennemi engagé.
     let engaged = u.engagedId >= 0 ? this.byId.get(u.engagedId) : undefined;
-    if (engaged && (!engaged.alive || this.isFriend(u.team, engaged.team))) {
+    if (engaged && (!engaged.alive || this.isFriend(u.team, engaged.team) || engaged.punishedUntil > this.time)) {
       engaged = undefined;
       u.engagedId = -1;
       if (u.order.kind === 'attack') u.clearOrder();

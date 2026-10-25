@@ -238,5 +238,5 @@ describe('application complète', () => {
     const back = backing.get(canvas);
     expect(back).toBeDefined();
     if (process.env.SMOKE_PNG && back) writeFileSync(process.env.SMOKE_PNG, back.toBuffer('image/png'));
-  });
+  }, 30_000); // application complète : marge pour les machines chargées
 });

@@ -1,6 +1,7 @@
 import { AI_PROFILES, type AiProfile } from '../config';
 import { goldenAiBonus, goldenRetarget } from './events';
 import { unitVisible } from './fog';
+import { supervisorsNear } from './supervisors';
 import type { Tile } from './tile';
 import { NO_TEAM, type Difficulty } from './types';
 import type { Unit } from './unit';
@@ -114,6 +115,7 @@ export class TeamAi {
         else if (t.suit === 'diamond') score -= 0.1;
         score -= 0.09 * Math.hypot(t.cx - centroid.x, t.cy - centroid.y);
         score -= 0.22 * enemyNear;
+        score -= 0.35 * supervisorsNear(w, t.cx, t.cy, 2.5); // option « Surveillants » : éviter de se battre sous leurs yeux
         if (t.capTeam === this.team) score += 0.6;
         if (t.contested) score += 0.2;
         score += goldenAiBonus(w, t);

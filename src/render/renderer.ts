@@ -7,8 +7,10 @@ import type { Camera } from './camera';
 import { drawGoldenTile, drawStarvingBar } from './golden';
 import { buildSheet, FEET_Y, FRAME_H, FRAME_W, frameFor, type SheetCanvas } from './sprites';
 import { drawSuit } from './suits';
+import { drawPunishedMark, drawSupervisor, lazySupervisorSheet, pushSupervisorItems } from './supervisors';
+import type { Supervisor } from '../core/supervisors';
 import { CHARGE_COLOR, drawHealHeart, drawRallies, drawSpadeAura, spadeAuraTeams } from './tactics';
-import { tileView, unitVisible } from '../core/fog';
+import { tileView, unitVisible, pointVisible } from '../core/fog';
 import { drawFog } from './fog';
 
 export interface Marker {
@@ -46,12 +48,14 @@ export class Renderer {
   readonly sheets: SheetCanvas[] = [];
   /** Équipe dont on montre le point de vue (brouillard de guerre). */
   private viewTeam = 0;
+  private supSheet: () => SheetCanvas;
 
   constructor(
     private ctx: CanvasRenderingContext2D,
     private makeCanvas: (w: number, h: number) => SheetCanvas,
   ) {
     for (let t = 0; t < TEAM_COLORS.length; t++) this.sheets.push(buildSheet(t, makeCanvas));
+    this.supSheet = lazySupervisorSheet(makeCanvas);
   }
 
   draw(
@@ -241,16 +245,22 @@ export class Renderer {
   private drawUnitsAndObstacles(world: World, cam: Camera, selected: Set<number>, playerTeam: number): void {
     const ctx = this.ctx;
     const z = cam.zoom;
-    type Item = { depth: number; unit?: Unit; obstacle?: Vec2 };
+    type Item = { depth: number; unit?: Unit; obstacle?: Vec2; sup?: Supervisor };
     const items: Item[] = [];
     for (const u of world.units) items.push({ depth: u.x + u.y, unit: u });
     for (const o of world.map.obstacles ?? []) items.push({ depth: o.x + o.y + 1, obstacle: o });
+    pushSupervisorItems(world, items);
     items.sort((a, b) => a.depth - b.depth);
     const margin = 80 * z;
     const aura = spadeAuraTeams(world);
     for (const it of items) {
       if (it.obstacle) {
         this.drawObstacle(it.obstacle, cam);
+        continue;
+      }
+      if (it.sup) {
+        if (!pointVisible(world, playerTeam, it.sup.x, it.sup.y)) continue;
+        drawSupervisor(ctx, this.supSheet(), it.sup, cam);
         continue;
       }
       const u = it.unit!;
@@ -288,6 +298,7 @@ export class Renderer {
         ctx.fillStyle = r > 0.5 ? '#3ee05a' : r > 0.25 ? '#f2c22e' : '#e5453c';
         ctx.fillRect(bx, by, bw * r, bh);
         drawHealHeart(ctx, u, p, z, world.time);
+        drawPunishedMark(ctx, u, p, z, world.time);
         drawStarvingBar(ctx, world, u.team, bx, by, bw, bh);
       }
       ctx.globalAlpha = 1;
