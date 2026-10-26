@@ -10,6 +10,8 @@ import { World } from '../src/core/world';
 import type { Game } from '../src/game';
 import { CampPanel } from '../src/ui/camp-panel';
 import { ClassSection } from '../src/ui/class-section';
+import { PionSection } from '../src/ui/pion-section';
+import { buyPion, PION } from '../src/core/pion';
 import { setProduce, type UnitClass } from '../src/core/classes';
 
 beforeEach(() => {
@@ -46,10 +48,12 @@ function setup() {
     buyClasses: () => buyClassUnlock(world, 0),
     buyCampDefense: (c: Tile) => buyDefense(world, 0, c),
     focusCamp: () => undefined,
+    buyCampPion: (c: Tile) => buyPion(world, 0, c),
     setCampProduce: (c: Tile, cls: UnitClass) => setProduce(world, 0, c, cls),
   } as unknown as Game;
   panel = new CampPanel(document.getElementById('hud')!, () => game, (t) => hints.push(t));
   panel.addSection(new ClassSection((t) => hints.push(t)));
+  panel.addSection(new PionSection((t) => hints.push(t)));
   return { world, panel, hints };
 }
 
@@ -137,5 +141,22 @@ describe('panneau du camp', () => {
     expect(world.tiles[0].produce).toBe('costaud');
     expect(btns[1].classList.contains('active')).toBe(true);
     expect(btns[3].querySelector('.class-cost')!.textContent).toBe('6 ★ · 0/3');
+  });
+
+  it('un camp capturé : on y navigue, on y achète un pion et on choisit ce qu’il produit', () => {
+    const { world, panel } = setup();
+    world.teamUpgrades[0].classes = true;
+    world.tiles[1].owner = 0;
+    awardMerit(world, 0, PION.cost, 0, 0, 'hold');
+    panel.open(world.tiles[0]);
+    panel.nextBtn.click();
+    expect(panel.openCamp).toBe(world.tiles[1]);
+    const zone = panel.panel.querySelector('.zone-camp')!;
+    zone.querySelectorAll<HTMLButtonElement>('.class-btn')[3].click();
+    expect(world.tiles[1].produce).toBe('infirmier');
+    expect(world.tiles[0].produce).toBe('eleve');
+    zone.querySelector<HTMLButtonElement>('.pion-buy')!.click();
+    expect(world.tiles[1].pionBought).toBe(true);
+    expect(world.tiles[0].pionBought).toBe(false);
   });
 });

@@ -12,6 +12,7 @@ import { drawSuit } from './suits';
 import { buildPionSheet, drawSupervisor, drawSupervisorBar, lazySupervisorSheet, pionFrame, pushSupervisorItems } from './supervisors';
 import { drawFrozenMark } from './powers';
 import { SUPERVISOR_SCALE } from '../core/supervisors';
+import { PION } from '../core/pion';
 import type { Supervisor } from '../core/supervisors';
 import { CHARGE_COLOR, drawHealHeart, drawRallies, drawSpadeAura, spadeAuraTeams } from './tactics';
 import { tileView, unitVisible, pointVisible } from '../core/fog';
@@ -92,6 +93,7 @@ export class Renderer {
     drawRallies(ctx, world, cam, opts.playerTeam, opts.time);
     this.drawUnitsAndObstacles(world, cam, opts.selected, opts.playerTeam);
     drawFog(ctx, world, cam, opts.playerTeam, this.makeCanvas);
+    for (const t of world.tiles) if (t.isCamp && t.owner !== NO_TEAM) this.drawCampBadge(world, t, cam);
     this.drawMarkers(opts.markers, cam, 'air');
     if (opts.box) this.drawBox(opts.box);
     ctx.restore();
@@ -357,6 +359,56 @@ export class Renderer {
     return s;
   }
 
+  /**
+   * Pastilles d'un camp, contre son coin gauche : type d'élève produit (petit élève de la
+   * classe, aux couleurs du camp) et, s'il en a un, son pion (sifflet ; grisé avec la recharge
+   * quand il est KO). Visibles pour tous les camps qu'on voit.
+   */
+  private drawCampBadge(world: World, t: Tile, cam: Camera): void {
+    const view = tileView(world, this.viewTeam, t);
+    if (!view.visible) return;
+    const ctx = this.ctx;
+    const z = Math.max(0.7, cam.zoom);
+    // Contre le coin gauche (ouest) du camp, juste à l'extérieur : jamais sur les élèves qui y stationnent.
+    const left = cam.gridToScreen(t.x, t.y + t.size);
+    if (left.x < -60 || left.y < -40 || left.x > cam.viewW + 40 || left.y > cam.viewH + 40) return;
+    const color = world.teamColors[t.owner];
+    const r = 10 * z;
+    const cx = left.x - r - 3 * z;
+    const cy = left.y - r * 0.4;
+    badgeCircle(ctx, cx, cy, r, TEAM_COLORS[color].ui);
+    const sheet = this.sheetFor(color, t.produce);
+    // L'élève de la classe en pied : carrure du costaud, bandeau du sprinteur, calot et trousse
+    // de l'infirmier restent reconnaissables en tout petit.
+    const s = (r * 1.9) / 54;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r - 1, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(sheet as CanvasImageSource, 0, FRAME_H + 2, FRAME_W, 54, Math.round(cx - (FRAME_W * s) / 2), Math.round(cy - r * 0.95), FRAME_W * s, 54 * s);
+    ctx.restore();
+    if (!t.pionBought) return;
+    const px = cx;
+    const pyOff = r * 2.3;
+    const up = world.units.some((u) => u.pion && u.home === t && u.alive);
+    ctx.save();
+    if (!up) ctx.globalAlpha = 0.55;
+    badgeCircle(ctx, px, cy + pyOff, r, TEAM_COLORS[color].ui);
+    drawWhistle(ctx, px, cy + pyOff, r);
+    if (!up) {
+      // Recharge du pion KO : arc qui se remplit jusqu'à son retour.
+      const left = Math.max(0, t.pionRespawnAt - world.time);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = '#ffd23f';
+      ctx.lineWidth = Math.max(2, 2.5 * z);
+      ctx.beginPath();
+      ctx.arc(px, cy + pyOff, r + 1.5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - left / PION.respawn));
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   private pionSheets = new Map<number, SheetCanvas>();
 
   /** Pion : l'adulte des surveillants, en blouse aux couleurs de l'équipe, 1,45 fois plus grand. */
@@ -449,5 +501,39 @@ export function drawAllyDiamond(ctx: CanvasRenderingContext2D, x: number, y: num
   ctx.fill();
   ctx.strokeStyle = '#0d2a40';
   ctx.lineWidth = Math.max(1, 0.9 * z);
+  ctx.stroke();
+}
+
+/** Pastille ronde blanche cerclée à la couleur de l'équipe. */
+function badgeCircle(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, ring: string): void {
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = '#f4f1e8';
+  ctx.fill();
+  ctx.lineWidth = Math.max(2, r * 0.22);
+  ctx.strokeStyle = ring;
+  ctx.stroke();
+}
+
+/** Sifflet argenté (pion) dans une pastille. */
+function drawWhistle(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
+  const s = r / 10;
+  ctx.fillStyle = '#c9d2dc';
+  ctx.strokeStyle = '#3b4a5c';
+  ctx.lineWidth = Math.max(1, 1.2 * s);
+  ctx.beginPath();
+  ctx.ellipse(x + 1.5 * s, y + 1 * s, 4.5 * s, 3.6 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillRect(x - 6 * s, y - 2.6 * s, 5 * s, 3 * s);
+  ctx.strokeRect(x - 6 * s, y - 2.6 * s, 5 * s, 3 * s);
+  ctx.beginPath();
+  ctx.arc(x + 1.5 * s, y + 1 * s, 1.3 * s, 0, Math.PI * 2);
+  ctx.fillStyle = '#3b4a5c';
+  ctx.fill();
+  ctx.strokeStyle = '#d8322a';
+  ctx.beginPath();
+  ctx.moveTo(x - 6 * s, y - 1 * s);
+  ctx.quadraticCurveTo(x - 9 * s, y + 5 * s, x - 3 * s, y + 7 * s);
   ctx.stroke();
 }

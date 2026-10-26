@@ -71,6 +71,8 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
 
   - **Ce camp** : Défense (le camp se prend 30 % plus lentement et soigne 30 % plus vite par niveau ; 20 / 40 / 70), le pion gardien, le type d'élève produit et le point de ralliement. En tête de zone, « Camp 2/4 · Camp vert » : chaque camp porte le nom de l'équipe qui en est partie (« Camp de départ » pour le tien, « Camp fantôme 1 » pour un camp sans propriétaire au départ). Les flèches ‹ › passent d'un de tes camps à l'autre sans fermer le panneau, et la caméra glisse vers le camp affiché.
 
+  Chaque camp a son propre pion gardien (acheté pour ce camp, il revient 60 s après un KO) et choisit le type d'élève qu'il produit dès que les classes sont débloquées pour l'équipe, y compris un camp capturé. Contre le coin gauche de chaque camp de la carte (le tien comme ceux des autres, s'ils sont visibles), deux pastilles cerclées à la couleur de l'équipe : le type d'élève produit (petit élève de cette classe : carrure du costaud, bandeau du sprinteur, calot de l'infirmier) et, si le camp a un pion, un sifflet (grisé, avec un arc doré qui se remplit jusqu'à son retour, quand il est KO).
+
   La Défense se voit sur le camp : un fanion gris planté sur son bord avant, avec une étoile dorée par niveau. **Un camp capturé perd son pion, sa Défense et son ralliement**, mais profite aussitôt des améliorations globales de son nouveau propriétaire (production, PV et dégâts de ses élèves).
 - **Les IA aussi.** Elles gagnent des bons points comme toi et les dépensent selon la difficulté : en Facile, lentement, au hasard et jamais au-delà du niveau 2 ; en Normal, un achat raisonné toutes les 4 s (Production d'abord, puis Entraînement et Uniformes, Défense si le camp est menacé) ; en Difficile, toutes les 2 s, avec la même logique.
 
@@ -225,6 +227,7 @@ Le dépôt contient un workflow GitHub Actions (`.github/workflows/deploy.yml`) 
 | `v3-avant-camps` | état avant la version 4 (point de retour) |
 | `v4.1` | barre de bagarre |
 | `v4.2` | améliorations globales / par camp, panneau à deux zones avec navigation |
+| `v4.3` | pion et type d'élève par camp, pastilles sur la carte |
 
 ## Architecture
 

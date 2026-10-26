@@ -109,3 +109,26 @@ writeFileSync(`${OUT}/camp.png`, cv.toBuffer('image/png'));
   new BrawlBars().draw(ctx4, w4, cam4, 0, 1, 1);
   writeFileSync(`${OUT}/brawls.png`, cv4.toBuffer('image/png'));
 }
+
+// Pastilles des camps : type produit et pion (debout, puis KO avec sa recharge).
+{
+  const { awardMerit } = await import('../../src/core/merits');
+  const { buyPion, pionOf } = await import('../../src/core/pion');
+  const w5 = new World(map, 4, 17, [2, 0, 1, 3]);
+  awardMerit(w5, 0, 500, 0, 0, 'hold');
+  w5.teamUpgrades[0].classes = true;
+  w5.camps[2].owner = 0;
+  w5.camps[0].produce = 'sprinteur';
+  w5.camps[2].produce = 'infirmier';
+  buyPion(w5, 0, w5.camps[0]);
+  buyPion(w5, 0, w5.camps[2]);
+  pionOf(w5, w5.camps[2])!.takeDamage(1000, 0, 0);
+  for (let i = 0; i < 600; i++) w5.update(1 / 60);
+  const cv5 = createCanvas(1170, 540);
+  const ctx5 = cv5.getContext('2d') as unknown as CanvasRenderingContext2D;
+  const r5 = new Renderer(ctx5, make);
+  const cam5 = new Camera(); cam5.setMap(map.w, map.h); cam5.setView(585, 270); cam5.fit(); cam5.zoom *= 2; cam5.centerOnGrid(w5.camps[0].cx + 2, w5.camps[0].cy - 2);
+  ctx5.setTransform(2, 0, 0, 2, 0, 0);
+  r5.draw(w5, cam5, { selected: new Set(), markers: [], box: null, playerTeam: 0, time: 1 });
+  writeFileSync(`${OUT}/badges.png`, cv5.toBuffer('image/png'));
+}
