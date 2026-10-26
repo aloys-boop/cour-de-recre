@@ -41,25 +41,30 @@ describe('classes d’élèves', () => {
     expect(CLASSES.infirmier.dmg).toBeLessThan(0.5);
   });
 
-  it('débloquées au niveau 2 de Production du camp', () => {
+  it('débloquées pour toute l’équipe : tous ses camps, y compris capturés, choisissent leur classe', () => {
     const w = new World(ARENA, 2, 1);
     const camp = w.tiles[0];
-    expect(setProduce(0, camp, 'costaud')).toBe('verrouille');
-    expect(setProduce(0, camp, 'eleve')).toBe('ok');
-    camp.upgrades.prod = 2;
-    expect(setProduce(0, camp, 'costaud')).toBe('ok');
+    expect(setProduce(w, 0, camp, 'costaud')).toBe('verrouille');
+    expect(setProduce(w, 0, camp, 'eleve')).toBe('ok');
+    w.teamUpgrades[0].classes = true;
+    expect(setProduce(w, 0, camp, 'costaud')).toBe('ok');
     expect(camp.produce).toBe('costaud');
-    expect(setProduce(0, w.tiles[1], 'costaud')).toBe('pas-ton-camp');
+    expect(setProduce(w, 0, w.tiles[1], 'costaud')).toBe('pas-ton-camp');
+    // Un camp pris à l'ennemi peut aussitôt produire sa propre classe.
+    w.tiles[1].owner = 0;
+    expect(setProduce(w, 0, w.tiles[1], 'sprinteur')).toBe('ok');
+    expect(w.tiles[1].produce).toBe('sprinteur');
+    expect(camp.produce).toBe('costaud');
   });
 
   it('chaque élève spécial coûte ses bons points ; sans bons points, un élève normal', () => {
     const w = new World({ ...ARENA, spawnInterval: 1 }, 2, 1);
     const camp = w.tiles[0];
-    camp.upgrades.prod = 2;
+    w.teamUpgrades[camp.owner].classes = true;
     camp.produce = 'costaud';
     awardMerit(w, 0, 7, 0, 0, 'hold');
     w.drainEvents();
-    tick(w, 1.9);
+    tick(w, 2);
     const mine = w.units.filter((u) => u.team === 0);
     expect(mine.map((u) => u.cls)).toEqual(['costaud', 'eleve']);
     expect(meritsOf(w, 0)).toBe(2);
@@ -118,7 +123,7 @@ describe('classes d’élèves', () => {
   it('Infirmier : 3 au plus par équipe', () => {
     const w = new World({ ...ARENA, spawnInterval: 0.5 }, 2, 1);
     const camp = w.tiles[0];
-    camp.upgrades.prod = 2;
+    w.teamUpgrades[camp.owner].classes = true;
     camp.produce = 'infirmier';
     awardMerit(w, 0, 100, 0, 0, 'hold');
     tick(w, 4);
@@ -131,17 +136,16 @@ describe('classes d’élèves', () => {
   it('un camp capturé repasse aux élèves normaux', () => {
     const w = new World(ARENA, 2, 1);
     const camp = w.tiles[1];
-    camp.upgrades.prod = 2;
+    w.teamUpgrades[1].classes = true;
     camp.produce = 'sprinteur';
     camp.owner = 0;
     expect(camp.produce).toBe('eleve');
-    expect(camp.upgrades.prod).toBe(0);
   });
 
   it('l’IA mélange les classes : infirmiers dans une grosse armée, costauds, sprinteurs s’il reste des cases libres', () => {
     const w = new World(ARENA, 2, 1);
     const camp = w.tiles[1];
-    camp.upgrades.prod = 2;
+    w.teamUpgrades[camp.owner].classes = true;
     const eco = new EconomyAi(w, 1, 'normal');
     awardMerit(w, 1, 200, 0, 0, 'hold');
     // Petite armée, case libre : pas d'infirmier.
@@ -159,7 +163,7 @@ describe('classes d’élèves', () => {
     expect(['costaud', 'sprinteur']).toContain(next);
     // Sans réserve de bons points : élèves normaux.
     const poor = new World(ARENA, 2, 1);
-    poor.tiles[1].upgrades.prod = 2;
+    poor.teamUpgrades[1].classes = true;
     expect(new EconomyAi(poor, 1, 'normal').chooseClass(poor.tiles[1])).toBe('eleve');
     // Classes verrouillées : élèves normaux.
     const locked = new World(ARENA, 2, 1);

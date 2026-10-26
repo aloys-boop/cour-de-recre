@@ -49,7 +49,7 @@
   position: absolute;
   top: calc(52px + var(--sat));
   left: calc(68px + var(--sal));
-  width: min(500px, calc(100% - 150px - var(--sal) - var(--sar)));
+  width: min(800px, calc(100% - 150px - var(--sal) - var(--sar)));
   max-height: calc(100% - 62px - var(--sat) - var(--sab));
   overflow-y: auto;
   padding: 8px 10px 10px;
@@ -206,8 +206,8 @@
 }
 
 .class-icon {
-  width: 24px;
-  height: 35px;
+  width: 20px;
+  height: 29px;
   image-rendering: pixelated;
 }
 
@@ -240,4 +240,100 @@
   font-size: 12px;
   line-height: 1.3;
   opacity: 0.9;
+}
+
+/* Deux zones bien séparées : « Toute l'équipe » (bleutée) et « Ce camp » (dorée). */
+.camp-zone {
+  margin-top: 6px;
+  padding: 6px 8px 8px;
+  border-radius: 11px;
+}
+
+.zone-team {
+  background: rgba(79, 163, 255, 0.1);
+  border: 2px solid rgba(79, 163, 255, 0.45);
+}
+
+.zone-camp {
+  background: rgba(255, 210, 63, 0.08);
+  border: 2px solid rgba(255, 210, 63, 0.5);
+}
+
+.zone-title {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.zone-title small {
+  font-weight: 600;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.camp-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.camp-label {
+  flex: 1 1 auto;
+  text-align: center;
+  font-weight: 900;
+  font-size: 14px;
+}
+
+#hud .camp-nav-btn,
+.camp-nav-btn {
+  pointer-events: auto;
+  width: 44px;
+  height: 40px;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 210, 63, 0.6);
+  background: rgba(0, 0, 0, 0.35);
+  color: #ffe58a;
+  font-size: 26px;
+  font-weight: 900;
+  line-height: 1;
+  font-family: inherit;
+}
+
+.camp-nav-btn:disabled {
+  opacity: 0.35;
+}
+
+.zone-camp .camp-section {
+  border-top-color: rgba(255, 210, 63, 0.25);
+}
+
+/* Paysage : les deux zones côte à côte ; écran étroit : l'une sous l'autre. */
+.camp-zones {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 8px;
+  align-items: start;
+}
+
+.camp-zones .camp-zone {
+  margin-top: 0;
+}
+
+.camp-zones .camp-rows {
+  grid-template-columns: 1fr;
+  gap: 2px;
+}
+
+.camp-zones .camp-name small {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 190px;
+}
+
+@media (max-width: 680px) {
+  .camp-zones {
+    grid-template-columns: 1fr;
+  }
 }

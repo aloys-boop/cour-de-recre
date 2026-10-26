@@ -173,7 +173,7 @@ describe('tutoriel dans l’application', () => {
     const panel = document.getElementById('camp-panel')!;
     expect(panel.classList.contains('hidden')).toBe(false);
     panel.querySelector<HTMLButtonElement>('.camp-row[data-branch="prod"] .camp-buy')!.click();
-    expect(home.upgrades.prod).toBe(1);
+    expect(game.world.teamUpgrades[0].prod).toBe(1);
     expect(stepId()).toBe('power');
     advance(0.1);
     expect(panel.classList.contains('hidden')).toBe(true);

@@ -101,7 +101,8 @@ const PENNANT_SPOT: Record<UpgradeBranch, [number, number]> = {
 export function campPennants(t: Tile): Array<{ depth: number; branch: UpgradeBranch; x: number; y: number; level: number }> {
   const out: Array<{ depth: number; branch: UpgradeBranch; x: number; y: number; level: number }> = [];
   for (const b of UPGRADE_BRANCHES) {
-    const level = t.upgrades[b];
+    // Seule la Défense est propre au camp ; les améliorations globales ne se plantent pas.
+    const level = b === 'def' ? t.defense : 0;
     if (level <= 0) continue;
     const [fx, fy] = PENNANT_SPOT[b];
     out.push({ depth: t.x + fx + t.y + fy, branch: b, x: t.x + fx, y: t.y + fy, level });

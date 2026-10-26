@@ -59,21 +59,24 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
   | Case tenue (cases bonus, camps et trône) | +1 toutes les 10 s, par case |
   | Surveillant mis KO (dernier coup, option « Surveillants ») | +40 |
 
-- **Améliorer un camp.** Sans sélection, touche un de tes camps (à côté des élèves qui y stationnent) ou la pastille « ★ » : le panneau de ce camp s'ouvre. Quatre branches de trois niveaux, propres à chaque camp :
+- **Améliorations : globales ou par camp.** Sans sélection, touche un de tes camps (à côté des élèves qui y stationnent) ou la pastille « ★ » : le panneau s'ouvre en deux zones bien séparées, côte à côte.
+  - **Toute l'équipe** (achetées une fois, valables pour tous tes élèves, y compris ceux déjà sur le terrain, et pour tous tes camps, y compris ceux capturés plus tard) :
 
-  | Branche | Effet par niveau | Coût des niveaux 1 / 2 / 3 |
-  | --- | --- | --- |
-  | Production | élèves produits 15 % plus vite | 25 / 50 / 90 |
-  | Uniformes | +10 % de PV pour les élèves sortis de ce camp (pour toute leur vie) | 25 / 50 / 90 |
-  | Entraînement | +10 % de dégâts pour les élèves sortis de ce camp | 25 / 50 / 90 |
-  | Défense | le camp se prend 30 % plus lentement et soigne 30 % plus vite | 20 / 40 / 70 |
+    | Amélioration | Effet par niveau | Coût des niveaux 1 / 2 / 3 |
+    | --- | --- | --- |
+    | Production | tous tes camps produisent 15 % plus vite | 40 / 80 / 140 |
+    | Uniformes | +10 % de PV pour tous tes élèves | 40 / 80 / 140 |
+    | Entraînement | +10 % de dégâts pour tous tes élèves | 40 / 80 / 140 |
+    | Classes d'élèves | débloque Costaud, Sprinteur, Infirmier dans tous tes camps | 60 (une fois) |
 
-  Les niveaux se voient sur le camp : un fanion par branche améliorée (vert, bleu, rouge, gris), planté sur son bord avant, avec une étoile dorée par niveau. **Un camp capturé perd toutes ses améliorations.**
+  - **Ce camp** : Défense (le camp se prend 30 % plus lentement et soigne 30 % plus vite par niveau ; 20 / 40 / 70), le pion gardien, le type d'élève produit et le point de ralliement. En tête de zone, « Camp 2/4 · Camp vert » : chaque camp porte le nom de l'équipe qui en est partie (« Camp de départ » pour le tien, « Camp fantôme 1 » pour un camp sans propriétaire au départ). Les flèches ‹ › passent d'un de tes camps à l'autre sans fermer le panneau, et la caméra glisse vers le camp affiché.
+
+  La Défense se voit sur le camp : un fanion gris planté sur son bord avant, avec une étoile dorée par niveau. **Un camp capturé perd son pion, sa Défense et son ralliement**, mais profite aussitôt des améliorations globales de son nouveau propriétaire (production, PV et dégâts de ses élèves).
 - **Les IA aussi.** Elles gagnent des bons points comme toi et les dépensent selon la difficulté : en Facile, lentement, au hasard et jamais au-delà du niveau 2 ; en Normal, un achat raisonné toutes les 4 s (Production d'abord, puis Entraînement et Uniformes, Défense si le camp est menacé) ; en Difficile, toutes les 2 s, avec la même logique.
 
 ## Classes d'élèves
 
-Dans le panneau d'un camp, la rubrique « Ce camp produit » choisit la classe de ses prochains élèves. Les classes spéciales se débloquent au **niveau 2 de Production** de ce camp et se paient à chaque élève produit ; faute de bons points (ou au-delà de la limite), le camp produit un élève normal. Un camp capturé repasse aux élèves normaux.
+Dans le panneau d'un camp, la rubrique « Ce camp produit » choisit la classe de ses prochains élèves. Les classes spéciales se débloquent pour **toute l'équipe** (amélioration globale « Classes d'élèves », 60 ★) : chacun de tes camps, y compris ceux capturés ensuite, choisit alors sa propre classe. Elles se paient à chaque élève produit ; faute de bons points (ou au-delà de la limite), le camp produit un élève normal. Un camp capturé repasse aux élèves normaux.
 
 | Classe | Coût | Caractéristiques | Silhouette |
 | --- | --- | --- | --- |
@@ -221,6 +224,7 @@ Le dépôt contient un workflow GitHub Actions (`.github/workflows/deploy.yml`) 
 | `v3.5` | tutoriel et « Comment jouer » |
 | `v3-avant-camps` | état avant la version 4 (point de retour) |
 | `v4.1` | barre de bagarre |
+| `v4.2` | améliorations globales / par camp, panneau à deux zones avec navigation |
 
 ## Architecture
 
@@ -248,7 +252,8 @@ src/
     ghosts.ts          option « Camps fantômes » : placement, carte d’une partie, intérêt des IA
     save.ts            progression (localStorage)
     merits.ts          bons points : gains, solde, dépenses
-    upgrades.ts        améliorations de camp (4 branches × 3 niveaux)
+    upgrades.ts        améliorations globales (Production, Uniformes, Entraînement, classes) et Défense par camp
+    camps.ts           camps d'une équipe : ordre, numéro, nom
     ai-economy.ts      dépenses de bons points des IA selon la difficulté (améliorations, classes)
     classes.ts         classes d'élèves : Costaud, Sprinteur, Infirmier
     powers.ts          pouvoirs de récré : Sonnerie, Boules de neige, Goûter

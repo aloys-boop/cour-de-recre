@@ -1,6 +1,6 @@
 import { TUNING } from '../config';
 import { NO_TEAM, type Suit, type TileDef } from './types';
-import { campDefenseMul, freshUpgrades, type CampUpgrades } from './upgrades';
+import { campDefenseMul } from './upgrades';
 import type { UnitClass } from './classes';
 
 export type CaptureEvent = { kind: 'captured'; team: number } | null;
@@ -24,9 +24,11 @@ export class Tile {
   readonly half: number;
   /** Camp fantôme (neutre au départ, voir ghosts.ts). */
   readonly ghost: boolean;
+  /** Propriétaire au départ de la partie (nom du camp), ou NO_TEAM. */
+  readonly origin: number;
   private _owner: number;
-  /** Améliorations du camp (bons points) : perdues quand le camp change de main. */
-  upgrades: CampUpgrades = freshUpgrades();
+  /** Défense du camp (0 à 3, bons points) : perdue quand le camp change de main. */
+  defense = 0;
   /** Classe d'élèves produite par le camp (élève normal pour un camp neuf ou capturé). */
   produce: UnitClass = 'eleve';
   /** Pion acheté pour ce camp (voir pion.ts), debout ou non, et heure de son retour après un KO. */
@@ -51,6 +53,7 @@ export class Tile {
     this.suit = def.suit ?? null;
     this.half = def.kind === 'bonus' ? TUNING.bonusTileHalf : TUNING.campHalf;
     this._owner = def.owner ?? NO_TEAM;
+    this.origin = this._owner;
     this.ghost = def.kind === 'camp' && def.ghost === true;
   }
 
@@ -62,7 +65,7 @@ export class Tile {
   set owner(team: number) {
     if (team === this._owner) return;
     this._owner = team;
-    this.upgrades = freshUpgrades();
+    this.defense = 0;
     this.produce = 'eleve';
     this.pionBought = false;
     this.pionUp = false;

@@ -23,7 +23,7 @@ import { KingState, kingVictors, updateKing, type KingEvent } from './king';
 import { NO_TEAM, type MapDef, type Suit, type Vec2 } from './types';
 import { Unit, punchDamage, resetUnitIds } from './unit';
 import { MERITS, MeritState, awardMerit, captureReward, updateMerits, type MeritEvent } from './merits';
-import { campDmgMul, campHpMul, campProdMul } from './upgrades';
+import { freshTeamUpgrades, teamDmgMul, teamHpMul, teamProdMul, type TeamUpgrades } from './upgrades';
 import { PION, updatePions } from './pion';
 import { PowerState, type PowerEvent } from './powers';
 import { BrawlState, updateBrawls } from './brawls';
@@ -92,6 +92,8 @@ export class World {
   readonly merits: MeritState;
   /** Recharges des pouvoirs de récré (voir powers.ts). */
   readonly powers: PowerState;
+  /** Améliorations globales de chaque équipe (voir upgrades.ts). */
+  readonly teamUpgrades: TeamUpgrades[] = [];
   /** Bagarres en cours, recalculées quelques fois par seconde (voir brawls.ts). */
   readonly brawls = new BrawlState();
   private presence: number[][] = [];
@@ -107,6 +109,7 @@ export class World {
     this.numTeams = numTeams;
     this.rng = new Rng(seed);
     this.merits = new MeritState(numTeams);
+    for (let t = 0; t < numTeams; t++) this.teamUpgrades.push(freshTeamUpgrades());
     this.powers = new PowerState(numTeams);
     if (teamColors) this.teamColors = teamColors;
     this.grid = new Grid(map.w, map.h, map.obstacles ?? []);
@@ -259,9 +262,10 @@ export class World {
       for (const t of this.tiles) if (t.owner === team && t.suit) suits[t.suit] += bonusWeight(this, t);
       const m = this.mods[team];
       const prevHp = m.hp;
-      m.hp = prof.hp * (1 + SUIT_BONUS.heart.perTile * suits.heart);
-      m.dmg = prof.dmg * (1 + SUIT_BONUS.spade.perTile * suits.spade);
-      m.prod = prof.prod * (1 + SUIT_BONUS.club.perTile * suits.club);
+      // Profil de couleur × cases bonus × améliorations globales de l'équipe.
+      m.hp = prof.hp * (1 + SUIT_BONUS.heart.perTile * suits.heart) * teamHpMul(this, team);
+      m.dmg = prof.dmg * (1 + SUIT_BONUS.spade.perTile * suits.spade) * teamDmgMul(this, team);
+      m.prod = prof.prod * (1 + SUIT_BONUS.club.perTile * suits.club) * teamProdMul(this, team);
       m.speed = prof.speed * (1 + SUIT_BONUS.diamond.perTile * suits.diamond);
       m.suits = suits;
       if (prevHp !== m.hp) {
@@ -279,16 +283,13 @@ export class World {
   // ---------------------------------------------------------------- ordres
 
   /**
-   * Fait apparaître un élève. `from` : camp qui le produit (ses améliorations Uniformes et
-   * Entraînement s'appliquent à l'élève pour toute sa vie).
+   * Fait apparaître un élève (de classe `cls`). `from` : camp qui le produit. Les améliorations
+   * globales de l'équipe passent par ses multiplicateurs (mods), communs à tous ses élèves.
    */
   spawnUnit(team: number, x: number, y: number, announce = true, from?: Tile, cls: UnitClass = 'eleve'): Unit {
     const p = this.grid.clampPos({ x, y }, 0.3);
     const u = new Unit(team, p.x, p.y);
-    if (from) {
-      u.hpMul = campHpMul(from);
-      u.dmgMul = campDmgMul(from);
-    }
+    void from;
     if (cls !== 'eleve') applyClass(u, cls);
     u.maxHp = Math.max(1, Math.round(TUNING.unitHp * this.mods[team].hp * u.hpMul));
     u.hp = u.maxHp;
@@ -658,7 +659,7 @@ export class World {
       // Apparition : seuls les camps produisent, au rythme du profil et des bonus.
       if (t.isCamp && t.owner !== NO_TEAM && (this.productionScale[t.owner] ?? 1) > 0) {
         t.spawnTimer += dt * (this.productionScale[t.owner] ?? 1);
-        const interval = this.map.spawnInterval / (this.mods[t.owner].prod * campProdMul(t));
+        const interval = this.map.spawnInterval / this.mods[t.owner].prod;
         if (t.spawnTimer >= interval) {
           t.spawnTimer = 0;
           if (this.teamUnitCount(t.owner) < this.map.unitCap) {

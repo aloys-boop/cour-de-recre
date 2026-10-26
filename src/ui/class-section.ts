@@ -1,4 +1,4 @@
-import { CLASS_UNLOCK_LEVEL, CLASSES, classCount, UNIT_CLASSES, type UnitClass } from '../core/classes';
+import { CLASSES, classCount, classUnlocked, UNIT_CLASSES, type UnitClass } from '../core/classes';
 import type { Tile } from '../core/tile';
 import type { Game } from '../game';
 import { buildSheet, FRAME_H, FRAME_W } from '../render/sprites';
@@ -48,7 +48,7 @@ export class ClassSection implements CampSection {
   private pick(cls: UnitClass): void {
     if (!this.game || !this.camp) return;
     const r = this.game.setCampProduce(this.camp, cls);
-    if (r === 'verrouille') this.hint(`Améliore la Production de ce camp au niveau ${CLASS_UNLOCK_LEVEL} pour débloquer les classes.`, 2600);
+    if (r === 'verrouille') this.hint('Débloque d’abord les classes dans « Toute l’équipe ».', 2600);
     else if (r === 'ok') this.hint(cls === 'eleve' ? 'Ce camp produit des élèves normaux.' : `Ce camp produit des ${CLASSES[cls].label.toLowerCase()}s (${CLASSES[cls].cost} ★ chacun).`, 2200);
     this.refresh(this.game, this.camp);
   }
@@ -58,7 +58,7 @@ export class ClassSection implements CampSection {
     this.camp = camp;
     const color = game.world.teamColors[game.playerTeam];
     if (color !== this.color) this.drawIcons(color);
-    const unlocked = camp.upgrades.prod >= CLASS_UNLOCK_LEVEL;
+    const unlocked = classUnlocked(game.world, game.playerTeam, 'costaud');
     for (const [cls, b] of this.buttons) {
       b.classList.toggle('active', camp.produce === cls);
       b.classList.toggle('locked', cls !== 'eleve' && !unlocked);
@@ -71,7 +71,7 @@ export class ClassSection implements CampSection {
       }
     }
     const text = !unlocked
-      ? `Production niveau ${CLASS_UNLOCK_LEVEL} requise pour les classes.`
+      ? 'Débloque les classes dans « Toute l’équipe » pour choisir ce que produit ce camp.'
       : camp.produce === 'eleve'
         ? 'Élèves normaux, gratuits.'
         : `${CLASSES[camp.produce].blurb}. Sans bons points, le camp produit un élève normal.`;

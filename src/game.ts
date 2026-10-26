@@ -26,7 +26,7 @@ import { isSupervisor, supervisorActive, supervisorAnnouncement, supervisorsOf, 
 import { teamPlural } from './core/diplomacy';
 import { playWhistle } from './audio/whistle';
 import { MeritPopups } from './render/merits';
-import { buyUpgrade, type UpgradeBranch, type UpgradeResult } from './core/upgrades';
+import { buyClassUnlock, buyDefense, buyGlobal, type GlobalBranch, type UpgradeBranch, type UpgradeResult } from './core/upgrades';
 import { setProduce, type ProduceResult, type UnitClass } from './core/classes';
 import { castPower, POWERS, powerCooldown, type PowerId, type PowerResult } from './core/powers';
 import { buyPion, type PionResult } from './core/pion';
@@ -79,7 +79,7 @@ export type PlayerAction =
   | { kind: 'rally' }
   | { kind: 'camera'; how: 'pan' | 'zoom' | 'minimap' }
   | { kind: 'campPanel' }
-  | { kind: 'upgrade'; branch: UpgradeBranch }
+  | { kind: 'upgrade'; branch: UpgradeBranch | 'classes' }
   | { kind: 'power'; id: string }
   | { kind: 'class'; id: string }
   | { kind: 'pion' };
@@ -601,20 +601,38 @@ export class Game {
   /** Le joueur choisit la classe d'élèves que produit l'un de ses camps. */
   setCampProduce(camp: Tile, cls: UnitClass): ProduceResult {
     if (this.over) return 'pas-ton-camp';
-    const r = setProduce(this.playerTeam, camp, cls);
+    const r = setProduce(this.world, this.playerTeam, camp, cls);
     this.sfx.play(r === 'ok' ? 'select' : 'deny');
     if (r === 'ok') this.act({ kind: 'class', id: cls });
     return r;
   }
 
-  /** Le joueur achète le niveau suivant d'une branche pour l'un de ses camps. */
-  upgradeCamp(camp: Tile, branch: UpgradeBranch): UpgradeResult {
-    if (this.over) return 'pas-ton-camp';
-    const r = buyUpgrade(this.world, this.playerTeam, camp, branch);
+  /** Le joueur achète le niveau suivant d'une amélioration globale (toute l'équipe). */
+  buyTeamUpgrade(branch: GlobalBranch): UpgradeResult {
+    return this.purchase(this.over ? 'pas-ton-camp' : buyGlobal(this.world, this.playerTeam, branch), branch);
+  }
+
+  /** Le joueur débloque les classes d'élèves pour toute l'équipe. */
+  buyClasses(): UpgradeResult {
+    return this.purchase(this.over ? 'pas-ton-camp' : buyClassUnlock(this.world, this.playerTeam), 'classes');
+  }
+
+  /** Le joueur achète le niveau suivant de Défense d'un de ses camps. */
+  buyCampDefense(camp: Tile): UpgradeResult {
+    return this.purchase(this.over ? 'pas-ton-camp' : buyDefense(this.world, this.playerTeam, camp), 'def');
+  }
+
+  private purchase(r: UpgradeResult, branch: UpgradeBranch | 'classes'): UpgradeResult {
     this.sfx.play(r === 'ok' ? 'upgrade' : 'deny');
     if (r === 'ok') this.act({ kind: 'upgrade', branch });
     this.hooks.onHud(this.world, this.selected.size);
     return r;
+  }
+
+  /** Centre la caméra (en glissant) sur un camp et le fait clignoter. */
+  focusCamp(camp: Tile): void {
+    this.cam.glideTo(camp.cx, camp.cy);
+    this.flash = { tile: camp, t: 0 };
   }
 
   /** Envoie chaque élève sur sa propre place à l'intérieur de la zone de capture d'une case. */

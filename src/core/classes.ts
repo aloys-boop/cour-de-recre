@@ -1,6 +1,7 @@
 // Classes d'élèves : chaque camp choisit ce qu'il produit (panneau du camp). Les classes
-// spéciales se débloquent au niveau 2 de Production du camp et se paient en bons points
-// à chaque élève produit ; faute de bons points (ou au-delà de la limite), le camp produit
+// spéciales se débloquent pour toute l'équipe (amélioration globale « Classes d'élèves »),
+// donc dans tous ses camps, y compris ceux capturés ensuite ; elles se paient en bons points
+// à chaque élève produit. Faute de bons points (ou au-delà de la limite), le camp produit
 // un élève normal.
 import { TUNING } from '../config';
 import { canAfford, spendMerits } from './merits';
@@ -38,20 +39,17 @@ export const CLASSES: Record<UnitClass, ClassInfo> = {
   infirmier: { label: 'Infirmier', blurb: 'Soigne 4 PV/s autour de lui, frappe à peine', cost: 6, hp: 1, speed: 1, dmg: 0.25, capture: 1, heal: 4, healRadius: 2.2, max: 3 },
 };
 
-/** Niveau de Production du camp qui débloque les classes spéciales. */
-export const CLASS_UNLOCK_LEVEL = 2;
-
-/** Le camp peut-il produire cette classe (débloquée) ? */
-export function classUnlocked(tile: Tile, cls: UnitClass): boolean {
-  return cls === 'eleve' || tile.upgrades.prod >= CLASS_UNLOCK_LEVEL;
+/** L'équipe peut-elle produire cette classe (classes débloquées pour toute l'équipe) ? */
+export function classUnlocked(world: World, team: number, cls: UnitClass): boolean {
+  return cls === 'eleve' || !!world.teamUpgrades[team]?.classes;
 }
 
 export type ProduceResult = 'ok' | 'pas-ton-camp' | 'verrouille';
 
 /** Choisit ce que produit un camp de l'équipe. */
-export function setProduce(team: number, tile: Tile, cls: UnitClass): ProduceResult {
+export function setProduce(world: World, team: number, tile: Tile, cls: UnitClass): ProduceResult {
   if (!tile.isCamp || tile.owner !== team) return 'pas-ton-camp';
-  if (!classUnlocked(tile, cls)) return 'verrouille';
+  if (!classUnlocked(world, team, cls)) return 'verrouille';
   tile.produce = cls;
   return 'ok';
 }
@@ -69,7 +67,7 @@ export function classCount(world: World, team: number, cls: UnitClass): number {
  */
 export function takeSpawnClass(world: World, tile: Tile): UnitClass {
   const cls = tile.produce;
-  if (cls === 'eleve' || !classUnlocked(tile, cls)) return 'eleve';
+  if (cls === 'eleve' || !classUnlocked(world, tile.owner, cls)) return 'eleve';
   const info = CLASSES[cls];
   if (info.max > 0 && classCount(world, tile.owner, cls) >= info.max) return 'eleve';
   if (!canAfford(world, tile.owner, info.cost)) return 'eleve';

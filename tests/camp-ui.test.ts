@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { awardMerit } from '../src/core/merits';
 import type { Tile } from '../src/core/tile';
 import type { MapDef } from '../src/core/types';
-import { buyUpgrade, type UpgradeBranch } from '../src/core/upgrades';
+import { buyClassUnlock, buyDefense, buyGlobal, type GlobalBranch } from '../src/core/upgrades';
 import { World } from '../src/core/world';
 import type { Game } from '../src/game';
 import { CampPanel } from '../src/ui/camp-panel';
@@ -42,8 +42,11 @@ function setup() {
     playerTeam: 0,
     mainCamp: () => world.tiles[0],
     openCamp: (c: Tile) => panel.open(c),
-    upgradeCamp: (c: Tile, b: UpgradeBranch) => buyUpgrade(world, 0, c, b),
-    setCampProduce: (c: Tile, cls: UnitClass) => setProduce(0, c, cls),
+    buyTeamUpgrade: (b: GlobalBranch) => buyGlobal(world, 0, b),
+    buyClasses: () => buyClassUnlock(world, 0),
+    buyCampDefense: (c: Tile) => buyDefense(world, 0, c),
+    focusCamp: () => undefined,
+    setCampProduce: (c: Tile, cls: UnitClass) => setProduce(world, 0, c, cls),
   } as unknown as Game;
   panel = new CampPanel(document.getElementById('hud')!, () => game, (t) => hints.push(t));
   panel.addSection(new ClassSection((t) => hints.push(t)));
@@ -64,24 +67,51 @@ describe('panneau du camp', () => {
     expect(panel.panel.classList.contains('hidden')).toBe(true);
   });
 
-  it('quatre branches, achat, niveau affiché en étoiles, refus faute de bons points', () => {
+  it('deux zones : « Toute l’équipe » (globales, classes) et « Ce camp » (Défense) ; achat, étoiles, refus', () => {
     const { world, panel, hints } = setup();
     panel.open(world.tiles[0]);
-    const rows = panel.panel.querySelectorAll('.camp-row');
-    expect([...rows].map((r) => r.querySelector('.camp-name')!.firstChild!.textContent)).toEqual(['Production', 'Uniformes', 'Entraînement', 'Défense']);
-    const buy = rows[0].querySelector<HTMLButtonElement>('.camp-buy')!;
-    expect(buy.textContent).toMatch(/25 ★/);
+    const team = panel.panel.querySelector('.zone-team')!;
+    const camp = panel.panel.querySelector('.zone-camp')!;
+    const names = (z: Element) => [...z.querySelectorAll('.camp-row')].map((r) => r.querySelector('.camp-name')!.firstChild!.textContent);
+    expect(names(team)).toEqual(['Production', 'Uniformes', 'Entraînement', 'Classes d’élèves']);
+    expect(names(camp)).toEqual(['Défense']);
+    const buy = team.querySelector<HTMLButtonElement>('.camp-row[data-branch="prod"] .camp-buy')!;
+    expect(buy.textContent).toMatch(/40 ★/);
     buy.click();
     expect(hints.pop()).toMatch(/Pas assez de bons points/);
-    awardMerit(world, 0, 100, 0, 0, 'hold');
+    awardMerit(world, 0, 200, 0, 0, 'hold');
     buy.click();
-    expect(world.tiles[0].upgrades.prod).toBe(1);
-    expect(rows[0].querySelector('.camp-level')!.textContent).toBe('★☆☆');
-    expect(buy.textContent).toMatch(/50 ★/);
-    expect(panel.panel.querySelector('.camp-balance')!.textContent).toBe('75 ★');
+    expect(world.teamUpgrades[0].prod).toBe(1);
+    expect(team.querySelector('.camp-row[data-branch="prod"] .camp-level')!.textContent).toBe('★☆☆');
+    expect(buy.textContent).toMatch(/80 ★/);
+    expect(panel.panel.querySelector('.camp-balance')!.textContent).toBe('160 ★');
+    camp.querySelector<HTMLButtonElement>('.camp-buy')!.click();
+    expect(world.tiles[0].defense).toBe(1);
+    team.querySelector<HTMLButtonElement>('.camp-row[data-branch="classes"] .camp-buy')!.click();
+    expect(world.teamUpgrades[0].classes).toBe(true);
+    expect(team.querySelector('.camp-row[data-branch="classes"] .camp-buy')!.textContent).toBe('Débloquées');
   });
 
-  it('se ferme quand le camp est perdu', () => {
+  it('navigation ‹ › entre ses camps sans fermer le panneau, « Camp 2/2 » et nom du camp', () => {
+    const { world, panel } = setup();
+    panel.open(world.tiles[0]);
+    const label = () => panel.panel.querySelector('.camp-label')!.textContent;
+    expect(label()).toBe('Camp 1/1 · Camp de départ');
+    expect(panel.prevBtn.disabled).toBe(true);
+    world.tiles[1].owner = 0;
+    panel.refresh();
+    expect(label()).toBe('Camp 1/2 · Camp de départ');
+    panel.nextBtn.click();
+    expect(panel.openCamp).toBe(world.tiles[1]);
+    expect(label()).toMatch(/^Camp 2\/2 · Camp \w+/);
+    expect(panel.panel.classList.contains('hidden')).toBe(false);
+    panel.nextBtn.click();
+    expect(panel.openCamp).toBe(world.tiles[0]);
+    panel.prevBtn.click();
+    expect(panel.openCamp).toBe(world.tiles[1]);
+  });
+
+  it('se ferme quand le dernier camp est perdu', () => {
     const { world, panel, hints } = setup();
     panel.open(world.tiles[0]);
     world.tiles[0].owner = 1;
@@ -90,17 +120,17 @@ describe('panneau du camp', () => {
     expect(hints.pop()).toMatch(/Camp perdu/);
   });
 
-  it('choix de la classe produite : verrouillée avant Production 2, puis au choix', () => {
+  it('choix de la classe produite : verrouillée tant que l’équipe ne l’a pas débloquée, puis au choix', () => {
     const { world, panel, hints } = setup();
     panel.open(world.tiles[0]);
     const btns = panel.panel.querySelectorAll<HTMLButtonElement>('.class-btn');
     expect([...btns].map((b) => b.querySelector('.class-name')!.textContent)).toEqual(['Élève', 'Costaud', 'Sprinteur', 'Infirmier']);
     expect(btns[1].classList.contains('locked')).toBe(true);
-    expect(panel.panel.querySelector('.class-note')!.textContent).toMatch(/Production niveau 2/);
+    expect(panel.panel.querySelector('.class-note')!.textContent).toMatch(/Débloque les classes/);
     btns[1].click();
-    expect(hints.pop()).toMatch(/débloquer les classes/);
+    expect(hints.pop()).toMatch(/Débloque d’abord les classes/);
     expect(world.tiles[0].produce).toBe('eleve');
-    world.tiles[0].upgrades.prod = 2;
+    world.teamUpgrades[0].classes = true;
     panel.refresh();
     expect(btns[1].classList.contains('locked')).toBe(false);
     btns[1].click();

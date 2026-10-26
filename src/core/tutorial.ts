@@ -3,6 +3,7 @@
 // sont dans ui/tutorial-ui.ts.
 import { awardMerit, meritsOf } from './merits';
 import { POWERS } from './powers';
+import { UPGRADES } from './upgrades';
 import type { Tile } from './tile';
 import { NO_TEAM, type MapDef, type Vec2 } from './types';
 import type { WorldEvent } from './world';
@@ -183,7 +184,7 @@ export class TutorialState {
         w.orderMove([e], { x: c.x + 1.2, y: c.y - 0.8 }, true);
       }
     }
-    if (id === 'upgrade') topUp(w, this.player, 30);
+    if (id === 'upgrade') topUp(w, this.player, UPGRADES.prod.costs[0] + 5);
     if (id === 'power') topUp(w, this.player, POWERS.gouter.cost + 5);
     if (id === 'win') this.aiActive = true;
   }

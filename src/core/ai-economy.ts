@@ -1,6 +1,7 @@
-// Dépenses de bons points des IA : améliorations de camp (puis classes, pouvoirs et pion).
-// Stratégie selon la difficulté : en Facile, achats lents et au hasard ; en Normal, achats
-// raisonnés ; en Difficile, achats rapides qui suivent la situation (camp menacé → Défense).
+// Dépenses de bons points des IA : améliorations globales, Défense et pion des camps menacés,
+// classes d'élèves par camp, pouvoirs. Stratégie selon la difficulté : en Facile, achats lents
+// et au hasard ; en Normal, achats raisonnés ; en Difficile, achats rapides qui suivent la
+// situation (camp menacé → Défense et pion).
 import { CLASSES, classCount, classUnlocked, type UnitClass } from './classes';
 import { meritsOf } from './merits';
 import { buyPion, PION } from './pion';
@@ -8,7 +9,19 @@ import { bestPowerSpot, castPower, POWER_IDS, POWERS, powerCooldown, type PowerI
 import { Rng } from './rng';
 import type { Tile } from './tile';
 import { NO_TEAM, type Difficulty } from './types';
-import { buyUpgrade, MAX_UPGRADE_LEVEL, totalUpgrades, upgradeCost, UPGRADE_BRANCHES, type UpgradeBranch } from './upgrades';
+import {
+  buyClassUnlock,
+  buyDefense,
+  buyGlobal,
+  CLASS_UNLOCK,
+  defenseCost,
+  GLOBAL_BRANCHES,
+  globalCost,
+  MAX_UPGRADE_LEVEL,
+  teamUpgrades,
+  totalTeamUpgrades,
+  type GlobalBranch,
+} from './upgrades';
 import type { World } from './world';
 
 export interface EconomyProfile {
@@ -32,7 +45,7 @@ export interface EconomyProfile {
   /** Achat du pion : solde minimal (au-delà du prix) pour un camp tranquille, et pour un camp menacé. */
   pionSpare: number;
   pionSpareThreat: number;
-  /** L'IA met de côté pour un pion quand un camp sans pion totalise ce nombre de niveaux d'amélioration. */
+  /** L'IA met de côté pour un pion (camp principal) quand elle totalise ce nombre de niveaux globaux. */
   pionAfter: number;
 }
 
@@ -45,8 +58,11 @@ export const ECONOMY_PROFILES: Record<Difficulty, EconomyProfile> = {
 /** Mélange visé des classes (parts de l'armée) ; voir chooseClass. Mutables pour les essais d'équilibrage. */
 export const CLASS_MIX = { costaud: 0.45, sprintBase: 0.05, sprintFree: 0.12, nursePer: 8 };
 
-/** Poids de base de chaque branche dans le choix raisonné. */
-const BRANCH_WEIGHT: Record<UpgradeBranch, number> = { prod: 1.25, hp: 1, dmg: 1.05, def: 0.45 };
+/** Poids de base de chaque achat dans le choix raisonné (divisés ensuite par le coût). Mutables pour les essais. */
+export const BUY_WEIGHT = { prod: 1.25, hp: 1, dmg: 1.05, classes: 0.9, def: 0.45, defThreat: 0.9 };
+
+/** Un achat possible : amélioration globale, déblocage des classes ou Défense d'un camp. */
+export type Purchase = { kind: 'global'; branch: GlobalBranch } | { kind: 'classes' } | { kind: 'def'; camp: Tile };
 
 export class EconomyAi {
   readonly profile: EconomyProfile;
@@ -84,15 +100,15 @@ export class EconomyAi {
     if (this.usePowers()) return;
     if (this.buyPionIfUseful(camps)) return;
     // Épargne pour un pion : un camp bien amélioré mérite d'être gardé ; plus d'achat d'amélioration en attendant.
-    const saving = this.allowPion && camps.some((c) => !c.pionBought && totalUpgrades(c) >= this.profile.pionAfter);
-    const pick = saving ? null : this.profile.smart ? this.bestUpgrade(camps) : this.randomUpgrade(camps);
+    const saving = this.allowPion && camps.some((c) => !c.pionBought) && totalTeamUpgrades(w, this.team) >= this.profile.pionAfter && !camps.some((c) => c.pionBought);
+    const pick = saving ? null : this.profile.smart ? this.bestPurchase(camps) : this.randomPurchase();
     if (pick) {
-      const cost = upgradeCost(pick.camp, pick.branch);
-      if (cost !== null && meritsOf(w, this.team) >= cost * this.profile.margin) buyUpgrade(w, this.team, pick.camp, pick.branch);
+      const cost = purchaseCost(w, this.team, pick);
+      if (cost !== null && meritsOf(w, this.team) >= cost * this.profile.margin) buy(w, this.team, pick);
     }
     for (const camp of camps) {
       const f = this.forceClass;
-      camp.produce = f === null ? this.chooseClass(camp) : f === 'aucune' || !classUnlocked(camp, f) ? 'eleve' : f;
+      camp.produce = f === null ? this.chooseClass(camp) : f === 'aucune' || !classUnlocked(w, this.team, f) ? 'eleve' : f;
     }
   }
 
@@ -134,7 +150,7 @@ export class EconomyAi {
       }
     }
     if (!best) return false;
-    const saved = totalUpgrades(best) >= this.profile.pionAfter;
+    const saved = totalTeamUpgrades(w, this.team) >= this.profile.pionAfter && !camps.some((c) => c.pionBought);
     const spare = bestThreat >= 1 || saved ? this.profile.pionSpareThreat : this.profile.pionSpare;
     if (points < PION.cost + spare) return false;
     return buyPion(w, this.team, best) === 'ok';
@@ -153,7 +169,7 @@ export class EconomyAi {
    */
   chooseClass(camp: Tile): UnitClass {
     const w = this.world;
-    if (!classUnlocked(camp, 'costaud')) return 'eleve';
+    if (!classUnlocked(w, this.team, 'costaud')) return 'eleve';
     const points = meritsOf(w, this.team);
     if (points < this.profile.classReserve) return 'eleve';
     if (this.profile.classes === 'rare') return this.rng.next() < 0.5 ? 'costaud' : 'eleve';
@@ -181,43 +197,51 @@ export class EconomyAi {
     return best;
   }
 
-  private randomUpgrade(camps: Tile[]): { camp: Tile; branch: UpgradeBranch } | null {
-    const camp = camps[Math.floor(this.rng.next() * camps.length)];
-    const options = (['prod', 'hp', 'dmg'] as UpgradeBranch[]).filter((b) => camp.upgrades[b] < Math.min(this.profile.maxLevel, MAX_UPGRADE_LEVEL));
+  /** Facile : une amélioration globale au hasard (niveau 2 au plus), parfois le déblocage des classes. */
+  private randomPurchase(): Purchase | null {
+    const up = teamUpgrades(this.world, this.team);
+    const options: Purchase[] = GLOBAL_BRANCHES.filter((b) => up[b] < Math.min(this.profile.maxLevel, MAX_UPGRADE_LEVEL)).map((branch) => ({ kind: 'global', branch }));
+    if (!up.classes && up.prod + up.hp + up.dmg >= 3) options.push({ kind: 'classes' });
     if (options.length === 0) return null;
-    return { camp, branch: options[Math.floor(this.rng.next() * options.length)] };
+    return options[Math.floor(this.rng.next() * options.length)];
   }
 
-  /** Meilleur achat : poids de la branche, situation du camp, coût du niveau. */
-  private bestUpgrade(camps: Tile[]): { camp: Tile; branch: UpgradeBranch } | null {
+  /**
+   * Meilleur achat : poids, situation, coût. Les améliorations globales passent d'abord ; la Défense
+   * d'un camp ne vaut le coup que s'il est menacé (et alors avant tout le reste).
+   */
+  bestPurchase(camps: Tile[]): Purchase | null {
     const w = this.world;
+    const up = teamUpgrades(w, this.team);
     const capped = w.teamUnitCount(this.team) >= w.map.unitCap * 0.9;
-    let best: { camp: Tile; branch: UpgradeBranch } | null = null;
+    let best: Purchase | null = null;
     let bestScore = 0;
-    for (const camp of camps) {
-      const threat = this.threat(camp);
-      for (const branch of UPGRADE_BRANCHES) {
-        if (camp.upgrades[branch] >= this.profile.maxLevel) continue;
-        const cost = upgradeCost(camp, branch);
-        if (cost === null) continue;
-        let score = BRANCH_WEIGHT[branch];
-        // Au plafond d'élèves, produire plus vite ne sert à rien.
-        if (branch === 'prod' && capped) score *= 0.3;
-        if (branch === 'def') score += threat * 0.9;
-        // Un camp menacé ne mérite pas qu'on y investisse autre chose que sa défense.
-        else if (threat > 1) score *= 0.5;
-        score /= cost / 20;
-        if (score > bestScore) {
-          bestScore = score;
-          best = { camp, branch };
-        }
+    const consider = (p: Purchase, weight: number) => {
+      const cost = purchaseCost(w, this.team, p);
+      if (cost === null) return;
+      const score = weight / (cost / 40);
+      if (score > bestScore) {
+        bestScore = score;
+        best = p;
       }
+    };
+    for (const branch of GLOBAL_BRANCHES) {
+      if (up[branch] >= this.profile.maxLevel) continue;
+      // Au plafond d'élèves, produire plus vite ne sert à rien.
+      consider({ kind: 'global', branch }, BUY_WEIGHT[branch] * (branch === 'prod' && capped ? 0.3 : 1));
+    }
+    if (!up.classes && this.profile.classes === 'mix' && w.teamUnitCount(this.team) >= 10) consider({ kind: 'classes' }, BUY_WEIGHT.classes);
+    for (const camp of camps) {
+      if (camp.defense >= this.profile.maxLevel) continue;
+      // Un camp tranquille ne mérite presque pas de Défense ; un camp menacé, avant tout le reste.
+      const threat = this.threat(camp);
+      consider({ kind: 'def', camp }, threat > 0 ? BUY_WEIGHT.def + threat * BUY_WEIGHT.defThreat : 0.1);
     }
     return best;
   }
 
   /** Menace sur un camp : ennemis proches et jauge de capture adverse. */
-  private threat(camp: Tile): number {
+  threat(camp: Tile): number {
     const w = this.world;
     let n = 0;
     w.hash.query(camp.cx, camp.cy, 4, (u) => {
@@ -226,4 +250,17 @@ export class EconomyAi {
     const capturing = camp.capTeam !== NO_TEAM && !w.isFriend(camp.capTeam, this.team);
     return Math.min(3, n / 4 + (capturing ? 1.5 : 0));
   }
+}
+
+/** Coût d'un achat (null : déjà au maximum ou déjà acheté). */
+export function purchaseCost(w: World, team: number, p: Purchase): number | null {
+  if (p.kind === 'global') return globalCost(w, team, p.branch);
+  if (p.kind === 'classes') return teamUpgrades(w, team).classes ? null : CLASS_UNLOCK.cost;
+  return defenseCost(p.camp);
+}
+
+function buy(w: World, team: number, p: Purchase): void {
+  if (p.kind === 'global') buyGlobal(w, team, p.branch);
+  else if (p.kind === 'classes') buyClassUnlock(w, team);
+  else buyDefense(w, team, p.camp);
 }
