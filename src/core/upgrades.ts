@@ -24,10 +24,10 @@ export interface UpgradeInfo {
 
 /** Réglages des branches (coûts croissants ; valeurs réglées par simulation, voir README). */
 export const UPGRADES: Record<UpgradeBranch, UpgradeInfo> = {
-  prod: { label: 'Production', effect: 'Élèves produits plus vite', perLevel: 0.15, costs: [25, 50, 90], color: '#5fd35a' },
-  hp: { label: 'Uniformes', effect: 'Points de vie des élèves de ce camp', perLevel: 0.1, costs: [25, 50, 90], color: '#4fa3ff' },
-  dmg: { label: 'Entraînement', effect: 'Dégâts des élèves de ce camp', perLevel: 0.1, costs: [25, 50, 90], color: '#ff6a4a' },
-  def: { label: 'Défense', effect: 'Camp plus lent à capturer, soigne plus vite', perLevel: 0.3, costs: [20, 40, 70], color: '#c9c9d4' },
+  prod: { label: 'Production', effect: 'élèves produits plus vite', perLevel: 0.15, costs: [25, 50, 90], color: '#5fd35a' },
+  hp: { label: 'Uniformes', effect: 'PV des élèves du camp', perLevel: 0.1, costs: [25, 50, 90], color: '#4fa3ff' },
+  dmg: { label: 'Entraînement', effect: 'dégâts des élèves du camp', perLevel: 0.1, costs: [25, 50, 90], color: '#ff6a4a' },
+  def: { label: 'Défense', effect: 'prise plus lente, soins', perLevel: 0.3, costs: [20, 40, 70], color: '#c9c9d4' },
 };
 
 /** Niveaux d'améliorations d'un camp (tous à 0 pour un camp neuf ou capturé). */

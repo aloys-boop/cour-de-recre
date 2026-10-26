@@ -1,5 +1,6 @@
 import { TEAM_COLORS } from '../config';
 import type { Anim, Dir } from '../core/types';
+import type { UnitClass } from '../core/classes';
 
 /**
  * Sprites d'élèves dessinés entièrement en code, pixel par pixel, dans un style
@@ -32,6 +33,11 @@ const C = {
   mouth: '#b85f62',
   eye: '#1b1b24',
   star: '#ffe066',
+  band: '#e5302a',
+  bandDark: '#9c1813',
+  white: '#f7f7fb',
+  whiteShade: '#c9c9d6',
+  cross: '#e5302a',
 };
 
 /** side : -1 = regarde vers la gauche de l'écran, +1 = vers la droite ; front : 1 = face, -1 = dos, 0 = profil. */
@@ -138,8 +144,10 @@ export function frameFor(anim: Anim, t: number): number {
  * Dessine un élève dans une case de FRAME_W × FRAME_H dont l'origine est (ox, oy).
  * Les pieds reposent sur y = FEET_Y.
  */
-export function drawStudent(ctx: Ctx, ox: number, oy: number, team: number, dir: Dir, pose: StudentPose): void {
+export function drawStudent(ctx: Ctx, ox: number, oy: number, team: number, dir: Dir, pose: StudentPose, cls: UnitClass = 'eleve'): void {
   const p: Pen = { ctx, ox, oy };
+  // Silhouettes des classes : le costaud est large d'épaules et de jambes, le sprinteur plus fin.
+  const broad = cls === 'costaud' ? 3 : cls === 'sprinteur' ? -1 : 0;
   const col = TEAM_COLORS[team];
   const side = DIR_SIDE[dir];
   const front = DIR_FRONT[dir];
@@ -147,7 +155,7 @@ export function drawStudent(ctx: Ctx, ox: number, oy: number, team: number, dir:
   const profile = front === 0;
 
   if (pose.ko >= 2) {
-    drawSitting(p, team, side, front, pose.ko === 3);
+    drawSitting(p, team, side, front, pose.ko === 3, cls);
     return;
   }
 
@@ -159,15 +167,18 @@ export function drawStudent(ctx: Ctx, ox: number, oy: number, team: number, dir:
   const legTop = 42 + bob;
   const leg = (x: number, lift: number, shoeX: number) => {
     const h = 11 - lift - bob;
-    rectO(p, x, legTop + lift, 6, h, C.trousers);
+    const lw = cls === 'costaud' ? 7 : 6;
+    rectO(p, x, legTop + lift, lw, h, C.trousers);
     rect(p, x, legTop + lift, 2, h, C.trousersLight);
-    rectO(p, shoeX, 52 - lift, 8, 3, C.shoes);
-    rect(p, shoeX, 52 - lift, 8, 1, C.shoesLight);
+    // Sprinteur : baskets blanches à bande rouge.
+    const sprint = cls === 'sprinteur';
+    rectO(p, shoeX, 52 - lift, 8, 3, sprint ? C.white : C.shoes);
+    rect(p, shoeX, 52 - lift, 8, 1, sprint ? C.band : C.shoesLight);
   };
   // Jambe arrière puis jambe avant selon le côté regardé.
   const legs: Array<[number, number, number]> = [
-    [13, liftL, 12 + Math.round(side * liftL * 0.6)],
-    [21, liftR, 20 + Math.round(side * liftR * 0.6)],
+    [13 - Math.max(0, broad), liftL, 12 - Math.max(0, broad) + Math.round(side * liftL * 0.6)],
+    [21 + Math.max(0, broad) - (cls === 'costaud' ? 1 : 0), liftR, 20 + Math.max(0, broad) + Math.round(side * liftR * 0.6)],
   ];
   if (side > 0) legs.reverse();
   for (const [x, lift, shoeX] of legs) leg(x, lift, shoeX);
@@ -175,8 +186,8 @@ export function drawStudent(ctx: Ctx, ox: number, oy: number, team: number, dir:
 
   // ---- Bras arrière.
   const shoulderY = 24 + bob;
-  const backArmX = side > 0 ? 6 : 29;
-  const frontArmX = side > 0 ? 29 : 6;
+  const backArmX = side > 0 ? 6 - broad : 29 + broad;
+  const frontArmX = side > 0 ? 29 + broad : 6 - broad;
   const drawArm = (x: number, dy: number, lit: boolean) => {
     rectO(p, x, shoulderY + dy, 5, 17, col.main);
     rect(p, x, shoulderY + dy, 1, 17, lit ? col.light : col.dark);
@@ -187,8 +198,8 @@ export function drawStudent(ctx: Ctx, ox: number, oy: number, team: number, dir:
 
   // ---- Veste à col montant.
   const bodyY = 23 + bob;
-  const bodyX = profile ? 13 : 11;
-  const bodyW = profile ? 14 : 18;
+  const bodyX = (profile ? 13 : 11) - broad;
+  const bodyW = (profile ? 14 : 18) + 2 * broad;
   blobO(p, bodyX, bodyY, bodyW, 19, col.main, 2);
   rect(p, bodyX + 1, bodyY + 2, 3, 16, col.light); // flanc éclairé (gauche)
   rect(p, bodyX + bodyW - 4, bodyY + 2, 3, 16, col.dark); // flanc dans l'ombre (droite)
@@ -262,9 +273,16 @@ export function drawStudent(ctx: Ctx, ox: number, oy: number, team: number, dir:
     }
   }
 
+  // ---- Coiffes des classes.
+  if (cls === 'sprinteur') drawHeadband(p, headX, headY, side, away);
+  else if (cls === 'infirmier') drawNurseCap(p, headX, headY, away);
+
   // ---- Bras avant / coup de poing.
   if (pose.punch === 0) {
-    drawArm(frontArmX, side > 0 ? pose.armR : pose.armL, side > 0);
+    const dy = side > 0 ? pose.armR : pose.armL;
+    drawArm(frontArmX, dy, side > 0);
+    // Infirmier : trousse de soin blanche à croix rouge, tenue à la main.
+    if (cls === 'infirmier') drawKit(p, frontArmX - 2, shoulderY + dy + 16);
   } else {
     const sx = side === 0 ? 1 : side;
     const shx = side >= 0 ? 30 : 6; // épaule côté avant
@@ -298,8 +316,39 @@ export function drawStudent(ctx: Ctx, ox: number, oy: number, team: number, dir:
   }
 }
 
+/** Bandeau rouge du sprinteur, avec ses deux pans qui flottent derrière la tête. */
+function drawHeadband(p: Pen, headX: number, headY: number, side: number, away: boolean): void {
+  rect(p, headX - 1, headY + 2, 18, 3, C.outline);
+  rect(p, headX, headY + 3, 16, 1, C.band);
+  rect(p, headX, headY + 2, 16, 1, C.band);
+  const tx = away ? headX + 7 : side > 0 ? headX - 4 : side < 0 ? headX + 16 : -99;
+  if (tx > -99) {
+    rect(p, tx, headY + 3, 4, 2, C.band);
+    rect(p, tx + (side > 0 ? -1 : 1), headY + 5, 3, 2, C.bandDark);
+  }
+}
+
+/** Calot blanc à croix rouge de l'infirmier. */
+function drawNurseCap(p: Pen, headX: number, headY: number, away: boolean): void {
+  blobO(p, headX + 2, headY - 4, 12, 5, C.white, 1);
+  rect(p, headX + 3, headY, 10, 1, C.whiteShade);
+  if (!away) {
+    rect(p, headX + 7, headY - 4, 2, 4, C.cross);
+    rect(p, headX + 6, headY - 3, 4, 2, C.cross);
+  }
+}
+
+/** Trousse de soin (11 × 8) : boîte blanche à grande croix rouge, lisible même dézoomée. */
+function drawKit(p: Pen, x: number, y: number): void {
+  rectO(p, x - 1, y, 11, 8, C.white);
+  rect(p, x - 1, y + 7, 11, 1, C.whiteShade);
+  rect(p, x + 3, y - 2, 3, 2, C.outline); // poignée
+  rect(p, x + 3, y + 1, 3, 6, C.cross);
+  rect(p, x + 1, y + 3, 7, 2, C.cross);
+}
+
 /** Élève KO assis par terre, jambes allongées devant lui. */
-function drawSitting(p: Pen, team: number, side: number, front: number, stars: boolean): void {
+function drawSitting(p: Pen, team: number, side: number, front: number, stars: boolean, cls: UnitClass = 'eleve'): void {
   const col = TEAM_COLORS[team];
   const away = front < 0;
   const sx = side === 0 ? (front >= 0 ? 1 : -1) : side;
@@ -350,6 +399,8 @@ function drawSitting(p: Pen, team: number, side: number, front: number, stars: b
     rect(p, hx + 10, hy + 10, 3, 1, C.eye);
     rect(p, hx + 7, hy + 13, 3, 1, C.mouth);
   }
+  if (cls === 'sprinteur') drawHeadband(p, hx, hy, sx, away);
+  else if (cls === 'infirmier') drawNurseCap(p, hx, hy, away);
   if (stars) {
     rect(p, hx - 3, hy - 5, 2, 2, C.star);
     rect(p, hx + 16, hy - 3, 2, 2, C.star);
@@ -361,13 +412,13 @@ function drawSitting(p: Pen, team: number, side: number, front: number, stars: b
 export type SheetCanvas = HTMLCanvasElement | OffscreenCanvas;
 
 /** Construit la planche de sprites d'une équipe (8 lignes × 11 colonnes). */
-export function buildSheet(team: number, makeCanvas: (w: number, h: number) => SheetCanvas): SheetCanvas {
+export function buildSheet(team: number, makeCanvas: (w: number, h: number) => SheetCanvas, cls: UnitClass = 'eleve'): SheetCanvas {
   const sheet = makeCanvas(FRAME_W * FRAMES_PER_DIR, FRAME_H * 8);
   const ctx = sheet.getContext('2d') as Ctx;
   ctx.imageSmoothingEnabled = false;
   for (let d = 0; d < 8; d++) {
     for (let f = 0; f < FRAMES_PER_DIR; f++) {
-      drawStudent(ctx, f * FRAME_W, d * FRAME_H, team, d as Dir, poseFor(f));
+      drawStudent(ctx, f * FRAME_W, d * FRAME_H, team, d as Dir, poseFor(f), cls);
     }
   }
   return sheet;

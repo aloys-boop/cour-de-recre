@@ -1,6 +1,7 @@
 import { TUNING } from '../config';
 import { NO_TEAM, type Suit, type TileDef } from './types';
 import { campDefenseMul, freshUpgrades, type CampUpgrades } from './upgrades';
+import type { UnitClass } from './classes';
 
 export type CaptureEvent = { kind: 'captured'; team: number } | null;
 
@@ -26,6 +27,8 @@ export class Tile {
   private _owner: number;
   /** Améliorations du camp (bons points) : perdues quand le camp change de main. */
   upgrades: CampUpgrades = freshUpgrades();
+  /** Classe d'élèves produite par le camp (élève normal pour un camp neuf ou capturé). */
+  produce: UnitClass = 'eleve';
   /** Équipe qui remplit la jauge, ou NO_TEAM. */
   capTeam: number = NO_TEAM;
   /** Jauge 0..1. */
@@ -56,6 +59,7 @@ export class Tile {
     if (team === this._owner) return;
     this._owner = team;
     this.upgrades = freshUpgrades();
+    this.produce = 'eleve';
   }
 
   /** Défense du camp (amélioration) : la capture par un ennemi est d'autant plus lente. */

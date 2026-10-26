@@ -17,6 +17,7 @@ import { TacticsHud } from './ui/tactics-hud';
 import { codeBlock, medalsBlock } from './ui/share';
 import { KingHud, kingEnd } from './ui/king-hud';
 import { CampPanel } from './ui/camp-panel';
+import { ClassSection } from './ui/class-section';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const minimapCanvas = document.getElementById('minimap') as HTMLCanvasElement;
@@ -76,6 +77,7 @@ const tactics = new TacticsHud(hudRoot, {
 
 // Bons points (pastille) et panneau d'amélioration des camps.
 const campPanel = new CampPanel(hudRoot, () => game, (text, ms) => hud.showHint(text, ms));
+campPanel.addSection(new ClassSection((text, ms) => hud.showHint(text, ms)));
 
 const menu = new Menu(menuRoot, progress, {
   onPlay: (state) => startGame(state),

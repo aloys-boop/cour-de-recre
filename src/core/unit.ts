@@ -1,6 +1,7 @@
 import { TUNING } from '../config';
 import { dirFromVector } from './math';
 import type { Anim, Dir, UnitOrder, Vec2 } from './types';
+import type { UnitClass } from './classes';
 
 export type UnitState = 'idle' | 'moving' | 'attacking' | 'ko';
 
@@ -48,6 +49,8 @@ export class Unit {
   /** Option « Surveillants » : identifiant du surveillant combattu (0 : aucun ; exclusif avec engagedId). */
   supId = 0;
   /** Multiplicateurs propres à l'élève (améliorations de son camp d'origine, classe), en plus de ceux de l'équipe. */
+  /** Classe d'élève (voir classes.ts). */
+  cls: UnitClass = 'eleve';
   hpMul = 1;
   dmgMul = 1;
   speedMul = 1;

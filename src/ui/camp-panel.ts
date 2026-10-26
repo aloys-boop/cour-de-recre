@@ -71,8 +71,7 @@ export class CampPanel {
       const info = UPGRADES[b];
       row.innerHTML =
         `<span class="camp-flag" style="background:${info.color}"></span>` +
-        `<span class="camp-name">${info.label}<small>${info.effect}</small></span>` +
-        '<span class="camp-level"></span>';
+        `<span class="camp-name">${info.label}<small><span class="camp-level"></span> ${info.effect}</small></span>`;
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'btn camp-buy';

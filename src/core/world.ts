@@ -24,6 +24,7 @@ import { NO_TEAM, type MapDef, type Suit, type Vec2 } from './types';
 import { Unit, punchDamage, resetUnitIds } from './unit';
 import { MERITS, MeritState, awardMerit, captureReward, updateMerits, type MeritEvent } from './merits';
 import { campDmgMul, campHpMul, campProdMul } from './upgrades';
+import { CLASSES, aggroRange, applyClass, pacifist, takeSpawnClass, updateHealers, type UnitClass } from './classes';
 
 export type WorldEvent =
   | { kind: 'punch'; x: number; y: number; team: number }
@@ -270,13 +271,14 @@ export class World {
    * Fait apparaître un élève. `from` : camp qui le produit (ses améliorations Uniformes et
    * Entraînement s'appliquent à l'élève pour toute sa vie).
    */
-  spawnUnit(team: number, x: number, y: number, announce = true, from?: Tile): Unit {
+  spawnUnit(team: number, x: number, y: number, announce = true, from?: Tile, cls: UnitClass = 'eleve'): Unit {
     const p = this.grid.clampPos({ x, y }, 0.3);
     const u = new Unit(team, p.x, p.y);
     if (from) {
       u.hpMul = campHpMul(from);
       u.dmgMul = campDmgMul(from);
     }
+    if (cls !== 'eleve') applyClass(u, cls);
     u.maxHp = Math.max(1, Math.round(TUNING.unitHp * this.mods[team].hp * u.hpMul));
     u.hp = u.maxHp;
     this.units.push(u);
@@ -384,6 +386,7 @@ export class World {
     this.flushPathQueue();
     this.rebuildHash();
     for (const u of this.units) this.updateUnit(u, dt);
+    updateHealers(this, dt);
     this.separate();
     updateSupervisors(this, dt);
     this.updateTiles(dt);
@@ -478,10 +481,10 @@ export class World {
 
     // Recherche d'une cible : à portée d'aggro si inoccupé, au contact en attaque-déplacement.
     // Un repli (déplacement sans `engage`) ne cherche jamais le combat.
-    const canEngage = u.order.kind === 'none' || u.order.kind === 'attack' || u.order.engage === true;
+    const canEngage = (u.order.kind === 'none' || u.order.kind === 'attack' || u.order.engage === true) && !pacifist(u);
     if (!engaged && !sup && canEngage && this.time - u.lastScan > 0.2) {
       u.lastScan = this.time + u.phase * 0.2;
-      const radius = u.order.kind === 'none' ? TUNING.aggroRange : TUNING.punchRange * 1.6;
+      const radius = u.order.kind === 'none' ? aggroRange(u) : TUNING.punchRange * 1.6;
       const e = this.nearestEnemy(u, radius);
       if (e) {
         engaged = e;
@@ -619,7 +622,7 @@ export class World {
       const heals = t.owner !== NO_TEAM && (t.isCamp || t.suit === 'heart');
       this.hash.query(t.cx, t.cy, t.half, (u) => {
         if (!u.alive || !t.contains(u.x, u.y)) return;
-        pres[u.team]++;
+        pres[u.team] += CLASSES[u.cls].capture;
         if (heals && u.team === t.owner && u.hp < u.maxHp && !this.rhythm.starving[u.team]) {
           u.hp = Math.min(u.maxHp, u.hp + TUNING.regenPerSec * t.defenseMul * dt);
           u.healedAt = this.time;
@@ -640,7 +643,7 @@ export class World {
           t.spawnTimer = 0;
           if (this.teamUnitCount(t.owner) < this.map.unitCap) {
             const a = this.rng.next() * Math.PI * 2;
-            this.applyRally(t, this.spawnUnit(t.owner, t.cx + Math.cos(a) * 0.5, t.cy + Math.sin(a) * 0.5, true, t));
+            this.applyRally(t, this.spawnUnit(t.owner, t.cx + Math.cos(a) * 0.5, t.cy + Math.sin(a) * 0.5, true, t, takeSpawnClass(this, t)));
           }
         }
       }

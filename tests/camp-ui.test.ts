@@ -9,6 +9,8 @@ import { buyUpgrade, type UpgradeBranch } from '../src/core/upgrades';
 import { World } from '../src/core/world';
 import type { Game } from '../src/game';
 import { CampPanel } from '../src/ui/camp-panel';
+import { ClassSection } from '../src/ui/class-section';
+import { setProduce, type UnitClass } from '../src/core/classes';
 
 beforeEach(() => {
   const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
@@ -41,8 +43,10 @@ function setup() {
     mainCamp: () => world.tiles[0],
     openCamp: (c: Tile) => panel.open(c),
     upgradeCamp: (c: Tile, b: UpgradeBranch) => buyUpgrade(world, 0, c, b),
+    setCampProduce: (c: Tile, cls: UnitClass) => setProduce(0, c, cls),
   } as unknown as Game;
   panel = new CampPanel(document.getElementById('hud')!, () => game, (t) => hints.push(t));
+  panel.addSection(new ClassSection((t) => hints.push(t)));
   return { world, panel, hints };
 }
 
@@ -84,5 +88,24 @@ describe('panneau du camp', () => {
     panel.refresh();
     expect(panel.panel.classList.contains('hidden')).toBe(true);
     expect(hints.pop()).toMatch(/Camp perdu/);
+  });
+
+  it('choix de la classe produite : verrouillée avant Production 2, puis au choix', () => {
+    const { world, panel, hints } = setup();
+    panel.open(world.tiles[0]);
+    const btns = panel.panel.querySelectorAll<HTMLButtonElement>('.class-btn');
+    expect([...btns].map((b) => b.querySelector('.class-name')!.textContent)).toEqual(['Élève', 'Costaud', 'Sprinteur', 'Infirmier']);
+    expect(btns[1].classList.contains('locked')).toBe(true);
+    expect(panel.panel.querySelector('.class-note')!.textContent).toMatch(/Production niveau 2/);
+    btns[1].click();
+    expect(hints.pop()).toMatch(/débloquer les classes/);
+    expect(world.tiles[0].produce).toBe('eleve');
+    world.tiles[0].upgrades.prod = 2;
+    panel.refresh();
+    expect(btns[1].classList.contains('locked')).toBe(false);
+    btns[1].click();
+    expect(world.tiles[0].produce).toBe('costaud');
+    expect(btns[1].classList.contains('active')).toBe(true);
+    expect(btns[3].querySelector('.class-cost')!.textContent).toBe('6 ★ · 0/3');
   });
 });

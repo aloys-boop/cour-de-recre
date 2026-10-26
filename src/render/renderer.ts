@@ -15,6 +15,10 @@ import { CHARGE_COLOR, drawHealHeart, drawRallies, drawSpadeAura, spadeAuraTeams
 import { tileView, unitVisible, pointVisible } from '../core/fog';
 import { drawFog } from './fog';
 import { campPennants, drawPennant } from './merits';
+import type { UnitClass } from '../core/classes';
+
+/** Taille d'affichage des classes : le costaud est plus grand, le sprinteur un peu plus petit. */
+export const CLASS_SCALE: Record<UnitClass, number> = { eleve: 1, costaud: 1.16, sprinteur: 0.94, infirmier: 1 };
 import type { UpgradeBranch } from '../core/upgrades';
 
 export interface Marker {
@@ -50,6 +54,7 @@ export const COLORS = {
 /** Rendu canvas 2D de la partie. */
 export class Renderer {
   readonly sheets: SheetCanvas[] = [];
+  private classSheets = new Map<string, SheetCanvas>();
   /** Équipe dont on montre le point de vue (brouillard de guerre). */
   private viewTeam = 0;
   private supSheet: () => SheetCanvas;
@@ -294,13 +299,13 @@ export class Renderer {
         ctx.ellipse(p.x, p.y, 15 * z, 7.5 * z, 0, 0, Math.PI * 2);
         ctx.stroke();
       }
-      this.drawSprite(u, world.teamColors[u.team], p, z);
+      this.drawSprite(u, world.teamColors[u.team], p, z * CLASS_SCALE[u.cls]);
       // Barre de vie : fine ligne verte au-dessus de la tête.
       if (u.alive) {
         const bw = 22 * z;
         const bh = Math.max(2, 2.5 * z);
         const bx = p.x - bw / 2;
-        const by = p.y - (FEET_Y + 6) * z;
+        const by = p.y - (FEET_Y + 6) * z * CLASS_SCALE[u.cls];
         const ally = u.team !== playerTeam && world.isAllied(u.team, playerTeam);
         // Allié du joueur : cadre bleuté autour de la barre et petit losange à gauche.
         ctx.fillStyle = ally ? 'rgba(40,120,200,0.85)' : 'rgba(0,0,0,0.5)';
@@ -336,8 +341,20 @@ export class Renderer {
     return c;
   }
 
+  /** Planche d'une couleur et d'une classe (les classes spéciales sont dessinées à la première apparition). */
+  private sheetFor(color: number, cls: UnitClass): SheetCanvas {
+    if (cls === 'eleve') return this.sheets[color];
+    const key = `${color}:${cls}`;
+    let s = this.classSheets.get(key);
+    if (!s) {
+      s = buildSheet(color, this.makeCanvas, cls);
+      this.classSheets.set(key, s);
+    }
+    return s;
+  }
+
   private drawSprite(u: Unit, color: number, p: Vec2, z: number): void {
-    const sheet = this.sheets[color];
+    const sheet = this.sheetFor(color, u.cls);
     const frame = frameFor(u.anim, u.animTime);
     const sx = frame * FRAME_W;
     const sy = u.dir * FRAME_H;

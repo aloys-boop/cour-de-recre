@@ -65,6 +65,21 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
   Les niveaux se voient sur le camp : un fanion par branche améliorée (vert, bleu, rouge, gris), planté sur son bord avant, avec une étoile dorée par niveau. **Un camp capturé perd toutes ses améliorations.**
 - **Les IA aussi.** Elles gagnent des bons points comme toi et les dépensent selon la difficulté : en Facile, lentement, au hasard et jamais au-delà du niveau 2 ; en Normal, un achat raisonné toutes les 4 s (Production d'abord, puis Entraînement et Uniformes, Défense si le camp est menacé) ; en Difficile, toutes les 2 s, avec la même logique.
 
+## Classes d'élèves
+
+Dans le panneau d'un camp, la rubrique « Ce camp produit » choisit la classe de ses prochains élèves. Les classes spéciales se débloquent au **niveau 2 de Production** de ce camp et se paient à chaque élève produit ; faute de bons points (ou au-delà de la limite), le camp produit un élève normal. Un camp capturé repasse aux élèves normaux.
+
+| Classe | Coût | Caractéristiques | Silhouette |
+| --- | --- | --- | --- |
+| Élève | gratuit | — | uniforme habituel |
+| Costaud | 5 ★ | PV ×2, vitesse ×0,75 | carrure large, plus grand (×1,16) |
+| Sprinteur | 4 ★ | vitesse ×1,4, capture ×2, PV ×0,7 | bandeau rouge, baskets blanches, plus fin |
+| Infirmier | 6 ★ | soigne 4 PV/s les élèves amis à moins de 2,2 cases, dégâts ×0,25, ne se bat que sur ordre d'attaque ; 3 au plus par équipe | calot blanc et trousse de soin à croix rouge |
+
+Le sprinteur compte pour 4 élèves dans la jauge de capture : seul sur une case, il la prend deux fois plus vite (la vitesse de capture suit la racine du nombre d'élèves, plafonnée à 2). Les infirmiers soignent aussi les alliés.
+
+Les IA mélangent les classes dès que leur camp est débloqué et qu'il leur reste une réserve de bons points (15 en Normal, 10 en Difficile) : elles visent environ 45 % de costauds (plus quand le camp est menacé), des sprinteurs tant qu'il reste des cases libres, et un infirmier par tranche de 8 élèves (3 au plus) ; à chaque réflexion, chaque camp produit la classe la plus en retard sur sa part visée. En Facile, l'IA ne produit qu'un costaud de temps en temps, quand elle est riche.
+
 ## Alliances
 
 - **Proposer.** Touche la puce d'une équipe, en haut de l'écran : le panneau « Diplomatie » permet de lui proposer une alliance ou de rompre la vôtre. L'IA répond tout de suite (« Les Jaunes acceptent l'alliance. » ou « Les Jaunes refusent. »).
@@ -103,6 +118,7 @@ Les profils ont été réglés par simulation IA contre IA (`npx tsx scripts/dev
 Réglés par simulation IA contre IA (`npx tsx scripts/dev/bons-points.ts normal revenus` et `… normal eco`, cartes à 4 équipes, difficulté Normal) :
 
 - une équipe gagne environ 120 bons points par minute de jeu (42 % par les captures, 30 % par les KO, 28 % par les cases tenues) : un premier niveau s'achète au bout de 15 à 30 s, un camp entièrement amélioré (440 bons points) demande plusieurs minutes ;
+- classes (`PROD2=1 npx tsx scripts/dev/bons-points.ts normal classes`, camps débloqués d'emblée, 160 parties) : les équipes qui mélangent les classes gagnent 55 % des parties contre celles qui ne produisent que des élèves ; ne produire que des costauds : 60 %, que des sprinteurs : 50 %, jusqu'à 3 infirmiers : 54 % (avec un rayon de soin de 2,2 cases ; 50 % à 1,6). Les classes rapportent un avantage net mais modeste : leurs bons points ne vont pas dans les améliorations ;
 - les équipes qui dépensent leurs bons points gagnent 75 % des parties contre celles qui les gardent (79 % avec des coûts de 20 / 40 / 70 partout, 71 % à 30 / 60 / 100) : les améliorations comptent nettement, sans tout décider.
 
 ### Performances à 240 élèves
@@ -197,9 +213,10 @@ src/
     save.ts            progression (localStorage)
     merits.ts          bons points : gains, solde, dépenses
     upgrades.ts        améliorations de camp (4 branches × 3 niveaux)
-    ai-economy.ts      dépenses de bons points des IA selon la difficulté
+    ai-economy.ts      dépenses de bons points des IA selon la difficulté (améliorations, classes)
+    classes.ts         classes d'élèves : Costaud, Sprinteur, Infirmier
   render/              rendu canvas 2D
-    sprites.ts         élèves dessinés pixel par pixel : 8 directions, marche, coup, KO
+    sprites.ts         élèves dessinés pixel par pixel : 8 directions, marche, coup, KO, silhouettes des classes
     suits.ts           symboles de cartes en vectoriel
     renderer.ts        sol iso, cases, obstacles, unités triées par profondeur, marqueurs
     minimap.ts         mini-carte
@@ -210,6 +227,7 @@ src/
   audio/sfx.ts         sons synthétisés (Web Audio)
   ui/                  menu, HUD, fenêtres (pause, fin, installation)
     camp-panel.ts      pastille des bons points et panneau d'amélioration d'un camp
+    class-section.ts   rubrique « Ce camp produit » (classes d'élèves)
 public/
   manifest.webmanifest, sw.js, icons/
 tests/                 capture, combat, victoire, alliances, pathfinding, test d'intégration jsdom

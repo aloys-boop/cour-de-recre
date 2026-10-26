@@ -24,3 +24,38 @@ ctx.setTransform(2, 0, 0, 2, 0, 0);
 r.draw(world, cam, { selected: new Set(), markers: [], box: null, playerTeam: 0, time: 1 });
 const g = new MeritPopups(); g.add(home.cx + 2, home.cy - 1, 10); g.update(0.3); g.draw(ctx, cam);
 writeFileSync(`${OUT}/camp.png`, cv.toBuffer('image/png'));
+
+// Classes d'élèves : idle, marche, coup, KO, pour quatre directions, grossi ×3.
+{
+  const { buildSheet, FRAME_W, FRAME_H } = await import('../../src/render/sprites');
+  const classes = ['eleve', 'costaud', 'sprinteur', 'infirmier'] as const;
+  const frames = [0, 2, 6, 10];
+  const dirs = [1, 3, 5, 7];
+  for (const color of [0, 2, 5]) {
+    const big = createCanvas(classes.length * frames.length * FRAME_W * 2, dirs.length * FRAME_H * 2);
+    const c = big.getContext('2d');
+    c.imageSmoothingEnabled = false;
+    c.fillStyle = '#d2d2d4';
+    c.fillRect(0, 0, big.width, big.height);
+    classes.forEach((cls, ci) => {
+      const sheet = buildSheet(color, make, cls) as unknown as ReturnType<typeof createCanvas>;
+      frames.forEach((f, fi) =>
+        dirs.forEach((d, di) => c.drawImage(sheet, f * FRAME_W, d * FRAME_H, FRAME_W, FRAME_H, (ci * frames.length + fi) * FRAME_W * 2, di * FRAME_H * 2, FRAME_W * 2, FRAME_H * 2)),
+      );
+    });
+    writeFileSync(`${OUT}/classes-${color}.png`, big.toBuffer('image/png'));
+  }
+  // Scène : un groupe mélangé, vue de jeu habituelle.
+  const w2 = new World(map, 4, 9, [2, 0, 1, 3]);
+  const camp = w2.camps[0];
+  const mix = ['eleve', 'costaud', 'sprinteur', 'infirmier', 'eleve', 'costaud', 'sprinteur', 'eleve'] as const;
+  mix.forEach((cls, i) => w2.spawnUnit(0, camp.cx + 2 + (i % 4) * 0.7, camp.cy - 1 + Math.floor(i / 4) * 0.8, false, undefined, cls));
+  w2.update(1 / 60);
+  const cv2 = createCanvas(1170, 540);
+  const ctx2 = cv2.getContext('2d') as unknown as CanvasRenderingContext2D;
+  const r2 = new Renderer(ctx2, make);
+  const cam2 = new Camera(); cam2.setMap(map.w, map.h); cam2.setView(585, 270); cam2.fit(); cam2.zoom *= 1.4; cam2.centerOnGrid(camp.cx + 3, camp.cy - 1);
+  ctx2.setTransform(2, 0, 0, 2, 0, 0);
+  r2.draw(w2, cam2, { selected: new Set(), markers: [], box: null, playerTeam: 0, time: 1 });
+  writeFileSync(`${OUT}/classes-scene.png`, cv2.toBuffer('image/png'));
+}

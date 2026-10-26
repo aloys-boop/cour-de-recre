@@ -27,6 +27,7 @@ import { teamPlural } from './core/diplomacy';
 import { playWhistle } from './audio/whistle';
 import { MeritPopups } from './render/merits';
 import { buyUpgrade, type UpgradeBranch, type UpgradeResult } from './core/upgrades';
+import { setProduce, type ProduceResult, type UnitClass } from './core/classes';
 
 export type GameResult = 'victoire' | 'defaite';
 
@@ -466,6 +467,15 @@ export class Game {
   /** Camp principal du joueur (le premier qu'il tient), pour le bouton des bons points. */
   mainCamp(): Tile | null {
     return (this.homeCamp && this.homeCamp.owner === this.playerTeam ? this.homeCamp : null) ?? this.world.tiles.find((t) => t.isCamp && t.owner === this.playerTeam) ?? null;
+  }
+
+  /** Le joueur choisit la classe d'élèves que produit l'un de ses camps. */
+  setCampProduce(camp: Tile, cls: UnitClass): ProduceResult {
+    if (this.over) return 'pas-ton-camp';
+    const r = setProduce(this.playerTeam, camp, cls);
+    this.sfx.play(r === 'ok' ? 'select' : 'deny');
+    if (r === 'ok') this.hooks.onAction?.({ kind: 'class', id: cls });
+    return r;
   }
 
   /** Le joueur achète le niveau suivant d'une branche pour l'un de ses camps. */
