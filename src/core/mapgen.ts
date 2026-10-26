@@ -16,20 +16,23 @@ export interface LevelDef {
 }
 
 export const LEVELS: LevelDef[] = [
-  { id: 'preau', name: 'Le préau', w: 12, h: 12, teams: 2, tiles: 14, obstacles: 2, unitCap: 20, spawnInterval: 6, startUnits: 6 },
-  { id: 'cour', name: 'La grande cour', w: 14, h: 14, teams: 3, tiles: 16, obstacles: 3, unitCap: 24, spawnInterval: 5.5, startUnits: 6 },
-  { id: 'gymnase', name: 'Le gymnase', w: 16, h: 16, teams: 4, tiles: 18, obstacles: 4, unitCap: 28, spawnInterval: 5, startUnits: 6 },
+  { id: 'preau', name: 'Le préau', w: 12, h: 12, teams: 2, tiles: 14, obstacles: 2, unitCap: 30, spawnInterval: 6, startUnits: 6 },
+  { id: 'cour', name: 'La grande cour', w: 14, h: 14, teams: 3, tiles: 16, obstacles: 3, unitCap: 30, spawnInterval: 5.5, startUnits: 6 },
+  { id: 'gymnase', name: 'Le gymnase', w: 16, h: 16, teams: 4, tiles: 18, obstacles: 4, unitCap: 30, spawnInterval: 5, startUnits: 6 },
   { id: 'stade', name: 'Le stade', w: 18, h: 18, teams: 4, tiles: 20, obstacles: 5, unitCap: 30, spawnInterval: 5, startUnits: 7 },
   { id: 'campus', name: 'Le campus', w: 20, h: 20, teams: 4, tiles: 22, obstacles: 6, unitCap: 30, spawnInterval: 4.5, startUnits: 8 },
-  { id: 'tournoi', name: 'Le tournoi', w: 26, h: 26, teams: 8, tiles: 28, obstacles: 8, unitCap: 18, spawnInterval: 4.8, startUnits: 6 },
+  { id: 'tournoi', name: 'Le tournoi', w: 26, h: 26, teams: 8, tiles: 28, obstacles: 8, unitCap: 30, spawnInterval: 4.8, startUnits: 6 },
 ];
 
-/** Plafond total d'élèves visé sur le terrain (performances sur téléphone). */
-export const TOTAL_UNIT_BUDGET = 150;
+/** Plafond d'élèves par équipe, le même sur toutes les cartes et quel que soit le nombre d'équipes. */
+export const UNIT_CAP = 30;
 
-/** Plafond par équipe, réduit quand il y a beaucoup d'équipes (≤ TOTAL_UNIT_BUDGET au total). */
-export function unitCapFor(cap: number, teams: number): number {
-  return Math.min(cap, Math.floor(TOTAL_UNIT_BUDGET / Math.max(1, teams)));
+/** Plafond total d'élèves sur le terrain : 8 équipes au plafond (240). */
+export const TOTAL_UNIT_BUDGET = UNIT_CAP * 8;
+
+/** Plafond par équipe : UNIT_CAP, sans réduction selon le nombre d'équipes. */
+export function unitCapFor(cap: number, _teams: number): number {
+  return Math.min(cap, UNIT_CAP);
 }
 
 /**

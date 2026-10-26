@@ -64,11 +64,18 @@ export class TeamAi {
     for (const u of mine) if (u.order.kind === 'none' && u.aiTag !== TAG_RALLY) u.aiTag = TAG_FREE;
 
     const owned = w.tiles.filter((t) => t.owner === this.team);
-    const enemies = w.units.filter((u) => u.alive && !w.isFriend(u.team, this.team) && unitVisible(w, this.team, u));
+    // Ennemis visibles autour d'un point : requête dans le hash spatial du monde (pas de parcours de tous les élèves).
+    const enemiesNear = (x: number, y: number, r: number): number => {
+      let n = 0;
+      w.hash.query(x, y, r, (e) => {
+        if (e.alive && !w.isFriend(e.team, this.team) && Math.hypot(e.x - x, e.y - y) < r && unitVisible(w, this.team, e)) n++;
+      });
+      return n;
+    };
 
     // --- Défense des cases menacées ---------------------------------------
     for (const t of owned) {
-      const threat = enemies.filter((e) => Math.hypot(e.x - t.cx, e.y - t.cy) < 2.6).length;
+      const threat = enemiesNear(t.cx, t.cy, 2.6);
       const capturing = t.capTeam !== NO_TEAM && !w.isFriend(t.capTeam, this.team);
       if (threat === 0 && !capturing) continue;
       const defendersNear = mine.filter((u) => Math.hypot(u.x - t.cx, u.y - t.cy) < 2.2).length;
@@ -140,7 +147,7 @@ export class TeamAi {
         if (t.owner === this.team || (t.owner !== NO_TEAM && w.isFriend(t.owner, this.team))) continue;
         // Un allié est déjà en train de la prendre : on la lui laisse.
         if (t.capTeam !== NO_TEAM && t.cap > 0 && w.isAllied(t.capTeam, this.team)) continue;
-        const enemyNear = enemies.filter((e) => Math.hypot(e.x - t.cx, e.y - t.cy) < 2.5).length;
+        const enemyNear = enemiesNear(t.cx, t.cy, 2.5);
         let score = t.owner === NO_TEAM ? 1.0 : this.profile.aggression;
         if (t.isCamp) score = this.profile.aggression * 1.3; // prendre un camp coupe la production adverse
         else if (t.suit === 'heart' || t.suit === 'club') score += 0.15;
@@ -168,7 +175,7 @@ export class TeamAi {
 
     if (this.fightSupervisor(strikers, target)) return;
 
-    const enemyAtTarget = enemies.filter((e) => Math.hypot(e.x - target.cx, e.y - target.cy) < 2.5).length;
+    const enemyAtTarget = enemiesNear(target.cx, target.cy, 2.5);
     const needed = Math.max(this.profile.groupMin, Math.ceil(enemyAtTarget * 1.3) + 1);
 
     // Les élèves déjà en route vers la cible comptent dans le groupe.

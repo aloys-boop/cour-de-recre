@@ -33,6 +33,9 @@ export type WorldEvent =
   | KingEvent
   | SupervisorEvent;
 
+/** Nombre maximal de recherches de chemin (A*) par pas de simulation ; les suivantes attendent le pas d'après. */
+export const PATHS_PER_STEP = 40;
+
 export interface TeamStats {
   units: number;
   tiles: number;
@@ -78,6 +81,9 @@ export class World {
   private presence: number[][] = [];
   private friendFn = (a: number, b: number): boolean => this.isFriend(a, b);
   private byId = new Map<number, Unit>();
+  /** Recherches de chemin étalées sur plusieurs pas (voir computePath). */
+  private pathQueue: Unit[] = [];
+  private pathsThisStep = 0;
 
   constructor(map: MapDef, numTeams = map.teams, seed = 1, teamColors?: number[]) {
     resetUnitIds();
@@ -314,10 +320,45 @@ export class World {
     }
   }
 
+  /**
+   * Chemin vers `goal`. Les recherches sont étalées sur plusieurs pas : au-delà de
+   * PATHS_PER_STEP chemins dans le même pas, l'élève part en ligne droite vers sa
+   * destination et son vrai chemin est calculé dans un pas suivant (file d'attente).
+   */
   private computePath(u: Unit, goal: Vec2): void {
+    u.pathGoal = { x: goal.x, y: goal.y };
+    if (this.pathsThisStep >= PATHS_PER_STEP) {
+      u.path = [{ x: goal.x, y: goal.y }];
+      if (!u.pathPending) {
+        u.pathPending = true;
+        this.pathQueue.push(u);
+      }
+      return;
+    }
+    this.pathsThisStep++;
+    u.pathPending = false;
     const raw = findPath(this.grid, u.pos, goal);
     u.path = smoothPath(this.grid, u.pos, raw);
-    u.pathGoal = { x: goal.x, y: goal.y };
+  }
+
+  /** Calcule les chemins en attente, dans la limite du budget du pas. */
+  private flushPathQueue(): void {
+    let i = 0;
+    while (i < this.pathQueue.length && this.pathsThisStep < PATHS_PER_STEP) {
+      const u = this.pathQueue[i++];
+      if (!u.pathPending || !u.alive || !u.pathGoal) {
+        u.pathPending = false;
+        continue;
+      }
+      u.pathPending = false;
+      this.computePath(u, u.pathGoal);
+    }
+    this.pathQueue.splice(0, i);
+  }
+
+  /** Nombre de chemins en attente de calcul (tests, outils de performance). */
+  get pendingPaths(): number {
+    return this.pathQueue.length;
   }
 
   // ---------------------------------------------------------------- mise à jour
@@ -325,6 +366,8 @@ export class World {
   update(dt: number): void {
     if (dt <= 0) return;
     this.time += dt;
+    this.pathsThisStep = 0;
+    this.flushPathQueue();
     this.rebuildHash();
     for (const u of this.units) this.updateUnit(u, dt);
     this.separate();
@@ -333,6 +376,8 @@ export class World {
     if (updateRhythm(this, dt)) this.refreshMods();
     updateKing(this, dt);
     this.removeDead();
+    // Les ordres donnés entre deux pas (joueur, IA) disposent à nouveau de tout le budget.
+    this.pathsThisStep = 0;
   }
 
   private rebuildHash(): void {
@@ -451,7 +496,7 @@ export class World {
         return;
       }
       const g = u.pathGoal;
-      if (!g || dist2(g.x, g.y, foe.x, foe.y) > 0.6 || u.path.length === 0) {
+      if (!g || dist2(g.x, g.y, foe.x, foe.y) > 0.6 || (u.path.length === 0 && !u.pathPending)) {
         this.computePath(u, { x: foe.x, y: foe.y });
       }
       u.state = 'moving';
@@ -460,7 +505,7 @@ export class World {
     }
 
     if (u.order.kind === 'move' || u.order.kind === 'attack') {
-      if (u.path.length === 0) {
+      if (u.path.length === 0 && !u.pathPending) {
         u.clearOrder();
         u.state = 'idle';
         u.setAnim('idle');

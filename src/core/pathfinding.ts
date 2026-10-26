@@ -4,7 +4,9 @@ import type { Vec2 } from './types';
 /**
  * A* sur grille, 8 voisins, sans couper les coins d'obstacles.
  * Retourne la liste des centres de cellules (hors cellule de départ), ou [] si inaccessible.
- * Les cartes font au plus ~400 cellules : un tableau plat suffit largement.
+ * File de priorité en tas binaire et tableaux de travail réutilisés d'un appel à l'autre
+ * (marqués par génération) : à 240 élèves, des dizaines de chemins peuvent être demandés
+ * dans le même pas de simulation.
  */
 export function findPath(grid: Grid, from: Vec2, to: Vec2): Vec2[] {
   const sx = Math.floor(from.x);
@@ -19,31 +21,58 @@ export function findPath(grid: Grid, from: Vec2, to: Vec2): Vec2[] {
   }
 
   const w = grid.w;
-  const h = grid.h;
-  const n = w * h;
-  const gScore = new Float32Array(n).fill(Infinity);
-  const fScore = new Float32Array(n).fill(Infinity);
-  const parent = new Int32Array(n).fill(-1);
-  const closed = new Uint8Array(n);
-  const open: number[] = [];
+  const n = w * grid.h;
+  const sc = scratch(n);
+  const gen = ++sc.gen;
+  const { gScore, parent, seen, closed, heap, heapF } = sc;
+  let size = 0;
+
+  const push = (node: number, f: number): void => {
+    let i = size++;
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (heapF[p] <= f) break;
+      heap[i] = heap[p];
+      heapF[i] = heapF[p];
+      i = p;
+    }
+    heap[i] = node;
+    heapF[i] = f;
+  };
+  const pop = (): number => {
+    const top = heap[0];
+    const lastN = heap[--size];
+    const lastF = heapF[size];
+    let i = 0;
+    for (;;) {
+      let c = 2 * i + 1;
+      if (c >= size) break;
+      if (c + 1 < size && heapF[c + 1] < heapF[c]) c++;
+      if (heapF[c] >= lastF) break;
+      heap[i] = heap[c];
+      heapF[i] = heapF[c];
+      i = c;
+    }
+    heap[i] = lastN;
+    heapF[i] = lastF;
+    return top;
+  };
 
   const start = sy * w + sx;
   const target = gy * w + gx;
+  seen[start] = gen;
   gScore[start] = 0;
-  fScore[start] = heuristic(sx, sy, gx, gy);
-  open.push(start);
+  parent[start] = -1;
+  push(start, heuristic(sx, sy, gx, gy));
 
-  while (open.length > 0) {
-    // Sélection du meilleur nœud (liste petite : parcours linéaire suffisant).
-    let bi = 0;
-    for (let i = 1; i < open.length; i++) if (fScore[open[i]] < fScore[open[bi]]) bi = i;
-    const cur = open[bi];
-    open[bi] = open[open.length - 1];
-    open.pop();
+  while (size > 0) {
+    const cur = pop();
+    if (closed[cur] === gen) continue; // entrée périmée (déjà améliorée)
     if (cur === target) return reconstruct(parent, cur, w);
-    closed[cur] = 1;
+    closed[cur] = gen;
     const cx = cur % w;
     const cy = (cur - cx) / w;
+    const gc = gScore[cur];
     for (let dy = -1; dy <= 1; dy++) {
       for (let dx = -1; dx <= 1; dx++) {
         if (dx === 0 && dy === 0) continue;
@@ -53,19 +82,46 @@ export function findPath(grid: Grid, from: Vec2, to: Vec2): Vec2[] {
         // Diagonale : interdite si l'un des deux côtés est bloqué.
         if (dx !== 0 && dy !== 0 && (grid.isBlocked(cx + dx, cy) || grid.isBlocked(cx, cy + dy))) continue;
         const ni = ny * w + nx;
-        if (closed[ni]) continue;
-        const cost = dx !== 0 && dy !== 0 ? 1.41421 : 1;
-        const tentative = gScore[cur] + cost;
-        if (tentative < gScore[ni]) {
+        if (closed[ni] === gen) continue;
+        const tentative = gc + (dx !== 0 && dy !== 0 ? 1.41421 : 1);
+        if (seen[ni] !== gen || tentative < gScore[ni]) {
+          seen[ni] = gen;
           parent[ni] = cur;
           gScore[ni] = tentative;
-          fScore[ni] = tentative + heuristic(nx, ny, gx, gy);
-          if (!open.includes(ni)) open.push(ni);
+          push(ni, tentative + heuristic(nx, ny, gx, gy));
         }
       }
     }
   }
   return [];
+}
+
+interface Scratch {
+  gen: number;
+  gScore: Float32Array;
+  parent: Int32Array;
+  seen: Uint32Array;
+  closed: Uint32Array;
+  heap: Int32Array;
+  heapF: Float32Array;
+}
+
+let shared: Scratch | null = null;
+
+/** Tableaux de travail de l'A*, agrandis au besoin (une cellule peut entrer plusieurs fois dans le tas). */
+function scratch(n: number): Scratch {
+  if (!shared || shared.gScore.length < n) {
+    shared = {
+      gen: 0,
+      gScore: new Float32Array(n),
+      parent: new Int32Array(n),
+      seen: new Uint32Array(n),
+      closed: new Uint32Array(n),
+      heap: new Int32Array(n * 8 + 8),
+      heapF: new Float32Array(n * 8 + 8),
+    };
+  }
+  return shared;
 }
 
 function heuristic(x: number, y: number, gx: number, gy: number): number {

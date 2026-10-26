@@ -312,7 +312,8 @@ describe('8 équipes', () => {
     expect(LEVELS[5]).toMatchObject({ id: 'tournoi', name: 'Le tournoi', teams: 8 });
     const map = generateMap(LEVELS[5], 7);
     expect(map.tiles.filter((t) => t.kind === 'camp')).toHaveLength(8);
-    expect(map.unitCap * 8).toBeLessThanOrEqual(150);
+    expect(map.unitCap).toBe(30);
+    expect(map.unitCap * 8).toBeLessThanOrEqual(TOTAL_UNIT_BUDGET);
   });
 
   it('code de carte : aller-retour de 2 à 8 équipes, toujours 6 caractères', () => {

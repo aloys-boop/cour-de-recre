@@ -276,11 +276,9 @@ export class Renderer {
       const fade = u.state === 'ko' ? Math.min(1, u.koTimer / 0.5) : 1;
       ctx.globalAlpha = fade;
       if (aura[u.team] && u.alive) drawSpadeAura(ctx, p, z);
-      // Ombre portée, décalée vers le bas-droite comme dans les rendus 3D d'époque.
-      ctx.fillStyle = 'rgba(20,20,30,0.42)';
-      ctx.beginPath();
-      ctx.ellipse(p.x + 4 * z, p.y + 1 * z, 13 * z, 6 * z, 0, 0, Math.PI * 2);
-      ctx.fill();
+      // Ombre portée, décalée vers le bas-droite comme dans les rendus 3D d'époque (image en cache).
+      const sh = this.shadow(z);
+      ctx.drawImage(sh as CanvasImageSource, Math.round(p.x + 4 * z - sh.width / 2), Math.round(p.y + 1 * z - sh.height / 2));
       if (selected.has(u.id)) {
         ctx.strokeStyle = u.team === playerTeam ? '#ffffff' : '#ff6a4a';
         ctx.lineWidth = Math.max(1.5, 2 * z);
@@ -309,6 +307,25 @@ export class Renderer {
       ctx.globalAlpha = 1;
     }
     for (const s of shownSups) drawSupervisorBar(ctx, s, cam);
+  }
+
+  private shadowCanvas: SheetCanvas | null = null;
+  private shadowZoom = -1;
+
+  /** Ombre d'un élève pré-dessinée au zoom courant : une copie d'image coûte bien moins qu'une ellipse remplie. */
+  private shadow(z: number): SheetCanvas {
+    if (this.shadowCanvas && Math.abs(this.shadowZoom - z) < 1e-3) return this.shadowCanvas;
+    const w = Math.max(2, Math.ceil(26 * z) + 2);
+    const h = Math.max(2, Math.ceil(12 * z) + 2);
+    const c = this.makeCanvas(w, h);
+    const g = c.getContext('2d') as CanvasRenderingContext2D;
+    g.fillStyle = 'rgba(20,20,30,0.42)';
+    g.beginPath();
+    g.ellipse(w / 2, h / 2, 13 * z, 6 * z, 0, 0, Math.PI * 2);
+    g.fill();
+    this.shadowCanvas = c;
+    this.shadowZoom = z;
+    return c;
   }
 
   private drawSprite(u: Unit, color: number, p: Vec2, z: number): void {

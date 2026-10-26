@@ -39,6 +39,8 @@ export class Unit {
   lastScan = 0;
   /** Dernière destination du chemin calculé (pour re-calculer si la cible bouge). */
   pathGoal: Vec2 | null = null;
+  /** Chemin réel en attente de calcul (file de World) : en attendant, l'élève va tout droit. */
+  pathPending = false;
   /** Champ libre pour l'IA (rôle courant). */
   aiTag = 0;
   /** Instant (temps du monde) du dernier soin reçu sur un camp ou un cœur, -1 sinon. */
@@ -81,6 +83,7 @@ export class Unit {
     this.order = { kind: 'none', target: { x: this.x, y: this.y } };
     this.path = [];
     this.pathGoal = null;
+    this.pathPending = false;
   }
 
   /** Inflige des dégâts ; retourne vrai si l'élève vient d'être mis KO. */

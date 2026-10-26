@@ -18,8 +18,8 @@ export interface CourSize {
 }
 
 export const COUR_SIZES: readonly CourSize[] = [
-  { id: 'petite', label: 'Petite', w: 13, obstacles: 2, unitCap: 20, spawnInterval: 6, startUnits: 6 },
-  { id: 'moyenne', label: 'Moyenne', w: 16, obstacles: 4, unitCap: 26, spawnInterval: 5.2, startUnits: 6 },
+  { id: 'petite', label: 'Petite', w: 13, obstacles: 2, unitCap: 30, spawnInterval: 6, startUnits: 6 },
+  { id: 'moyenne', label: 'Moyenne', w: 16, obstacles: 4, unitCap: 30, spawnInterval: 5.2, startUnits: 6 },
   { id: 'grande', label: 'Grande', w: 20, obstacles: 6, unitCap: 30, spawnInterval: 4.8, startUnits: 7 },
   { id: 'immense', label: 'Immense', w: 26, obstacles: 10, unitCap: 30, spawnInterval: 4.5, startUnits: 8 },
 ];
@@ -69,7 +69,7 @@ export function clampSkirmish(s: Partial<SkirmishSettings>): SkirmishSettings {
  * l'immense, pour que le générateur place toujours le nombre de cases demandé.
  * Au-delà de 4 équipes, la cour grandit de deux cellules par équipe supplémentaire
  * (camps aux milieux des bords), avec un côté pair pour que les camps restent symétriques.
- * Le plafond d'élèves par équipe baisse pour garder ≤ 150 élèves au total.
+ * Le plafond d'élèves est de 30 par équipe, quel que soit le nombre d'équipes.
  */
 export function skirmishLevel(input: SkirmishSettings): LevelDef {
   const s = clampSkirmish(input);

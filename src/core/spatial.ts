@@ -9,6 +9,8 @@ export interface HasPos {
 
 export class SpatialHash<T extends HasPos> {
   private cells = new Map<number, T[]>();
+  /** Cellules remplies depuis le dernier `clear` (leurs tableaux sont vidés et réutilisés, sans allocation). */
+  private used: T[][] = [];
   constructor(private cell = 1) {}
 
   private key(x: number, y: number): number {
@@ -18,7 +20,8 @@ export class SpatialHash<T extends HasPos> {
   }
 
   clear(): void {
-    this.cells.clear();
+    for (const arr of this.used) arr.length = 0;
+    this.used.length = 0;
   }
 
   insert(item: T): void {
@@ -28,6 +31,7 @@ export class SpatialHash<T extends HasPos> {
       arr = [];
       this.cells.set(k, arr);
     }
+    if (arr.length === 0) this.used.push(arr);
     arr.push(item);
   }
 
@@ -41,7 +45,7 @@ export class SpatialHash<T extends HasPos> {
     for (let cy = y0; cy <= y1; cy++) {
       for (let cx = x0; cx <= x1; cx++) {
         const arr = this.cells.get((cx + 32768) * 65536 + (cy + 32768));
-        if (!arr) continue;
+        if (!arr || arr.length === 0) continue;
         for (let i = 0; i < arr.length; i++) cb(arr[i]);
       }
     }

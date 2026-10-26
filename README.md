@@ -6,7 +6,7 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
 
 ## Règles du jeu
 
-- **Les camps.** Chaque équipe part d'un camp (grande zone colorée dans un coin de la cour ; à partir de 5 équipes, aussi au milieu des bords). Le camp produit régulièrement un nouvel élève, dans la limite d'un plafond par équipe (20 à 30 selon la carte, abaissé à partir de 6 équipes pour ne jamais dépasser 150 élèves en tout : 18 par équipe à 8).
+- **Les camps.** Chaque équipe part d'un camp (grande zone colorée dans un coin de la cour ; à partir de 5 équipes, aussi au milieu des bords). Le camp produit régulièrement un nouvel élève, dans la limite de **30 élèves par équipe**, sur toutes les cartes et quel que soit le nombre d'équipes (jusqu'à 240 élèves à 8 équipes).
 - **Les cases bonus.** Entre les camps, des cases blanches marquées d'un symbole de carte. Chaque case possédée renforce toute l'équipe :
   - ♥ cœur : plus de points de vie (+30 % par case) ;
   - ♠ pique : plus de dégâts (+30 %) ;
@@ -74,7 +74,20 @@ Les profils ont été réglés par simulation IA contre IA (`npx tsx scripts/dev
 
 À 8 équipes, chaque couleur ne gagne que 8 parties en moyenne sur 64 : les écarts y sont surtout du bruit. Avec la diplomatie des IA (mode `8d`), les parties sont encore plus imprévisibles.
 
-À 8 équipes (`npx tsx scripts/dev/perf8.ts`), un pas de simulation (IA, monde et diplomatie) prend environ 0,1 ms en moyenne sur un ordinateur de bureau, cour pleine comprise (148 élèves), avec de rares pointes vers 6 ms quand plusieurs IA recalculent leurs chemins en même temps.
+### Performances à 240 élèves
+
+`npx tsx scripts/dev/perf240.ts` mesure le pas de simulation (1/60 s) à 8 équipes × 30 élèves, dans trois situations : une partie IA Difficile + diplomatie maintenue près du plafond, une mêlée générale de 240 élèves au centre, et des rafales d'ordres (les 240 élèves changent de destination toutes les 0,5 s). Le budget d'une image à 60 i/s est de 16,7 ms ; on vise un pas sous 4 ms sur iPhone, soit environ 2 ms sur un ordinateur de bureau (Safari mobile est 2 à 3 fois plus lent que Node).
+
+| Sur ordinateur de bureau | Moyenne | 99e centile | Pire pas |
+| --- | --- | --- | --- |
+| Avant (partie / rafales d'ordres) | 0,24 / 0,30 ms | 1,3 / 2,5 ms | 7,3 / 11,2 ms |
+| Après (partie / rafales d'ordres) | 0,19 / 0,21 ms | 0,9 / 0,8 ms | ≈ 2,5 ms (hors à-coups de la machine) |
+
+Les pointes dépassaient le budget d'une image sur iPhone ; elles venaient des rafales de recherches de chemin et du ramasse-miettes. Optimisations retenues, sans toucher au plafond :
+
+- **Recherche de chemin étalée** : au plus 40 calculs d'A* par pas ; au-delà, l'élève part tout droit vers sa destination et son vrai chemin est calculé dans les pas suivants (240 ordres sont résolus en 6 pas, 0,1 s). L'A* utilise un tas binaire et des tableaux de travail réutilisés.
+- **Partitionnement spatial** : le hash spatial réutilise ses cellules d'un pas à l'autre (plus d'allocation), et l'IA compte les ennemis autour des cases par requêtes dans ce hash au lieu de parcourir tous les élèves.
+- **Rendu** : les planches de sprites sont pré-dessinées une fois par couleur, et l'ombre des élèves est une image en cache (une copie d'image au lieu d'une ellipse par élève). Une image à 240 élèves se dessine en 2 à 4 ms dans le canvas logiciel de test.
 
 ## Contrôles tactiles
 
@@ -166,6 +179,7 @@ tests/                 capture, combat, victoire, alliances, pathfinding, test d
 scripts/dev/           outils de développement (lancés avec `npx tsx`)
   balance.ts           équilibrage IA contre IA (modes 4, 4mix, 8, 8d)
   perf8.ts             temps de simulation à 8 équipes
+  perf240.ts           pas de simulation et rendu au plafond (8 × 30 élèves)
   roi.ts               parties IA contre IA en mode Roi de la cour (durée, type de victoire)
   render-check.ts      rendu hors navigateur (planches de sprites, scène de jeu)
   white-check.ts       comparaison Blanc / Rose pour la 8e couleur
