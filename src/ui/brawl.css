@@ -1,0 +1,56 @@
+/* ------------------------------------------------------------ Bagarres hors écran */
+
+/*
+ * Mini-barres en haut de l'écran, sous la rangée des puces et des boutons, placées
+ * horizontalement du côté de la bagarre ; la flèche pointe vers elle.
+ */
+.brawl-alerts {
+  position: absolute;
+  left: var(--sal);
+  right: var(--sar);
+  top: calc(56px + var(--sat));
+  height: 0;
+  pointer-events: none;
+}
+
+#hud .brawl-alert,
+.brawl-alert {
+  pointer-events: auto;
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  min-width: 44px;
+  height: 44px;
+  padding: 0 8px;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 90, 74, 0.85);
+  background: rgba(12, 20, 46, 0.85);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  animation: brawl-alert-in 0.25s ease-out;
+}
+
+@keyframes brawl-alert-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.ba-arrow {
+  display: block;
+  transition: transform 0.2s;
+}
+
+.ba-bar {
+  display: flex;
+  width: 46px;
+  height: 7px;
+  border: 2px solid rgba(15, 15, 25, 0.9);
+  background: rgba(15, 15, 25, 0.9);
+}
+
+.ba-bar i {
+  display: block;
+  height: 100%;
+}

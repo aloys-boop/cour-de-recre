@@ -51,7 +51,34 @@ export class Camera {
     return this.worldToScreen(w.x, w.y);
   }
 
+  /** Glissement en cours vers un point (centre de la vue), ou null. */
+  private glide: { fx: number; fy: number; tx: number; ty: number; t: number; dur: number } | null = null;
+
+  /** La caméra glisse en douceur jusqu'à centrer ce point de la grille. */
+  glideTo(gx: number, gy: number, dur = 0.4): void {
+    const p = gridToScreen(gx, gy);
+    this.glide = { fx: this.x, fy: this.y, tx: p.x, ty: p.y, t: 0, dur };
+  }
+
+  get gliding(): boolean {
+    return this.glide !== null;
+  }
+
+  /** Avance le glissement (appelé à chaque image). */
+  update(dt: number): void {
+    const g = this.glide;
+    if (!g) return;
+    g.t += dt;
+    const k = Math.min(1, g.t / g.dur);
+    const e = k * k * (3 - 2 * k);
+    this.x = g.fx + (g.tx - g.fx) * e;
+    this.y = g.fy + (g.ty - g.fy) * e;
+    this.clampToMap();
+    if (k >= 1) this.glide = null;
+  }
+
   pan(dxScreen: number, dyScreen: number): void {
+    this.glide = null;
     this.x -= dxScreen / this.zoom;
     this.y -= dyScreen / this.zoom;
     this.clampToMap();

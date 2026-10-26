@@ -88,3 +88,24 @@ writeFileSync(`${OUT}/camp.png`, cv.toBuffer('image/png'));
   fx.draw(ctx3, cam3);
   writeFileSync(`${OUT}/powers.png`, cv3.toBuffer('image/png'));
 }
+
+// Barre de bagarre : deux mêlées (dont une à trois équipes), tendance visible.
+{
+  const { BrawlBars } = await import('../../src/render/brawls');
+  const w4 = new World(map, 4, 13, [2, 0, 1, 3]);
+  const cx = map.w / 2;
+  const cy = map.h / 2;
+  for (let i = 0; i < 6; i++) w4.spawnUnit(0, cx - 0.4 + (i % 3) * 0.35, cy - 0.5 + Math.floor(i / 3) * 0.5, false);
+  for (let i = 0; i < 4; i++) w4.spawnUnit(1, cx + 0.5 + (i % 2) * 0.35, cy - 0.3 + Math.floor(i / 2) * 0.5, false);
+  for (let i = 0; i < 3; i++) w4.spawnUnit(2, cx + 3 + i * 0.3, cy + 2.5, false);
+  for (let i = 0; i < 3; i++) w4.spawnUnit(3, cx + 3.4 + i * 0.3, cy + 3, false);
+  for (let i = 0; i < 150; i++) w4.update(1 / 60);
+  const cv4 = createCanvas(1170, 540);
+  const ctx4 = cv4.getContext('2d') as unknown as CanvasRenderingContext2D;
+  const r4 = new Renderer(ctx4, make);
+  const cam4 = new Camera(); cam4.setMap(map.w, map.h); cam4.setView(585, 270); cam4.fit(); cam4.zoom *= 1.6; cam4.centerOnGrid(cx + 1.5, cy + 1);
+  ctx4.setTransform(2, 0, 0, 2, 0, 0);
+  r4.draw(w4, cam4, { selected: new Set(), markers: [], box: null, playerTeam: 0, time: 1 });
+  new BrawlBars().draw(ctx4, w4, cam4, 0, 1, 1);
+  writeFileSync(`${OUT}/brawls.png`, cv4.toBuffer('image/png'));
+}

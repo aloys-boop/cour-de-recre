@@ -33,6 +33,7 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
 
   La huitième couleur est le rose plutôt que le blanc : une case bonus prise par une équipe blanche resterait blanche sur blanc (symbole invisible), et son camp se confondrait avec le sol gris clair.
 
+- **Barre de bagarre.** Le jeu repère les bagarres (élèves d'équipes ennemies au contact, regroupés de proche en proche, recalculé 4 fois par seconde). Au-dessus de chacune, une petite barre partagée en segments aux couleurs des équipes impliquées, proportionnels à leur force dans la bagarre : somme des PV restants × dégâts (profil, cases ♠, améliorations, classe, bonus de surveillant compris). Un petit chevron blanc, au-dessus du segment de l'équipe qui gagne du terrain (sa part a monté d'au moins 3 points sur les 3 dernières secondes), montre la tendance. La barre se place au-dessus des têtes et disparaît en fondu à la fin de la bagarre ; elle n'est pas affichée pour une bagarre cachée par le brouillard. Une bagarre de ton équipe hors de l'écran apparaît en haut de l'écran sous forme de mini-barre avec une flèche dans sa direction (3 au plus) : touche-la pour que la caméra glisse jusqu'à elle.
 - **Combat.** Les élèves se battent à coups de poing au corps à corps. Un élève inoccupé engage de lui-même les ennemis qui s'approchent. À zéro point de vie, il s'assoit, KO, puis disparaît.
 - **Repli.** Un ordre de déplacement est un rappel : les élèves cessent le combat et courent sans riposter jusqu'à destination (ils peuvent se faire frapper en fuyant). Arrivés, ils se défendent à nouveau. Pour attaquer, touche un ennemi. Le bouton **Fuir / Charger** (en haut à droite) change ce comportement : en mode Charger, les élèves se battent contre tout ce qu'ils croisent en chemin (marqueur orange).
 - **Point de ralliement.** Sans sélection, un appui long sur le sol (sans glisser) plante un drapeau : les nouveaux élèves du camp le plus proche s'y rendent dès leur naissance. Un appui long sur un de tes camps efface son drapeau.
@@ -168,6 +169,7 @@ Les pointes dépassaient le budget d'une image sur iPhone ; elles venaient des r
 | Glisser à un doigt | Déplacer la caméra |
 | Pincer / glisser à deux doigts | Zoom et caméra |
 | Tap sur la mini-carte | Centrer la vue à cet endroit |
+| Tap sur une mini-barre de bagarre (en haut) | La caméra glisse jusqu'à cette bagarre |
 | Double-tap sur un élève | Sélectionne tous tes élèves visibles à l'écran |
 | Glisser depuis un élève sélectionné | Flèche d'ordre : déplacement au relâchement, attaque si on relâche sur un ennemi |
 | Boutons « 1 », « 2 », « 3 » | Appui long : mémoriser la sélection ; tap : la rappeler ; second tap rapide : centrer la vue dessus |
@@ -217,6 +219,8 @@ Le dépôt contient un workflow GitHub Actions (`.github/workflows/deploy.yml`) 
 | `v3.3` | classes d'élèves |
 | `v3.4` | pouvoirs de récré et pion |
 | `v3.5` | tutoriel et « Comment jouer » |
+| `v3-avant-camps` | état avant la version 4 (point de retour) |
+| `v4.1` | barre de bagarre |
 
 ## Architecture
 
@@ -248,6 +252,7 @@ src/
     ai-economy.ts      dépenses de bons points des IA selon la difficulté (améliorations, classes)
     classes.ts         classes d'élèves : Costaud, Sprinteur, Infirmier
     powers.ts          pouvoirs de récré : Sonnerie, Boules de neige, Goûter
+    brawls.ts          bagarres : détection, force de chaque équipe, tendance
     pion.ts            pion : surveillant d'équipe qui garde un camp
     tutorial.ts        tutoriel : carte, étapes, validation par les actions du joueur
   render/              rendu canvas 2D
@@ -259,6 +264,7 @@ src/
     camera.ts          zoom, déplacement, cadrage
     merits.ts          étoile, gains flottants, fanions d'amélioration des camps
     powers.ts          aperçu de la zone visée, effets des pouvoirs, élèves figés
+    brawls.ts          barres de bagarre (segments, tendance, fondu)
   input/touch.ts       gestes tactiles et souris
   audio/sfx.ts         sons synthétisés (Web Audio)
   ui/                  menu, HUD, fenêtres (pause, fin, installation, accueil, « Comment jouer »)
@@ -267,6 +273,7 @@ src/
     pion-section.ts    rubrique « Pion » du panneau du camp
     powers-hud.ts      boutons des pouvoirs de récré
     tutorial-ui.ts     bulle, main animée et bouton « Passer » du tutoriel
+    brawl-hud.ts       mini-barres des bagarres hors écran
 public/
   manifest.webmanifest, sw.js, icons/
 tests/                 capture, combat, victoire, alliances, pathfinding, bons points, classes, pouvoirs, pion, tutoriel, tests d'intégration jsdom

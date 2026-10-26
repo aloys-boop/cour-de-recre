@@ -32,6 +32,7 @@ import { castPower, POWERS, powerCooldown, type PowerId, type PowerResult } from
 import { buyPion, type PionResult } from './core/pion';
 import { meritsOf } from './core/merits';
 import { drawPowerAim, PowerEffects } from './render/powers';
+import { BrawlBars } from './render/brawls';
 import type { Vec2 } from './core/types';
 import { TutorialState, type TutorialEvent } from './core/tutorial';
 
@@ -106,6 +107,9 @@ export class Game {
   readonly tutorial: TutorialState | null = null;
   /** Effets des pouvoirs lancés. */
   private powerFx = new PowerEffects();
+  /** Barres de bagarre. */
+  private brawlBars = new BrawlBars();
+  private frameDt = 0;
   /** Pouvoir armé par le joueur (visée en cours) et point visé (aperçu de la zone). */
   armedPower: PowerId | null = null;
   powerAim: Vec2 | null = null;
@@ -267,6 +271,8 @@ export class Game {
     this.last = now;
     if (dt > 0.1) dt = 0.1;
     if (dt < 0) dt = 0;
+    this.frameDt = dt;
+    this.cam.update(dt);
     if (!this.paused && !this.over) {
       this.acc += dt;
       let steps = 0;
@@ -394,6 +400,7 @@ export class Game {
     if (this.flash) drawTileFlash(ctx, this.cam, this.flash);
     if (this.armedPower && this.powerAim) drawPowerAim(ctx, this.cam, this.world, this.armedPower, this.powerAim, this.playerTeam, this.time, false);
     this.powerFx.draw(ctx, this.cam);
+    this.brawlBars.draw(ctx, this.world, this.cam, this.playerTeam, this.time, this.frameDt);
     if (this.arrow) drawArrow(ctx, this.arrow);
     this.fx.draw(ctx, this.cam);
     this.gains.draw(ctx, this.cam);

@@ -21,6 +21,7 @@ import { ClassSection } from './ui/class-section';
 import { PionSection } from './ui/pion-section';
 import { PowersHud } from './ui/powers-hud';
 import { TutorialUi } from './ui/tutorial-ui';
+import { BrawlHud } from './ui/brawl-hud';
 import { TUTORIAL_MAP } from './core/tutorial';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -85,6 +86,7 @@ campPanel.addSection(new ClassSection((text, ms) => hud.showHint(text, ms)));
 campPanel.addSection(new PionSection((text, ms) => hud.showHint(text, ms)));
 const powersHud = new PowersHud(hudRoot, () => game, (text, ms) => hud.showHint(text, ms));
 const tutorialUi = new TutorialUi(hudRoot, () => skipTutorial());
+const brawlHud = new BrawlHud(hudRoot, () => game);
 
 const menu = new Menu(menuRoot, progress, {
   onPlay: (state) => startGame(state),
@@ -147,7 +149,7 @@ function launch(opts: GameOptions, code: MapCode | null): void {
   game = new Game(canvas, minimapCanvas, sfx, opts, {
     onHud: (world, selected) => (hud.update(world, selected, 0), kingHud.update(world, 0), campPanel.refresh(), powersHud.refresh()),
     onCampTap: (camp) => campPanel.open(camp),
-    onFrame: () => tutorialUi.refresh(),
+    onFrame: () => (tutorialUi.refresh(), brawlHud.refresh()),
     onTutorial: (ev) => {
       if (ev.kind === 'step') {
         sfx.play('upgrade');

@@ -26,6 +26,7 @@ import { MERITS, MeritState, awardMerit, captureReward, updateMerits, type Merit
 import { campDmgMul, campHpMul, campProdMul } from './upgrades';
 import { PION, updatePions } from './pion';
 import { PowerState, type PowerEvent } from './powers';
+import { BrawlState, updateBrawls } from './brawls';
 import { CLASSES, aggroRange, applyClass, pacifist, takeSpawnClass, updateHealers, type UnitClass } from './classes';
 
 export type WorldEvent =
@@ -91,6 +92,8 @@ export class World {
   readonly merits: MeritState;
   /** Recharges des pouvoirs de récré (voir powers.ts). */
   readonly powers: PowerState;
+  /** Bagarres en cours, recalculées quelques fois par seconde (voir brawls.ts). */
+  readonly brawls = new BrawlState();
   private presence: number[][] = [];
   private friendFn = (a: number, b: number): boolean => this.isFriend(a, b);
   private byId = new Map<number, Unit>();
@@ -402,6 +405,7 @@ export class World {
     if (updateRhythm(this, dt)) this.refreshMods();
     updateKing(this, dt);
     updateMerits(this, dt);
+    updateBrawls(this);
     this.removeDead();
     // Les ordres donnés entre deux pas (joueur, IA) disposent à nouveau de tout le budget.
     this.pathsThisStep = 0;

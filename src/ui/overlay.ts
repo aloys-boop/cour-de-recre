@@ -194,7 +194,7 @@ function listFr(items: string[]): string {
 export const HOW_TO: ReadonlyArray<[string, string]> = [
   ['Le but', 'Prends les cases et les camps des autres équipes. Tu gagnes quand tu es le dernier à avoir des élèves ou un camp, ou quand tu tiens tous les camps.'],
   ['Sélectionner', 'Touche un élève : lui et ses voisins sont choisis. Appui long puis glisse : rectangle de sélection. Double-tap : tous tes élèves à l’écran.'],
-  ['Déplacer et attaquer', 'Touche le sol : tes élèves y courent sans se battre (mode Fuir). Touche un ennemi pour l’attaquer. Le bouton Fuir / Charger change le mode.'],
+  ['Déplacer et attaquer', 'Touche le sol : tes élèves y courent sans se battre (mode Fuir). Touche un ennemi pour l’attaquer. La barre au-dessus d’une bagarre montre qui est le plus fort ; en haut, touche une mini-barre pour aller voir une bagarre hors de l’écran.'],
   ['Cases et camps', 'Reste sur une case blanche pour la capturer : ♥ vie, ♠ dégâts, ♣ production, ♦ vitesse. Ton camp produit des élèves, 30 au plus.'],
   ['Bons points ★', '+2 par ennemi mis KO, +10 par case prise, +25 par camp pris, +1 toutes les 10 s par case tenue.'],
   ['Améliorer un camp', 'Sans sélection, touche ton camp (ou la pastille ★) : Production, Uniformes, Entraînement, Défense. Un camp perdu perd ses améliorations.'],
