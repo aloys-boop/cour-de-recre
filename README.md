@@ -6,7 +6,7 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
 
 ## Tutoriel et « Comment jouer »
 
-- **Tutoriel.** Proposé automatiquement au premier lancement (« Faire le tutoriel » ou « Plus tard »), puis rejouable à tout moment : il est en tête de l'onglet « Campagne » du menu. Petite cour de 11 × 11 contre les Verts, IA passive (ses élèves restent chez eux et ne sont pas produits) jusqu'à la dernière étape, où elle se réveille en Facile avec des coups adoucis. Onze étapes guidées par une bulle de texte et une main animée qui montre où toucher ; chacune n'avance que sur l'action réelle du joueur : sélectionner un élève, sélection rectangle, déplacer, capturer une case, attaquer (deux Verts approchent), poser un point de ralliement, bouger la caméra (glisser, pincer ou mini-carte), gagner des bons points en prenant une case, améliorer le camp, utiliser un pouvoir (le Goûter), gagner la partie en prenant le camp vert. Le directeur complète au besoin les bons points pour essayer l'amélioration et le pouvoir. Le bouton « Passer » reste toujours visible et ramène au menu. Le tutoriel ne fait pas partie de la liste des niveaux : les codes de carte et la progression de la campagne sont inchangés.
+- **Tutoriel.** Proposé automatiquement au premier lancement (« Faire le tutoriel » ou « Plus tard »), puis rejouable à tout moment : il est en tête de l'onglet « Campagne » du menu. Petite cour de 11 × 11 contre les Verts, IA passive (ses élèves restent chez eux et ne sont pas produits) jusqu'à la dernière étape, où elle se réveille en Facile avec des coups adoucis. Douze étapes guidées par une bulle de texte et une main animée qui montre où toucher ; chacune n'avance que sur l'action réelle du joueur : sélectionner un élève, sélection rectangle, déplacer, capturer une case, attaquer (deux Verts approchent), poser un point de ralliement, bouger la caméra (glisser, pincer ou mini-carte), gagner des bons points en prenant une case, améliorer l'équipe, lire l'aide d'un pouvoir (appui long sur le Goûter), le lancer par glisser-déposer (ou l'ancien mode), gagner la partie en prenant le camp vert. Le directeur complète au besoin les bons points pour essayer l'amélioration et le pouvoir. Le bouton « Passer » reste toujours visible et ramène au menu. Le tutoriel ne fait pas partie de la liste des niveaux : les codes de carte et la progression de la campagne sont inchangés.
 - **Comment jouer.** Les règles en onze rubriques courtes (but, sélection, déplacement et attaque, cases et camps, bons points, améliorations, classes, pouvoirs, pion, caméra, alliances), depuis le bouton « Comment jouer » du menu et du menu pause.
 
 ## Règles du jeu
@@ -98,7 +98,12 @@ Les IA mélangent les classes dès que leur camp est débloqué et qu'il leur re
 
 ## Pouvoirs de récré et pion
 
-- **Pouvoirs.** Trois boutons ronds en bas au centre, payés en bons points, chacun avec sa recharge (affichée sur le bouton). Touche un bouton : la zone s'affiche au centre de l'écran (pointillés, élèves concernés entourés en rouge ou en vert) ; touche la carte pour déplacer la visée, puis touche **dans** la zone pour lancer. Retoucher le bouton annule.
+- **Pouvoirs.** Trois boutons ronds en bas au centre, payés en bons points, chacun avec sa recharge. Bouton grisé avec un compte à rebours pendant la recharge, ou avec les bons points qui manquent (« −12 »). Trois gestes, bien distincts :
+  - **appui long sans bouger** (0,38 s) : bulle d'aide au-dessus du bouton, sans lancer le pouvoir (nom, effet chiffré avec les valeurs réelles, rayon, durée, coût, recharge restante ou bons points manquants) ; elle reste tant que le doigt est posé, disparaît au relâchement et ne sort jamais de l'écran ;
+  - **glisser-déposer** (dès que le doigt bouge de plus de 12 px) : la zone d'effet suit le doigt sur la carte (rouge si la cible n'est pas valide : hors de la cour ou sur le HUD) ; relâcher sur la carte lance le pouvoir à cet endroit, relâcher sur le bouton ou sur le HUD annule. Près du bord de l'écran (48 px), la caméra défile doucement (jusqu'à 420 px/s). Si le pouvoir se recharge ou si les bons points manquent, le glisser affiche la raison au lieu de lancer ;
+  - **tap** (l'ancien mode) : la zone s'affiche au centre de l'écran ; touche la carte pour déplacer la visée, puis touche **dans** la zone pour lancer. Retoucher le bouton annule.
+
+  Au lancement : éclat sur le bouton, onde au point d'impact, son propre à chaque pouvoir.
 
   | Pouvoir | Coût | Recharge | Rayon | Effet |
   | --- | --- | --- | --- | --- |
@@ -186,7 +191,7 @@ Les pointes dépassaient le budget d'une image sur iPhone ; elles venaient des r
 | Boutons « 1 », « 2 », « 3 » | Appui long : mémoriser la sélection ; tap : la rappeler ; second tap rapide : centrer la vue dessus |
 | Bouton « Camp » | Repli de la sélection (sans combat) sur ton camp le plus proche, pour se soigner |
 | Tap sur un de tes camps (sans sélection) ou sur la pastille « ★ » | Panneau d'amélioration du camp |
-| Boutons ronds en bas (cloche, boule de neige, gâteau) | Armer un pouvoir ; tap sur la carte pour viser, tap dans la zone pour lancer |
+| Boutons ronds en bas (cloche, boule de neige, gâteau) | Appui long : aide ; glisser jusqu'à la carte : lancer ; tap : armer, puis viser et toucher la zone |
 | Tap sur la puce d'une équipe (en haut) | Panneau « Diplomatie » : proposer ou rompre une alliance |
 | Boutons | « Tout sélectionner », « Annuler », « Fuir / Charger », pause, son |
 
@@ -235,6 +240,7 @@ Le dépôt contient un workflow GitHub Actions (`.github/workflows/deploy.yml`) 
 | `v4.2` | améliorations globales / par camp, panneau à deux zones avec navigation |
 | `v4.3` | pion et type d'élève par camp, pastilles sur la carte |
 | `v4.4` | point de ralliement par camp |
+| `v4.5` | aide et glisser-déposer des pouvoirs |
 
 ## Architecture
 

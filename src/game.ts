@@ -81,10 +81,14 @@ export type PlayerAction =
   | { kind: 'campPanel' }
   | { kind: 'upgrade'; branch: UpgradeBranch | 'classes' }
   | { kind: 'power'; id: string }
+  | { kind: 'powerHelp'; id: string }
   | { kind: 'class'; id: string }
   | { kind: 'pion' };
 
 const STEP = 1 / 60;
+/** Glisser d'un pouvoir : bande (px) près des bords où la caméra défile, et vitesse maximale (px/s). */
+const EDGE_MARGIN = 48;
+const EDGE_SPEED = 420;
 
 /** Une partie : simulation + rendu + entrées, pilotée par la boucle requestAnimationFrame. */
 export class Game {
@@ -273,6 +277,7 @@ export class Game {
     if (dt < 0) dt = 0;
     this.frameDt = dt;
     this.cam.update(dt);
+    if (!this.paused && !this.over) this.edgeScroll(dt);
     if (!this.paused && !this.over) {
       this.acc += dt;
       let steps = 0;
@@ -400,6 +405,8 @@ export class Game {
     });
     if (this.flash) drawTileFlash(ctx, this.cam, this.flash);
     if (this.armedPower && this.powerAim) drawPowerAim(ctx, this.cam, this.world, this.armedPower, this.powerAim, this.playerTeam, this.time, false);
+    const drag = this.powerDragTarget();
+    if (this.powerDrag && drag) drawPowerAim(ctx, this.cam, this.world, this.powerDrag.id, drag.at, this.playerTeam, this.time, true, drag.valid);
     this.powerFx.draw(ctx, this.cam);
     this.brawlBars.draw(ctx, this.world, this.cam, this.playerTeam, this.time, this.frameDt);
     if (this.arrow) drawArrow(ctx, this.arrow);
@@ -584,13 +591,82 @@ export class Game {
     this.sfx.play('order');
   }
 
+  /**
+   * Glisser-déposer d'un pouvoir depuis son bouton : la zone suit le doigt (sx, sy en pixels de la
+   * vue) ; `overHud` : le doigt est sur un bouton ou un panneau (relâcher annule). Pendant le
+   * glisser, la caméra défile doucement quand le doigt approche du bord de l'écran.
+   */
+  powerDrag: { id: PowerId; sx: number; sy: number; overHud: boolean } | null = null;
+
+  /** Début du glisser : faux (et la raison) si le pouvoir n'est pas disponible. */
+  beginPowerDrag(id: PowerId): 'ok' | 'recharge' | 'pas-assez' {
+    if (this.paused || this.over) return 'recharge';
+    if (powerCooldown(this.world, this.playerTeam, id) > 0) return 'recharge';
+    if (meritsOf(this.world, this.playerTeam) < POWERS[id].cost) return 'pas-assez';
+    this.armedPower = null;
+    this.powerAim = null;
+    this.placingRally = null;
+    this.powerDrag = { id, sx: -1, sy: -1, overHud: true };
+    return 'ok';
+  }
+
+  dragPowerTo(sx: number, sy: number, overHud: boolean): void {
+    if (!this.powerDrag) return;
+    this.powerDrag.sx = sx;
+    this.powerDrag.sy = sy;
+    this.powerDrag.overHud = overHud;
+  }
+
+  /** Point visé (grille) par le glisser et sa validité (dans la cour, pas sur le HUD). */
+  powerDragTarget(): { at: Vec2; valid: boolean } | null {
+    const d = this.powerDrag;
+    if (!d || d.sx < 0) return null;
+    const at = this.cam.screenToGrid(d.sx, d.sy);
+    const inside = at.x >= 0 && at.y >= 0 && at.x < this.world.map.w && at.y < this.world.map.h;
+    return { at, valid: inside && !d.overHud };
+  }
+
+  /** Fin du glisser : lancement si la cible est valide, sinon annulation. */
+  endPowerDrag(): PowerResult | 'annule' {
+    const d = this.powerDrag;
+    const target = this.powerDragTarget();
+    this.powerDrag = null;
+    if (!d || !target || !target.valid) return 'annule';
+    return this.castAt(d.id, target.at);
+  }
+
+  cancelPowerDrag(): void {
+    this.powerDrag = null;
+  }
+
+  /** Défilement de la caméra quand le doigt du glisser approche du bord (appelé à chaque image). */
+  private edgeScroll(dt: number): void {
+    const d = this.powerDrag;
+    if (!d || d.sx < 0) return;
+    const m = EDGE_MARGIN;
+    const speed = EDGE_SPEED * dt;
+    const k = (v: number, max: number) => (v < m ? (m - v) / m : v > max - m ? -(v - (max - m)) / m : 0);
+    const kx = k(d.sx, this.cam.viewW);
+    const ky = k(d.sy, this.cam.viewH);
+    if (kx || ky) this.cam.pan(kx * speed, ky * speed);
+  }
+
+  /** Aide d'un pouvoir consultée (appui long sur son bouton). */
+  powerHelpShown(id: PowerId): void {
+    this.act({ kind: 'powerHelp', id });
+  }
+
   /** Lance un pouvoir du joueur en un point (grille). */
   castAt(id: PowerId, at: Vec2): PowerResult {
     const r = castPower(this.world, this.playerTeam, id, at.x, at.y);
     this.armedPower = null;
     this.powerAim = null;
     if (r !== 'ok') this.sfx.play('deny');
-    else this.act({ kind: 'power', id });
+    else {
+      this.act({ kind: 'power', id });
+      // Retour visuel immédiat : onde à la couleur du pouvoir au point d'impact.
+      this.markers.push({ x: at.x, y: at.y, t: 0, kind: 'capture', team: this.opts.playerColor });
+    }
     this.hooks.onHud(this.world, this.selected.size);
     return r;
   }

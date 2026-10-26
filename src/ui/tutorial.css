@@ -229,3 +229,34 @@
   padding: 8px 0 4px;
   background: var(--paper);
 }
+
+/* Glisser-déposer d'un pouvoir : la main part du bouton et monte vers la carte. */
+.tuto-hand.lift svg {
+  animation: tuto-lift 1.5s ease-in-out infinite;
+}
+
+@keyframes tuto-lift {
+  0%,
+  15% {
+    transform: translate(0, 0) scale(0.92);
+  }
+  85%,
+  100% {
+    transform: translate(-30px, -120px) scale(0.92);
+  }
+}
+
+/* Aide : la main reste appuyée. */
+.tuto-hand.hold svg {
+  animation: tuto-hold 1.2s ease-in-out infinite;
+}
+
+@keyframes tuto-hold {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(0.9);
+  }
+  50% {
+    transform: translate(0, 0) scale(0.84);
+  }
+}

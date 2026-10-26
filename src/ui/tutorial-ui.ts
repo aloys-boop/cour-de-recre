@@ -77,7 +77,10 @@ export class TutorialUi {
     }
     const at = this.handPoint(g);
     this.hand.classList.toggle('hidden', !at);
+    // Glisser-déposer du pouvoir : la main part du bouton vers le haut (la carte).
     this.hand.classList.toggle('drag', step.target.kind === 'drag');
+    this.hand.classList.toggle('lift', step.id === 'power' && !g.powerDrag && !g.armedPower);
+    this.hand.classList.toggle('hold', step.id === 'powerHelp');
     this.hand.classList.toggle('swipe', step.id === 'camera' && !at?.button);
     if (at) {
       this.hand.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(at.y)}px)`;
@@ -111,6 +114,10 @@ export class TutorialUi {
       return button(step.target.kind === 'button' ? step.target.selector : '#merit-pill');
     }
     if (step.id === 'power' && g.armedPower) return world(g.powerAim);
+    if (step.id === 'power' && g.powerDrag) {
+      const t = g.powerDragTarget();
+      return t ? world(t.at) : null;
+    }
     if (step.target.kind === 'button') return button(step.target.selector);
     if (step.id === 'attack' && g.selected.size === 0) {
       const mine = g.world.units.find((u) => u.team === g.playerTeam && u.alive && !u.pion);

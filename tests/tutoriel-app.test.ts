@@ -55,7 +55,7 @@ function pointer(type: string, x: number, y: number, id = 1): void {
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 describe('tutoriel dans l’application', () => {
-  it('premier lancement, 11 étapes au doigt, victoire, « Comment jouer » et « Passer »', async () => {
+  it('premier lancement, 12 étapes au doigt, victoire, « Comment jouer » et « Passer »', async () => {
     let seed = 777;
     Math.random = () => {
       seed = (seed + 0x6d2b79f5) >>> 0;
@@ -79,7 +79,7 @@ describe('tutoriel dans l’application', () => {
     const bubble = document.querySelector('.tuto-bubble')!;
     const text = () => bubble.querySelector('.tuto-text')!.textContent;
     const stepId = () => game.tutorial!.step.id;
-    expect(bubble.querySelector('.tuto-count')!.textContent).toBe('Étape 1 / 11');
+    expect(bubble.querySelector('.tuto-count')!.textContent).toBe('Étape 1 / 12');
     expect(document.getElementById('btn-tuto-skip')!.textContent).toBe('Passer');
 
     let now = performance.now();
@@ -107,7 +107,7 @@ describe('tutoriel dans l’application', () => {
     tap(p.x, p.y - 20);
     expect(stepId()).toBe('box');
     advance(0.1);
-    expect(bubble.querySelector('.tuto-count')!.textContent).toBe('Étape 2 / 11');
+    expect(bubble.querySelector('.tuto-count')!.textContent).toBe('Étape 2 / 12');
 
     // 2. Sélection rectangle : appui long, puis glisser.
     (document.getElementById('btn-cancel') as HTMLButtonElement).click();
@@ -174,24 +174,40 @@ describe('tutoriel dans l’application', () => {
     expect(panel.classList.contains('hidden')).toBe(false);
     panel.querySelector<HTMLButtonElement>('.camp-row[data-branch="prod"] .camp-buy')!.click();
     expect(game.world.teamUpgrades[0].prod).toBe(1);
-    expect(stepId()).toBe('power');
+    expect(stepId()).toBe('powerHelp');
     advance(0.1);
     expect(panel.classList.contains('hidden')).toBe(true);
 
-    // 10. Goûter : armer, viser ses élèves, toucher la zone.
-    (document.getElementById('btn-power-gouter') as HTMLButtonElement).click();
-    expect(game.armedPower).toBe('gouter');
-    // La zone part du centre de l'écran : on la déplace d'abord au loin, puis sur ses élèves.
-    const far = at(9.5, 1.5);
-    tap(far.x, far.y);
-    expect(game.armedPower).toBe('gouter');
-    expect(Math.hypot(game.powerAim!.x - 9.5, game.powerAim!.y - 1.5)).toBeLessThan(0.3);
+    // 10. Aide : appui long sur le bouton du Goûter, la bulle reste tant que le doigt est posé.
+    expect(stepId()).toBe('powerHelp');
+    const cake = document.getElementById('btn-power-gouter')!;
+    const press = (type: string, x: number, y: number) => {
+      const e = new (globalThis.PointerEvent ?? MouseEvent)(type, { clientX: x, clientY: y, bubbles: true, cancelable: true });
+      if (!('pointerId' in e) || (e as PointerEvent).pointerId === undefined) Object.defineProperty(e, 'pointerId', { value: 3 });
+      cake.dispatchEvent(e);
+    };
+    const tip = document.querySelector('.power-tip')!;
+    press('pointerdown', 400, 380);
+    await wait(450);
+    expect(tip.classList.contains('hidden')).toBe(false);
+    expect(tip.textContent).toMatch(/Goûter/);
+    expect(tip.textContent).toMatch(/Rend 45\u00a0PV/);
+    expect(tip.textContent).toMatch(/Rayon : 2,4 cases/);
+    expect(stepId()).toBe('power');
+    press('pointerup', 400, 380);
+    expect(tip.classList.contains('hidden')).toBe(true);
+    expect(game.armedPower).toBeNull();
+
+    // 11. Glisser-déposer : du bouton jusqu'à ses élèves.
     const target = mine()[0];
     const tp = at(target.x, target.y);
-    tap(tp.x, tp.y);
-    expect(game.armedPower).toBe('gouter');
-    tap(tp.x, tp.y);
-    expect(game.armedPower).toBeNull();
+    press('pointerdown', 400, 380);
+    press('pointermove', 400, 360);
+    expect(game.powerDrag?.id).toBe('gouter');
+    press('pointermove', tp.x, tp.y);
+    expect(game.powerDragTarget()!.valid).toBe(true);
+    press('pointerup', tp.x, tp.y);
+    expect(game.powerDrag).toBeNull();
     expect(stepId()).toBe('win');
     advance(0.05);
     expect(text()).toMatch(/prends le camp des Verts/);

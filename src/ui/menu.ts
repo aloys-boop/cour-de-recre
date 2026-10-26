@@ -6,6 +6,7 @@ import { DEFAULT_SKIRMISH, type SkirmishSettings } from '../core/skirmish';
 import type { Progress } from '../core/save';
 import type { Difficulty, TeamId } from '../core/types';
 import { medalDots } from './share';
+import { TUTORIAL_STEPS } from '../core/tutorial';
 import { rulesPanel, skirmishPanel } from './skirmish';
 
 export interface MenuState {
@@ -170,7 +171,7 @@ export class Menu {
     const tl = document.createElement('span');
     tl.textContent = 'Tutoriel';
     const tr = document.createElement('small');
-    tr.textContent = this.progress.tutorialDone ? 'Terminé ✓ · rejouable' : '11 étapes guidées · 11×11';
+    tr.textContent = this.progress.tutorialDone ? 'Terminé ✓ · rejouable' : `${TUTORIAL_STEPS.length} étapes guidées · 11×11`;
     tuto.append(tl, tr);
     tuto.addEventListener('click', () => {
       this.state.tutorial = true;

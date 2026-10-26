@@ -21,9 +21,10 @@ export function zonePath(ctx: CanvasRenderingContext2D, cam: Camera, x: number, 
 }
 
 /** Aperçu de la zone d'un pouvoir armé : disque pointillé, élèves concernés entourés. */
-export function drawPowerAim(ctx: CanvasRenderingContext2D, cam: Camera, world: World, id: PowerId, at: Vec2, team: number, time: number, confirmed: boolean): void {
+export function drawPowerAim(ctx: CanvasRenderingContext2D, cam: Camera, world: World, id: PowerId, at: Vec2, team: number, time: number, confirmed: boolean, valid = true): void {
   const info = POWERS[id];
-  const color = POWER_COLORS[id];
+  // Cible non valide (hors de la cour, sur le HUD) : zone rouge, personne d'entouré.
+  const color = valid ? POWER_COLORS[id] : '#ff4d3a';
   ctx.save();
   zonePath(ctx, cam, at.x, at.y, info.radius);
   ctx.globalAlpha = confirmed ? 0.3 : 0.18;
@@ -40,7 +41,7 @@ export function drawPowerAim(ctx: CanvasRenderingContext2D, cam: Camera, world: 
   const heal = id === 'gouter';
   const r2 = info.radius * info.radius;
   ctx.lineWidth = Math.max(1.5, 2 * cam.zoom);
-  for (const u of world.units) {
+  for (const u of valid ? world.units : []) {
     if (!u.alive || heal !== world.isFriend(u.team, team)) continue;
     if ((u.x - at.x) ** 2 + (u.y - at.y) ** 2 > r2) continue;
     const p = cam.gridToScreen(u.x, u.y);

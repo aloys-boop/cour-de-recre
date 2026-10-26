@@ -71,7 +71,8 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
   { id: 'camera', text: 'Glisse un doigt pour bouger la vue, pince pour zoomer, ou touche la mini-carte.', target: { kind: 'button', selector: '#minimap' } },
   { id: 'merits', text: 'Chaque case prise rapporte des bons points ★. Prends une autre case !', target: { kind: 'tile', which: 'free' } },
   { id: 'upgrade', text: 'Sans sélection, touche ton camp (ou la pastille ★) et améliore-le.', target: { kind: 'button', selector: '#merit-pill' } },
-  { id: 'power', text: 'Touche le gâteau, vise tes élèves sur la carte, puis touche la zone.', target: { kind: 'button', selector: '#btn-power-gouter' } },
+  { id: 'powerHelp', text: 'Garde le doigt posé sur le gâteau (Goûter) : son aide s’affiche.', target: { kind: 'button', selector: '#btn-power-gouter' } },
+  { id: 'power', text: 'Glisse le gâteau jusqu’à tes élèves et lâche : c’est l’heure du goûter !', target: { kind: 'button', selector: '#btn-power-gouter' } },
   { id: 'win', text: 'Dernière étape : prends le camp des Verts pour gagner !', target: { kind: 'tile', which: 'enemyCamp' } },
 ];
 
@@ -123,6 +124,7 @@ export class TutorialState {
       (id === 'rally' && a.kind === 'rally') ||
       (id === 'camera' && a.kind === 'camera') ||
       (id === 'upgrade' && a.kind === 'upgrade') ||
+      (id === 'powerHelp' && a.kind === 'powerHelp') ||
       (id === 'power' && a.kind === 'power');
     if (ok) this.next();
   }
@@ -185,7 +187,7 @@ export class TutorialState {
       }
     }
     if (id === 'upgrade') topUp(w, this.player, UPGRADES.prod.costs[0] + 5);
-    if (id === 'power') topUp(w, this.player, POWERS.gouter.cost + 5);
+    if (id === 'powerHelp' || id === 'power') topUp(w, this.player, POWERS.gouter.cost + 5);
     if (id === 'win') this.aiActive = true;
   }
 

@@ -156,7 +156,7 @@ function launch(opts: GameOptions, code: MapCode | null): void {
       if (ev.kind === 'step') {
         sfx.play('upgrade');
         // Le panneau du camp se referme une fois l'amélioration faite.
-        if (game?.tutorial?.step.id === 'power') campPanel.close();
+        if (game?.tutorial?.step.id === 'powerHelp') campPanel.close();
       }
     },
     onRally: (cleared) => {

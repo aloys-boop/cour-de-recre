@@ -199,7 +199,7 @@ export const HOW_TO: ReadonlyArray<[string, string]> = [
   ['Bons points ★', '+2 par ennemi mis KO, +10 par case prise, +25 par camp pris, +1 toutes les 10 s par case tenue.'],
   ['Améliorations', 'Sans sélection, touche ton camp (ou la pastille ★). « Toute l’équipe » : Production, Uniformes, Entraînement, classes, pour tous tes camps. « Ce camp » : Défense, pion, élèves produits, ralliement. ‹ › : camp suivant.'],
   ['Classes', 'Une fois débloquées pour l’équipe, chaque camp choisit Costaud (solide), Sprinteur (rapide, capture vite) ou Infirmier (soigne). Chaque élève spécial coûte des bons points.'],
-  ['Pouvoirs', 'Boutons en bas : Sonnerie (fige les ennemis), Boules de neige (dégâts), Goûter (soins). Touche le bouton, vise, puis touche la zone.'],
+  ['Pouvoirs', 'Boutons en bas : Sonnerie (fige les ennemis), Boules de neige (dégâts), Goûter (soins). Doigt posé sur un bouton : son aide. Glisse un bouton jusqu’à la carte et lâche pour le lancer (lâche sur le bouton pour annuler). Ou : touche le bouton, vise, puis touche la zone.'],
   ['Pion', 'Dans le panneau du camp : un surveillant à tes couleurs garde le camp et frappe les intrus. Il revient 60 s après un KO.'],
   ['Caméra', 'Glisse un doigt pour bouger la vue, pince pour zoomer, touche la mini-carte pour y aller.'],
   ['Ralliement', 'Chaque camp a son drapeau, où vont ses nouveaux élèves. Glisse depuis un camp jusqu’au point voulu, ou utilise « Ralliement » dans son panneau. Appui long sur le sol : camp le plus proche.'],
