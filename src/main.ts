@@ -18,6 +18,8 @@ import { codeBlock, medalsBlock } from './ui/share';
 import { KingHud, kingEnd } from './ui/king-hud';
 import { CampPanel } from './ui/camp-panel';
 import { ClassSection } from './ui/class-section';
+import { PionSection } from './ui/pion-section';
+import { PowersHud } from './ui/powers-hud';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const minimapCanvas = document.getElementById('minimap') as HTMLCanvasElement;
@@ -78,6 +80,8 @@ const tactics = new TacticsHud(hudRoot, {
 // Bons points (pastille) et panneau d'amélioration des camps.
 const campPanel = new CampPanel(hudRoot, () => game, (text, ms) => hud.showHint(text, ms));
 campPanel.addSection(new ClassSection((text, ms) => hud.showHint(text, ms)));
+campPanel.addSection(new PionSection((text, ms) => hud.showHint(text, ms)));
+const powersHud = new PowersHud(hudRoot, () => game, (text, ms) => hud.showHint(text, ms));
 
 const menu = new Menu(menuRoot, progress, {
   onPlay: (state) => startGame(state),
@@ -120,7 +124,7 @@ function launch(opts: GameOptions, code: MapCode): void {
   menu.hide();
   hud.show();
   game = new Game(canvas, minimapCanvas, sfx, opts, {
-    onHud: (world, selected) => (hud.update(world, selected, 0), kingHud.update(world, 0), campPanel.refresh()),
+    onHud: (world, selected) => (hud.update(world, selected, 0), kingHud.update(world, 0), campPanel.refresh(), powersHud.refresh()),
     onCampTap: (camp) => campPanel.open(camp),
     onRally: (cleared) =>
       hud.showHint(cleared ? 'Point de ralliement effacé.' : 'Point de ralliement posé : les nouveaux élèves de ce camp iront au drapeau.', 2400),

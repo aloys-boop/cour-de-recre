@@ -24,6 +24,8 @@ import { NO_TEAM, type MapDef, type Suit, type Vec2 } from './types';
 import { Unit, punchDamage, resetUnitIds } from './unit';
 import { MERITS, MeritState, awardMerit, captureReward, updateMerits, type MeritEvent } from './merits';
 import { campDmgMul, campHpMul, campProdMul } from './upgrades';
+import { PION, updatePions } from './pion';
+import { PowerState, type PowerEvent } from './powers';
 import { CLASSES, aggroRange, applyClass, pacifist, takeSpawnClass, updateHealers, type UnitClass } from './classes';
 
 export type WorldEvent =
@@ -35,7 +37,8 @@ export type WorldEvent =
   | RhythmEvent
   | KingEvent
   | SupervisorEvent
-  | MeritEvent;
+  | MeritEvent
+  | PowerEvent;
 
 /** Nombre maximal de recherches de chemin (A*) par pas de simulation ; les suivantes attendent le pas d'après. */
 export const PATHS_PER_STEP = 40;
@@ -84,6 +87,8 @@ export class World {
   readonly king = new KingState();
   /** Bons points de chaque équipe (voir merits.ts). */
   readonly merits: MeritState;
+  /** Recharges des pouvoirs de récré (voir powers.ts). */
+  readonly powers: PowerState;
   private presence: number[][] = [];
   private friendFn = (a: number, b: number): boolean => this.isFriend(a, b);
   private byId = new Map<number, Unit>();
@@ -97,6 +102,7 @@ export class World {
     this.numTeams = numTeams;
     this.rng = new Rng(seed);
     this.merits = new MeritState(numTeams);
+    this.powers = new PowerState(numTeams);
     if (teamColors) this.teamColors = teamColors;
     this.grid = new Grid(map.w, map.h, map.obstacles ?? []);
     this.tiles = map.tiles.filter((t) => t.kind !== 'camp' || t.ghost || (t.owner ?? 99) < numTeams).map((t) => new Tile(t));
@@ -125,7 +131,7 @@ export class World {
 
   teamUnitCount(team: number): number {
     let n = 0;
-    for (const u of this.units) if (u.team === team && u.alive) n++;
+    for (const u of this.units) if (u.team === team && u.alive && !u.pion) n++;
     return n;
   }
 
@@ -256,7 +262,7 @@ export class World {
       if (prevHp !== m.hp) {
         // Les élèves existants gagnent ou perdent de la vie maximale en proportion.
         for (const u of this.units) {
-          if (u.team !== team || !u.alive) continue;
+          if (u.team !== team || !u.alive || u.pion) continue;
           const ratio = u.hp / u.maxHp;
           u.maxHp = Math.max(1, Math.round(TUNING.unitHp * m.hp * u.hpMul));
           u.hp = Math.max(1, Math.round(u.maxHp * ratio));
@@ -385,6 +391,7 @@ export class World {
     this.pathsThisStep = 0;
     this.flushPathQueue();
     this.rebuildHash();
+    updatePions(this);
     for (const u of this.units) this.updateUnit(u, dt);
     updateHealers(this, dt);
     this.separate();
@@ -440,6 +447,13 @@ export class World {
       return;
     }
 
+    // Figé par une sonnerie : ni déplacement ni coup.
+    if (u.frozenUntil > this.time) {
+      u.pendingHit = 0;
+      if (u.anim !== 'idle') u.setAnim('idle');
+      return;
+    }
+
     // Coup en cours : il porte après un court délai.
     if (u.pendingHit > 0) {
       u.pendingHit -= dt;
@@ -456,7 +470,7 @@ export class World {
           this.events.push({ kind: 'hit', x: target.x, y: target.y, team: target.team });
           if (ko) {
             this.events.push({ kind: 'ko', x: target.x, y: target.y, team: target.team, by: u.team });
-            awardMerit(this, u.team, MERITS.koUnit, target.x, target.y, 'ko');
+            awardMerit(this, u.team, target.pion ? PION.koReward : MERITS.koUnit, target.x, target.y, 'ko');
           }
         }
       }
@@ -622,7 +636,7 @@ export class World {
       const heals = t.owner !== NO_TEAM && (t.isCamp || t.suit === 'heart');
       this.hash.query(t.cx, t.cy, t.half, (u) => {
         if (!u.alive || !t.contains(u.x, u.y)) return;
-        pres[u.team] += CLASSES[u.cls].capture;
+        if (!u.pion) pres[u.team] += CLASSES[u.cls].capture;
         if (heals && u.team === t.owner && u.hp < u.maxHp && !this.rhythm.starving[u.team]) {
           u.hp = Math.min(u.maxHp, u.hp + TUNING.regenPerSec * t.defenseMul * dt);
           u.healedAt = this.time;

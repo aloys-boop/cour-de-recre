@@ -4,13 +4,15 @@
 //   mode « eco »     : la moitié des équipes dépense ses bons points, l'autre non (positions alternées) :
 //                      taux de victoire des équipes qui dépensent ;
 //   mode « classes » : la moitié des équipes produit des classes (mélange de l'IA), l'autre seulement des élèves ;
-//   mode « costaud », « sprinteur », « infirmier » : la moitié des équipes ne produit que cette classe.
+//   mode « costaud », « sprinteur », « infirmier » : la moitié des équipes ne produit que cette classe ;
+//   mode « pouvoirs » / « pion » : la moitié des équipes utilise les pouvoirs (ou achète des pions), l'autre non.
 import { TeamAi } from '../../src/core/ai';
 import { generateMap, LEVELS } from '../../src/core/maps';
 import type { Difficulty, MapDef } from '../../src/core/types';
 import { World } from '../../src/core/world';
 import { UPGRADE_BRANCHES, UPGRADES } from '../../src/core/upgrades';
-import { MERITS } from '../../src/core/merits';
+import { MERITS, awardMerit } from '../../src/core/merits';
+import { buyPion, PION } from '../../src/core/pion';
 import { CLASS_MIX } from '../../src/core/ai-economy';
 
 // Réglages de remplacement (essais) : COUTS='[25,50,90]' (branches offensives), COUTS_DEF='[20,40,70]', GAINS='{"koUnit":2,...}'.
@@ -44,7 +46,10 @@ function play(map: MapDef, seed: number, setup: (ais: TeamAi[]) => void, limit =
   while (t < limit && world.victors().length === 0) {
     for (const a of ais) a.update(step);
     world.update(step);
-    for (const ev of world.drainEvents()) if (ev.kind === 'merit') bySource[ev.reason] = (bySource[ev.reason] ?? 0) + ev.amount;
+    for (const ev of world.drainEvents()) {
+      if (ev.kind === 'merit') bySource[ev.reason] = (bySource[ev.reason] ?? 0) + ev.amount;
+      if (ev.kind === 'power') ((casts[ev.id] = (casts[ev.id] ?? 0) + 1), (castHits[ev.id] = (castHits[ev.id] ?? 0) + ev.hits));
+    }
     for (const u of world.units) if (!seen.has(u.id)) (seen.add(u.id), (produced[u.cls] = (produced[u.cls] ?? 0) + 1));
     t += step;
   }
@@ -52,6 +57,10 @@ function play(map: MapDef, seed: number, setup: (ais: TeamAi[]) => void, limit =
 }
 
 const seen = new Set<number>();
+/** Pouvoirs lancés et élèves touchés, par pouvoir. */
+const casts: Record<string, number> = {};
+const castHits: Record<string, number> = {};
+let pions = 0;
 /** Élèves produits par classe (toutes parties confondues). */
 const produced: Record<string, number> = {};
 const maps = LEVELS.map((l, i) => generateMap(l, 100 + i)).filter((m) => m.teams === 4);
@@ -74,6 +83,7 @@ if (mode === 'revenus') {
         spent += r.world.merits.spent[team];
         teamGames++;
       }
+      for (const c of r.world.camps) if (c.pionBought) pions++;
       for (const c of r.world.camps) levels += UPGRADE_BRANCHES.reduce((n, b) => n + c.upgrades[b], 0);
       for (const [k, v] of Object.entries(r.bySource)) sources[k] = (sources[k] ?? 0) + v;
     }
@@ -83,8 +93,10 @@ if (mode === 'revenus') {
   console.log(`niveaux d'amélioration encore en place en fin de partie : ${(levels / games).toFixed(1)} par partie`);
   for (const [k, v] of Object.entries(sources)) console.log(`  ${k.padEnd(11)} ${((v / total) * 100).toFixed(0)} %`);
   const all = Object.values(produced).reduce((a, b) => a + b, 0);
+  console.log(`pouvoirs : ${Object.entries(casts).map(([k, v]) => `${k} ${(v / games).toFixed(1)} par partie (${(castHits[k] / v).toFixed(1)} élèves touchés)`).join(', ')}`);
+  console.log(`pions en place en fin de partie : ${(pions / games).toFixed(1)} par partie`);
   console.log(`élèves par classe : ${Object.entries(produced).map(([k, v]) => `${k} ${((v / all) * 100).toFixed(0)} %`).join(', ')}`);
-} else if (mode === 'eco' || mode === 'classes' || mode === 'costaud' || mode === 'sprinteur' || mode === 'infirmier') {
+} else if (['eco', 'classes', 'costaud', 'sprinteur', 'infirmier', 'pouvoirs', 'pion', 'pion0'].includes(mode)) {
   let wins = 0;
   let games = 0;
   let unfinished = 0;
@@ -95,6 +107,17 @@ if (mode === 'revenus') {
         const r = play(map, seed, (ais) => {
           const on = (t: number) => (t + rot) % 2 === 0;
           if (mode === 'eco') ais.forEach((a, t) => (a.economy.enabled = on(t)));
+          else if (mode === 'pouvoirs') ais.forEach((a, t) => (a.economy.allowPowers = on(t)));
+          else if (mode === 'pion') ais.forEach((a, t) => (a.economy.allowPion = on(t)));
+          else if (mode === 'pion0')
+            // Valeur d'un pion : la moitié des équipes en reçoit un, gratuit, dès le départ.
+            ais.forEach((a, t) => {
+              a.economy.allowPion = false;
+              if (on(t)) {
+                awardMerit(a.world, t, PION.cost, 0, 0, 'hold');
+                buyPion(a.world, t, a.world.camps.find((c) => c.owner === t)!);
+              }
+            });
           else if (mode === 'classes') ais.forEach((a, t) => (a.economy.forceClass = on(t) ? null : 'aucune'));
           else ais.forEach((a, t) => (a.economy.forceClass = on(t) ? (mode as 'costaud') : 'aucune'));
         });
@@ -105,6 +128,7 @@ if (mode === 'revenus') {
         for (const v of r.victors) if ((v + rot) % 2 === 0) wins += 1 / r.victors.length;
       }
   console.log(`${games} parties, ${unfinished} au temps limite, durée moyenne ${(duration / games).toFixed(0)} s`);
-  const who = mode === 'eco' ? 'qui dépensent leurs bons points' : mode === 'classes' ? 'qui produisent des classes' : `qui produisent des ${mode}s`;
+  const who =
+    mode === 'eco' ? 'qui dépensent leurs bons points' : mode === 'classes' ? 'qui produisent des classes' : mode === 'pouvoirs' ? 'qui lancent des pouvoirs' : mode === 'pion' ? 'qui achètent des pions' : mode === 'pion0' ? 'qui ont un pion dès le départ' : `qui produisent des ${mode}s`;
   console.log(`victoires des équipes ${who} : ${((wins / (games - unfinished)) * 100).toFixed(0)} % (50 % = aucun effet)`);
 }

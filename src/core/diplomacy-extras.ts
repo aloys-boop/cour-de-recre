@@ -315,7 +315,7 @@ export class DiplomacyExtras {
     if (allies.length === 0) return { result: 'sans-allie', sent };
     const target = { x: camp.cx, y: camp.cy };
     for (const a of allies) {
-      const mine = w.units.filter((u) => u.alive && u.team === a && u.aiTag !== TAG_LOANED);
+      const mine = w.units.filter((u) => u.alive && u.team === a && !u.pion && u.aiTag !== TAG_LOANED);
       const free = mine.filter((u) => (u.aiTag === TAG_FREE || u.aiTag === TAG_RALLY) && u.state !== 'attacking');
       const pool = free.length ? free : mine.filter((u) => u.aiTag !== TAG_DEFEND && u.state !== 'attacking');
       // Selon sa propre situation : moins de renfort si son camp est menacé.
@@ -511,7 +511,7 @@ export class DiplomacyExtras {
   private thinkGift(ai: number): void {
     const w = this.world;
     if (this.time < this.giftReadyAt[ai]) return;
-    const mine = w.units.filter((u) => u.alive && u.team === ai && u.aiTag !== TAG_LOANED);
+    const mine = w.units.filter((u) => u.alive && u.team === ai && !u.pion && u.aiTag !== TAG_LOANED);
     if (mine.length < 8) return;
     const pw = this.diplomacy.powers();
     const needy = w

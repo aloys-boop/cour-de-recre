@@ -80,6 +80,19 @@ Le sprinteur compte pour 4 élèves dans la jauge de capture : seul sur une case
 
 Les IA mélangent les classes dès que leur camp est débloqué et qu'il leur reste une réserve de bons points (15 en Normal, 10 en Difficile) : elles visent environ 45 % de costauds (plus quand le camp est menacé), des sprinteurs tant qu'il reste des cases libres, et un infirmier par tranche de 8 élèves (3 au plus) ; à chaque réflexion, chaque camp produit la classe la plus en retard sur sa part visée. En Facile, l'IA ne produit qu'un costaud de temps en temps, quand elle est riche.
 
+## Pouvoirs de récré et pion
+
+- **Pouvoirs.** Trois boutons ronds en bas au centre, payés en bons points, chacun avec sa recharge (affichée sur le bouton). Touche un bouton : la zone s'affiche au centre de l'écran (pointillés, élèves concernés entourés en rouge ou en vert) ; touche la carte pour déplacer la visée, puis touche **dans** la zone pour lancer. Retoucher le bouton annule.
+
+  | Pouvoir | Coût | Recharge | Rayon | Effet |
+  | --- | --- | --- | --- | --- |
+  | Sonnerie | 30 ★ | 60 s | 2,2 cases | fige les ennemis 3 s : ils ne bougent ni ne frappent (petite cloche au-dessus d'eux) |
+  | Boules de neige | 35 ★ | 50 s | 1,8 case | 30 dégâts à chaque ennemi de la zone (les KO rapportent leurs bons points) |
+  | Goûter | 25 ★ | 45 s | 2,4 cases | rend 45 PV à chacun de tes élèves (et ceux de tes alliés) dans la zone |
+
+  Les IA les utilisent aussi, sauf en Facile : à chaque réflexion, elles cherchent le point qui touche le plus d'élèves et lancent un pouvoir à partir de 6 ennemis touchés pour la sonnerie (seulement si au moins 3 de leurs élèves sont là pour en profiter), 5 pour la neige, 4 élèves blessés pour le goûter (5, 4 et 3 en Difficile). Une annonce prévient quand une équipe adverse lance un pouvoir à portée de vue.
+- **Pion.** Dans le panneau d'un camp, rubrique « Pion » : un surveillant aux couleurs de ton équipe, **120 ★, une fois par camp**. Il a 400 PV, recule à peine sous les coups, frappe environ trois fois plus fort qu'un élève, reste près du camp et attaque tout ennemi qui entre à moins de 3,2 cases du camp, sans le poursuivre à plus de 4,5 cases. Mis KO, il revient **60 s** plus tard ; mettre un pion adverse KO rapporte 20 ★. Il ne compte pas dans l'effectif ni dans le plafond de 30 élèves, ne se sélectionne pas et ne capture rien. Un camp capturé perd son pion. Les IA Normal et Difficile mettent de côté pour un pion dès qu'un de leurs camps est bien amélioré (5 niveaux, 4 en Difficile) ou l'achètent pour un camp menacé.
+
 ## Alliances
 
 - **Proposer.** Touche la puce d'une équipe, en haut de l'écran : le panneau « Diplomatie » permet de lui proposer une alliance ou de rompre la vôtre. L'IA répond tout de suite (« Les Jaunes acceptent l'alliance. » ou « Les Jaunes refusent. »).
@@ -119,7 +132,9 @@ Réglés par simulation IA contre IA (`npx tsx scripts/dev/bons-points.ts normal
 
 - une équipe gagne environ 120 bons points par minute de jeu (42 % par les captures, 30 % par les KO, 28 % par les cases tenues) : un premier niveau s'achète au bout de 15 à 30 s, un camp entièrement amélioré (440 bons points) demande plusieurs minutes ;
 - classes (`PROD2=1 npx tsx scripts/dev/bons-points.ts normal classes`, camps débloqués d'emblée, 160 parties) : les équipes qui mélangent les classes gagnent 55 % des parties contre celles qui ne produisent que des élèves ; ne produire que des costauds : 60 %, que des sprinteurs : 50 %, jusqu'à 3 infirmiers : 54 % (avec un rayon de soin de 2,2 cases ; 50 % à 1,6). Les classes rapportent un avantage net mais modeste : leurs bons points ne vont pas dans les améliorations ;
-- les équipes qui dépensent leurs bons points gagnent 75 % des parties contre celles qui les gardent (79 % avec des coûts de 20 / 40 / 70 partout, 71 % à 30 / 60 / 100) : les améliorations comptent nettement, sans tout décider.
+- pouvoirs (`… normal pouvoirs`, 120 parties) : les IA qui les utilisent gagnent 55 % des parties ; une partie de 2 min 30 voit en moyenne 3 sonneries (8,6 élèves figés), 4,6 lancers de boules de neige (9,1 élèves touchés) et 2,3 goûters (7 élèves soignés) ;
+- pion (`… normal pion0` : la moitié des équipes en reçoit un gratuit dès le départ) : aucun effet mesurable entre IA (48 à 50 % quels que soient ses dégâts), car leurs parties ne se jouent presque jamais sur les camps de départ ; il sert surtout au joueur, contre les raids pendant que son armée est loin. Ses dégâts (×3) sont donc réglés à vue : un intrus isolé tombe en 2 à 3 coups ;
+- au total, avec toutes les dépenses, les IA qui dépensent leurs bons points gagnent 62 % des parties contre celles qui les gardent (75 % avec les seules améliorations, 79 % avec des coûts de 20 / 40 / 70 partout, 71 % à 30 / 60 / 100) : les bons points comptent nettement, sans tout décider.
 
 ### Performances à 240 élèves
 
@@ -153,6 +168,7 @@ Les pointes dépassaient le budget d'une image sur iPhone ; elles venaient des r
 | Boutons « 1 », « 2 », « 3 » | Appui long : mémoriser la sélection ; tap : la rappeler ; second tap rapide : centrer la vue dessus |
 | Bouton « Camp » | Repli de la sélection (sans combat) sur ton camp le plus proche, pour se soigner |
 | Tap sur un de tes camps (sans sélection) ou sur la pastille « ★ » | Panneau d'amélioration du camp |
+| Boutons ronds en bas (cloche, boule de neige, gâteau) | Armer un pouvoir ; tap sur la carte pour viser, tap dans la zone pour lancer |
 | Tap sur la puce d'une équipe (en haut) | Panneau « Diplomatie » : proposer ou rompre une alliance |
 | Boutons | « Tout sélectionner », « Annuler », « Fuir / Charger », pause, son |
 
@@ -215,6 +231,8 @@ src/
     upgrades.ts        améliorations de camp (4 branches × 3 niveaux)
     ai-economy.ts      dépenses de bons points des IA selon la difficulté (améliorations, classes)
     classes.ts         classes d'élèves : Costaud, Sprinteur, Infirmier
+    powers.ts          pouvoirs de récré : Sonnerie, Boules de neige, Goûter
+    pion.ts            pion : surveillant d'équipe qui garde un camp
   render/              rendu canvas 2D
     sprites.ts         élèves dessinés pixel par pixel : 8 directions, marche, coup, KO, silhouettes des classes
     suits.ts           symboles de cartes en vectoriel
@@ -223,11 +241,14 @@ src/
     king.ts            trône doré, couronne pixel, repère sur la mini-carte
     camera.ts          zoom, déplacement, cadrage
     merits.ts          étoile, gains flottants, fanions d'amélioration des camps
+    powers.ts          aperçu de la zone visée, effets des pouvoirs, élèves figés
   input/touch.ts       gestes tactiles et souris
   audio/sfx.ts         sons synthétisés (Web Audio)
   ui/                  menu, HUD, fenêtres (pause, fin, installation)
     camp-panel.ts      pastille des bons points et panneau d'amélioration d'un camp
     class-section.ts   rubrique « Ce camp produit » (classes d'élèves)
+    pion-section.ts    rubrique « Pion » du panneau du camp
+    powers-hud.ts      boutons des pouvoirs de récré
 public/
   manifest.webmanifest, sw.js, icons/
 tests/                 capture, combat, victoire, alliances, pathfinding, test d'intégration jsdom

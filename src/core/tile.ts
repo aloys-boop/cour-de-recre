@@ -29,6 +29,10 @@ export class Tile {
   upgrades: CampUpgrades = freshUpgrades();
   /** Classe d'élèves produite par le camp (élève normal pour un camp neuf ou capturé). */
   produce: UnitClass = 'eleve';
+  /** Pion acheté pour ce camp (voir pion.ts), debout ou non, et heure de son retour après un KO. */
+  pionBought = false;
+  pionUp = false;
+  pionRespawnAt = 0;
   /** Équipe qui remplit la jauge, ou NO_TEAM. */
   capTeam: number = NO_TEAM;
   /** Jauge 0..1. */
@@ -60,6 +64,8 @@ export class Tile {
     this._owner = team;
     this.upgrades = freshUpgrades();
     this.produce = 'eleve';
+    this.pionBought = false;
+    this.pionUp = false;
   }
 
   /** Défense du camp (amélioration) : la capture par un ennemi est d'autant plus lente. */

@@ -2,6 +2,7 @@ import { TUNING } from '../config';
 import { dirFromVector } from './math';
 import type { Anim, Dir, UnitOrder, Vec2 } from './types';
 import type { UnitClass } from './classes';
+import type { Tile } from './tile';
 
 export type UnitState = 'idle' | 'moving' | 'attacking' | 'ko';
 
@@ -51,6 +52,11 @@ export class Unit {
   /** Multiplicateurs propres à l'élève (améliorations de son camp d'origine, classe), en plus de ceux de l'équipe. */
   /** Classe d'élève (voir classes.ts). */
   cls: UnitClass = 'eleve';
+  /** Figé par une sonnerie jusqu'à cet instant (temps du monde). */
+  frozenUntil = 0;
+  /** Pion (surveillant d'équipe, voir pion.ts) et son camp. */
+  pion = false;
+  home: Tile | null = null;
   hpMul = 1;
   dmgMul = 1;
   speedMul = 1;
@@ -100,8 +106,10 @@ export class Unit {
     const dx = this.x - fromX;
     const dy = this.y - fromY;
     const d = Math.hypot(dx, dy) || 1;
-    this.kx += (dx / d) * TUNING.knockback * 4;
-    this.ky += (dy / d) * TUNING.knockback * 4;
+    // Un pion (adulte) recule à peine.
+    const k = TUNING.knockback * 4 * (this.pion ? 0.15 : 1);
+    this.kx += (dx / d) * k;
+    this.ky += (dy / d) * k;
     if (this.hp <= 0) {
       this.hp = 0;
       this.state = 'ko';

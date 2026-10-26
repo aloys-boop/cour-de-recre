@@ -322,6 +322,28 @@ export function buildSupervisorSheet(makeCanvas: (w: number, h: number) => Sheet
   return sheet;
 }
 
+/**
+ * Planche d'un pion : le même adulte, en blouse aux couleurs de son équipe (liseré sombre).
+ * Les couleurs de la blouse sont remplacées le temps du dessin.
+ */
+export function buildPionSheet(makeCanvas: (w: number, h: number) => SheetCanvas, coat: { light: string; main: string; dark: string }): SheetCanvas {
+  const saved = { coat: C.coat, coatShade: C.coatShade, coatDark: C.coatDark, trim: C.trim };
+  Object.assign(C, { coat: coat.light, coatShade: coat.main, coatDark: coat.dark, trim: '#1e1e28' });
+  try {
+    return buildSupervisorSheet(makeCanvas);
+  } finally {
+    Object.assign(C, saved);
+  }
+}
+
+/** Image de la planche d'adulte pour l'animation d'un élève (pion). */
+export function pionFrame(anim: 'idle' | 'walk' | 'punch' | 'ko', t: number): number {
+  if (anim === 'ko') return t < 0.35 ? F_FALL : F_KO;
+  if (anim === 'punch') return t < 0.14 ? F_WINDUP : t < 0.45 ? F_PUNCH : F_IDLE;
+  if (anim === 'walk') return F_WALK + (Math.floor(t * 6) % 4);
+  return F_IDLE;
+}
+
 /** Planche construite au premier surveillant dessiné (aucun coût sans l'option). */
 export function lazySupervisorSheet(makeCanvas: (w: number, h: number) => SheetCanvas): () => SheetCanvas {
   let sheet: SheetCanvas | null = null;

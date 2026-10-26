@@ -228,3 +228,16 @@
   opacity: 0.8;
   line-height: 1.3;
 }
+
+.pion-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pion-status {
+  flex: 1 1 auto;
+  font-size: 12px;
+  line-height: 1.3;
+  opacity: 0.9;
+}

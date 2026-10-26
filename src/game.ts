@@ -28,6 +28,11 @@ import { playWhistle } from './audio/whistle';
 import { MeritPopups } from './render/merits';
 import { buyUpgrade, type UpgradeBranch, type UpgradeResult } from './core/upgrades';
 import { setProduce, type ProduceResult, type UnitClass } from './core/classes';
+import { castPower, POWERS, powerCooldown, type PowerId, type PowerResult } from './core/powers';
+import { buyPion, type PionResult } from './core/pion';
+import { meritsOf } from './core/merits';
+import { drawPowerAim, PowerEffects } from './render/powers';
+import type { Vec2 } from './core/types';
 
 export type GameResult = 'victoire' | 'defaite';
 
@@ -90,6 +95,11 @@ export class Game {
   private fx = new Effects();
   /** Gains de bons points du joueur (« +10 ★ » qui s'envolent). */
   private gains = new MeritPopups();
+  /** Effets des pouvoirs lancés. */
+  private powerFx = new PowerEffects();
+  /** Pouvoir armé par le joueur (visée en cours) et point visé (aperçu de la zone). */
+  armedPower: PowerId | null = null;
+  powerAim: Vec2 | null = null;
   private ais: TeamAi[] = [];
   private markers: Marker[] = [];
   private box: SelectionBox | null = null;
@@ -252,6 +262,7 @@ export class Game {
       this.time += dt;
       this.fx.update(dt);
       this.gains.update(dt);
+      this.powerFx.update(dt);
       for (const m of this.markers) m.t += dt;
       this.markers = this.markers.filter((m) => m.t < 1);
       if (this.flash && this.flash.t >= 0) this.flash.t += dt;
@@ -289,6 +300,15 @@ export class Game {
           break;
         case 'spawn':
           if (ev.team === this.playerTeam) this.sfx.play('spawn');
+          break;
+        case 'power':
+          this.powerFx.add(ev.id, ev.x, ev.y, ev.radius, ev.team);
+          this.sfx.play(ev.id === 'sonnerie' ? 'bell' : ev.id === 'neige' ? 'snow' : 'snack');
+          if (ev.team !== this.playerTeam && pointVisible(w, this.playerTeam, ev.x, ev.y)) {
+            const who = teamPlural(w.teamColors[ev.team] ?? ev.team);
+            const what = ev.id === 'sonnerie' ? 'font sonner la cloche' : ev.id === 'neige' ? 'lancent des boules de neige' : 'distribuent le goûter';
+            this.announce(`${who.charAt(0).toUpperCase()}${who.slice(1)} ${what} !`, false);
+          }
           break;
         case 'merit':
           if (ev.team === this.playerTeam) {
@@ -346,6 +366,8 @@ export class Game {
       time: this.time,
     });
     if (this.flash) drawTileFlash(ctx, this.cam, this.flash);
+    if (this.armedPower && this.powerAim) drawPowerAim(ctx, this.cam, this.world, this.armedPower, this.powerAim, this.playerTeam, this.time, false);
+    this.powerFx.draw(ctx, this.cam);
     if (this.arrow) drawArrow(ctx, this.arrow);
     this.fx.draw(ctx, this.cam);
     this.gains.draw(ctx, this.cam);
@@ -367,6 +389,7 @@ export class Game {
     const cands: Array<{ unit: Target; team: number; sx: number; sy: number; depth: number }> = [];
     for (const u of this.world.units) {
       if (!u.alive || !unitVisible(this.world, this.playerTeam, u)) continue;
+      if (u.pion && this.world.isFriend(u.team, this.playerTeam)) continue; // ton pion (ou celui d'un allié) ne se commande pas
       const p = this.cam.gridToScreen(u.x, u.y);
       cands.push({ unit: u, team: u.team, sx: p.x, sy: p.y, depth: u.x + u.y });
     }
@@ -390,6 +413,7 @@ export class Game {
   private tap(sx: number, sy: number): void {
     if (this.paused || this.over) return;
     this.sfx.unlock();
+    if (this.armedPower) return this.aimPower(sx, sy);
     const pk = this.pick(sx, sy);
     // Sans sélection, un tap sur un de ses camps ouvre son panneau d'amélioration, sauf si le doigt
     // est vraiment sur un élève (silhouette touchée) : il est alors sélectionné.
@@ -405,7 +429,7 @@ export class Game {
       // Sélection de l'élève et de ses voisins proches (tap sur un groupe).
       this.selected.clear();
       for (const u of this.world.units) {
-        if (u.team !== this.playerTeam || !u.alive) continue;
+        if (u.team !== this.playerTeam || !u.alive || u.pion) continue;
         if (Math.hypot(u.x - hit.x, u.y - hit.y) <= neighbourRadius(this.cam.zoom)) this.selected.add(u.id);
       }
       this.sfx.play('select');
@@ -469,6 +493,68 @@ export class Game {
     return (this.homeCamp && this.homeCamp.owner === this.playerTeam ? this.homeCamp : null) ?? this.world.tiles.find((t) => t.isCamp && t.owner === this.playerTeam) ?? null;
   }
 
+  // ---------------------------------------------------------------- pouvoirs et pion
+
+  /**
+   * Arme un pouvoir (ou le désarme s'il l'était déjà). L'aperçu de la zone part du centre de
+   * l'écran ; un tap sur la carte déplace la visée, un tap dans la zone lance le pouvoir.
+   */
+  armPower(id: PowerId | null): 'arme' | 'desarme' | 'recharge' | 'pas-assez' {
+    if (id === null || this.armedPower === id) {
+      this.armedPower = null;
+      this.powerAim = null;
+      return 'desarme';
+    }
+    if (powerCooldown(this.world, this.playerTeam, id) > 0) {
+      this.sfx.play('deny');
+      return 'recharge';
+    }
+    if (meritsOf(this.world, this.playerTeam) < POWERS[id].cost) {
+      this.sfx.play('deny');
+      return 'pas-assez';
+    }
+    this.armedPower = id;
+    const c = this.cam.screenToGrid(this.cam.viewW / 2, this.cam.viewH / 2);
+    this.powerAim = this.world.grid.clampPos(c, 0.5);
+    this.sfx.play('select');
+    return 'arme';
+  }
+
+  /** Tap pendant la visée : dans la zone, on lance ; ailleurs, on déplace la zone. */
+  private aimPower(sx: number, sy: number): void {
+    const id = this.armedPower!;
+    const g = this.cam.screenToGrid(sx, sy);
+    if (g.x < 0 || g.y < 0 || g.x >= this.world.map.w || g.y >= this.world.map.h) return;
+    const aim = this.powerAim;
+    if (aim && Math.hypot(g.x - aim.x, g.y - aim.y) <= POWERS[id].radius) {
+      this.castAt(id, aim);
+      return;
+    }
+    this.powerAim = g;
+    this.sfx.play('order');
+  }
+
+  /** Lance un pouvoir du joueur en un point (grille). */
+  castAt(id: PowerId, at: Vec2): PowerResult {
+    const r = castPower(this.world, this.playerTeam, id, at.x, at.y);
+    this.armedPower = null;
+    this.powerAim = null;
+    if (r !== 'ok') this.sfx.play('deny');
+    else this.hooks.onAction?.({ kind: 'power', id });
+    this.hooks.onHud(this.world, this.selected.size);
+    return r;
+  }
+
+  /** Le joueur achète le pion d'un de ses camps. */
+  buyCampPion(camp: Tile): PionResult {
+    if (this.over) return 'pas-ton-camp';
+    const r = buyPion(this.world, this.playerTeam, camp);
+    this.sfx.play(r === 'ok' ? 'upgrade' : 'deny');
+    if (r === 'ok') this.hooks.onAction?.({ kind: 'pion' });
+    this.hooks.onHud(this.world, this.selected.size);
+    return r;
+  }
+
   /** Le joueur choisit la classe d'élèves que produit l'un de ses camps. */
   setCampProduce(camp: Tile, cls: UnitClass): ProduceResult {
     if (this.over) return 'pas-ton-camp';
@@ -503,7 +589,7 @@ export class Game {
     const z = this.cam.zoom;
     this.selected.clear();
     for (const u of this.world.units) {
-      if (u.team !== this.playerTeam || !u.alive) continue;
+      if (u.team !== this.playerTeam || !u.alive || u.pion) continue;
       const p = this.cam.gridToScreen(u.x, u.y);
       const cy = p.y - 26 * z;
       if (p.x >= xa - 6 && p.x <= xb + 6 && cy >= ya - 10 && cy <= yb + 10) this.selected.add(u.id);
@@ -515,7 +601,7 @@ export class Game {
 
   selectAll(): void {
     this.selected.clear();
-    for (const u of this.world.units) if (u.team === this.playerTeam && u.alive) this.selected.add(u.id);
+    for (const u of this.world.units) if (u.team === this.playerTeam && u.alive && !u.pion) this.selected.add(u.id);
     if (this.selected.size) this.sfx.play('select');
     this.hooks.onHud(this.world, this.selected.size);
   }
@@ -608,7 +694,7 @@ export class Game {
 
   private isMine = (id: number): boolean => {
     const u = this.world.unitById(id);
-    return !!u && u.alive && u.team === this.playerTeam;
+    return !!u && u.alive && u.team === this.playerTeam && !u.pion;
   };
 
   private setSelection(ids: Iterable<number>): void {
@@ -669,7 +755,7 @@ export class Game {
   selectVisible(): void {
     const ids: number[] = [];
     for (const u of this.world.units) {
-      if (u.team !== this.playerTeam || !u.alive) continue;
+      if (u.team !== this.playerTeam || !u.alive || u.pion) continue;
       const p = this.cam.gridToScreen(u.x, u.y);
       if (onScreen({ x: p.x, y: p.y - 20 * this.cam.zoom }, this.cam.viewW, this.cam.viewH)) ids.push(u.id);
     }
@@ -708,6 +794,7 @@ export class Game {
   private longPress(sx: number, sy: number): void {
     this.box = null;
     if (this.paused || this.over) return;
+    if (this.armedPower) return this.aimPower(sx, sy);
     const hit = this.unitAt(sx, sy);
     const g = this.cam.screenToGrid(sx, sy);
     const onMap = g.x >= 0 && g.y >= 0 && g.x < this.world.map.w && g.y < this.world.map.h;

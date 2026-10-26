@@ -3,10 +3,12 @@
 // raisonnés ; en Difficile, achats rapides qui suivent la situation (camp menacé → Défense).
 import { CLASSES, classCount, classUnlocked, type UnitClass } from './classes';
 import { meritsOf } from './merits';
+import { buyPion, PION } from './pion';
+import { bestPowerSpot, castPower, POWER_IDS, POWERS, powerCooldown, type PowerId } from './powers';
 import { Rng } from './rng';
 import type { Tile } from './tile';
 import { NO_TEAM, type Difficulty } from './types';
-import { buyUpgrade, MAX_UPGRADE_LEVEL, upgradeCost, UPGRADE_BRANCHES, type UpgradeBranch } from './upgrades';
+import { buyUpgrade, MAX_UPGRADE_LEVEL, totalUpgrades, upgradeCost, UPGRADE_BRANCHES, type UpgradeBranch } from './upgrades';
 import type { World } from './world';
 
 export interface EconomyProfile {
@@ -22,12 +24,22 @@ export interface EconomyProfile {
   classes: 'rare' | 'mix';
   /** Solde minimal pour produire une classe payante (le reste sert aux améliorations). */
   classReserve: number;
+  /**
+   * Pouvoirs de récré : nombre d'élèves touchés à partir duquel l'IA lance chaque pouvoir
+   * (null : jamais, en Facile).
+   */
+  powers: Record<PowerId, number> | null;
+  /** Achat du pion : solde minimal (au-delà du prix) pour un camp tranquille, et pour un camp menacé. */
+  pionSpare: number;
+  pionSpareThreat: number;
+  /** L'IA met de côté pour un pion quand un camp sans pion totalise ce nombre de niveaux d'amélioration. */
+  pionAfter: number;
 }
 
 export const ECONOMY_PROFILES: Record<Difficulty, EconomyProfile> = {
-  facile: { interval: 9, maxLevel: 2, margin: 1.5, smart: false, classes: 'rare', classReserve: 60 },
-  normal: { interval: 4, maxLevel: 3, margin: 1, smart: true, classes: 'mix', classReserve: 15 },
-  difficile: { interval: 2, maxLevel: 3, margin: 1, smart: true, classes: 'mix', classReserve: 10 },
+  facile: { interval: 9, maxLevel: 2, margin: 1.5, smart: false, classes: 'rare', classReserve: 60, powers: null, pionSpare: 120, pionSpareThreat: 120, pionAfter: 8 },
+  normal: { interval: 4, maxLevel: 3, margin: 1, smart: true, classes: 'mix', classReserve: 15, powers: { sonnerie: 6, neige: 5, gouter: 4 }, pionSpare: 30, pionSpareThreat: 0, pionAfter: 5 },
+  difficile: { interval: 2, maxLevel: 3, margin: 1, smart: true, classes: 'mix', classReserve: 10, powers: { sonnerie: 5, neige: 4, gouter: 3 }, pionSpare: 10, pionSpareThreat: 0, pionAfter: 4 },
 };
 
 /** Mélange visé des classes (parts de l'armée) ; voir chooseClass. Mutables pour les essais d'équilibrage. */
@@ -69,7 +81,11 @@ export class EconomyAi {
     const w = this.world;
     const camps = w.tiles.filter((t) => t.isCamp && t.owner === this.team);
     if (camps.length === 0) return;
-    const pick = this.profile.smart ? this.bestUpgrade(camps) : this.randomUpgrade(camps);
+    if (this.usePowers()) return;
+    if (this.buyPionIfUseful(camps)) return;
+    // Épargne pour un pion : un camp bien amélioré mérite d'être gardé ; plus d'achat d'amélioration en attendant.
+    const saving = this.allowPion && camps.some((c) => !c.pionBought && totalUpgrades(c) >= this.profile.pionAfter);
+    const pick = saving ? null : this.profile.smart ? this.bestUpgrade(camps) : this.randomUpgrade(camps);
     if (pick) {
       const cost = upgradeCost(pick.camp, pick.branch);
       if (cost !== null && meritsOf(w, this.team) >= cost * this.profile.margin) buyUpgrade(w, this.team, pick.camp, pick.branch);
@@ -79,6 +95,54 @@ export class EconomyAi {
       camp.produce = f === null ? this.chooseClass(camp) : f === 'aucune' || !classUnlocked(camp, f) ? 'eleve' : f;
     }
   }
+
+  /** Pouvoirs : au plus un lancé par réflexion, là où il touche assez d'élèves. */
+  usePowers(): boolean {
+    const w = this.world;
+    const th = this.profile.powers;
+    if (!th || !this.allowPowers) return false;
+    for (const id of POWER_IDS) {
+      if (powerCooldown(w, this.team, id) > 0 || meritsOf(w, this.team) < POWERS[id].cost) continue;
+      const spot = bestPowerSpot(w, this.team, id);
+      if (!spot || spot.score < th[id]) continue;
+      // Sonnerie : seulement si des élèves de l'IA sont là pour en profiter.
+      if (id === 'sonnerie') {
+        let own = 0;
+        w.hash.query(spot.x, spot.y, POWERS.sonnerie.radius + 2, (u) => {
+          if (u.alive && u.team === this.team && !u.pion) own++;
+        });
+        if (own < 3) continue;
+      }
+      if (castPower(w, this.team, id, spot.x, spot.y) === 'ok') return true;
+    }
+    return false;
+  }
+
+  /** Pion : acheté pour le camp le plus menacé (ou le camp principal quand l'IA est riche). */
+  buyPionIfUseful(camps: Tile[]): boolean {
+    if (!this.allowPion) return false;
+    const w = this.world;
+    const points = meritsOf(w, this.team);
+    let best: Tile | null = null;
+    let bestThreat = -1;
+    for (const c of camps) {
+      if (c.pionBought) continue;
+      const t = this.threat(c);
+      if (t > bestThreat) {
+        bestThreat = t;
+        best = c;
+      }
+    }
+    if (!best) return false;
+    const saved = totalUpgrades(best) >= this.profile.pionAfter;
+    const spare = bestThreat >= 1 || saved ? this.profile.pionSpareThreat : this.profile.pionSpare;
+    if (points < PION.cost + spare) return false;
+    return buyPion(w, this.team, best) === 'ok';
+  }
+
+  /** Outils d'équilibrage : pouvoirs et pion autorisés. */
+  allowPowers = true;
+  allowPion = true;
 
   /**
    * Classe à produire dans un camp (débloquée au niveau 2 de Production). Mélange raisonné :
@@ -94,7 +158,7 @@ export class EconomyAi {
     if (points < this.profile.classReserve) return 'eleve';
     if (this.profile.classes === 'rare') return this.rng.next() < 0.5 ? 'costaud' : 'eleve';
     let n = 0;
-    for (const u of w.units) if (u.team === this.team && u.alive) n++;
+    for (const u of w.units) if (u.team === this.team && u.alive && !u.pion) n++;
     const bonus = w.tiles.filter((t) => t.kind === 'bonus');
     const free = bonus.filter((t) => t.owner === NO_TEAM).length / Math.max(1, bonus.length);
     const threat = this.threat(camp);

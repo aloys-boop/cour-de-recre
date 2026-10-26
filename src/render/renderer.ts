@@ -9,7 +9,9 @@ import { drawGhostCamp } from './ghost';
 import { drawThroneTile } from './king';
 import { buildSheet, FEET_Y, FRAME_H, FRAME_W, frameFor, type SheetCanvas } from './sprites';
 import { drawSuit } from './suits';
-import { drawSupervisor, drawSupervisorBar, lazySupervisorSheet, pushSupervisorItems } from './supervisors';
+import { buildPionSheet, drawSupervisor, drawSupervisorBar, lazySupervisorSheet, pionFrame, pushSupervisorItems } from './supervisors';
+import { drawFrozenMark } from './powers';
+import { SUPERVISOR_SCALE } from '../core/supervisors';
 import type { Supervisor } from '../core/supervisors';
 import { CHARGE_COLOR, drawHealHeart, drawRallies, drawSpadeAura, spadeAuraTeams } from './tactics';
 import { tileView, unitVisible, pointVisible } from '../core/fog';
@@ -299,13 +301,15 @@ export class Renderer {
         ctx.ellipse(p.x, p.y, 15 * z, 7.5 * z, 0, 0, Math.PI * 2);
         ctx.stroke();
       }
-      this.drawSprite(u, world.teamColors[u.team], p, z * CLASS_SCALE[u.cls]);
+      if (u.pion) this.drawPion(u, world.teamColors[u.team], p, z);
+      else this.drawSprite(u, world.teamColors[u.team], p, z * CLASS_SCALE[u.cls]);
+      if (u.alive && u.frozenUntil > world.time) drawFrozenMark(ctx, u, p, z, world.time);
       // Barre de vie : fine ligne verte au-dessus de la tête.
       if (u.alive) {
-        const bw = 22 * z;
+        const bw = (u.pion ? 40 : 22) * z;
         const bh = Math.max(2, 2.5 * z);
         const bx = p.x - bw / 2;
-        const by = p.y - (FEET_Y + 6) * z * CLASS_SCALE[u.cls];
+        const by = p.y - (FEET_Y + 6) * z * (u.pion ? SUPERVISOR_SCALE : CLASS_SCALE[u.cls]);
         const ally = u.team !== playerTeam && world.isAllied(u.team, playerTeam);
         // Allié du joueur : cadre bleuté autour de la barre et petit losange à gauche.
         ctx.fillStyle = ally ? 'rgba(40,120,200,0.85)' : 'rgba(0,0,0,0.5)';
@@ -351,6 +355,22 @@ export class Renderer {
       this.classSheets.set(key, s);
     }
     return s;
+  }
+
+  private pionSheets = new Map<number, SheetCanvas>();
+
+  /** Pion : l'adulte des surveillants, en blouse aux couleurs de l'équipe, 1,45 fois plus grand. */
+  private drawPion(u: Unit, color: number, p: Vec2, z: number): void {
+    let sheet = this.pionSheets.get(color);
+    if (!sheet) {
+      sheet = buildPionSheet(this.makeCanvas, TEAM_COLORS[color]);
+      this.pionSheets.set(color, sheet);
+    }
+    const k = SUPERVISOR_SCALE * z;
+    const dw = FRAME_W * k;
+    const dh = FRAME_H * k;
+    const frame = pionFrame(u.anim, u.animTime);
+    this.ctx.drawImage(sheet as CanvasImageSource, frame * FRAME_W, u.dir * FRAME_H, FRAME_W, FRAME_H, Math.round(p.x - dw / 2), Math.round(p.y - FEET_Y * k), dw, dh);
   }
 
   private drawSprite(u: Unit, color: number, p: Vec2, z: number): void {

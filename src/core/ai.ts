@@ -64,7 +64,7 @@ export class TeamAi {
 
   private think(): void {
     const w = this.world;
-    const mine = w.units.filter((u) => u.team === this.team && u.alive && u.aiTag !== TAG_LOANED);
+    const mine = w.units.filter((u) => u.team === this.team && u.alive && !u.pion && u.aiTag !== TAG_LOANED);
     if (mine.length === 0) return;
     for (const u of mine) if (u.order.kind === 'none' && u.aiTag !== TAG_RALLY) u.aiTag = TAG_FREE;
 

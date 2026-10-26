@@ -59,3 +59,32 @@ writeFileSync(`${OUT}/camp.png`, cv.toBuffer('image/png'));
   r2.draw(w2, cam2, { selected: new Set(), markers: [], box: null, playerTeam: 0, time: 1 });
   writeFileSync(`${OUT}/classes-scene.png`, cv2.toBuffer('image/png'));
 }
+
+// Pouvoirs et pion : zone visée, élèves figés, boules de neige en vol, pion devant son camp.
+{
+  const { castPower } = await import('../../src/core/powers');
+  const { awardMerit } = await import('../../src/core/merits');
+  const { buyPion } = await import('../../src/core/pion');
+  const { PowerEffects, drawPowerAim } = await import('../../src/render/powers');
+  const w3 = new World(map, 4, 11, [2, 0, 1, 3]);
+  const camp = w3.camps[0];
+  awardMerit(w3, 0, 500, 0, 0, 'hold');
+  buyPion(w3, 0, camp);
+  for (let i = 0; i < 8; i++) w3.spawnUnit(1, camp.cx + 3 + (i % 4) * 0.5, camp.cy - 1 + Math.floor(i / 4) * 0.6, false);
+  for (let i = 0; i < 4; i++) w3.spawnUnit(0, camp.cx + 2.2, camp.cy - 1.2 + i * 0.5, false);
+  w3.update(1 / 60);
+  castPower(w3, 0, 'sonnerie', camp.cx + 3.6, camp.cy - 0.7);
+  const fx = new PowerEffects();
+  fx.add('neige', camp.cx + 4, camp.cy + 2, 1.8, 0, () => 0.37);
+  fx.update(0.35);
+  for (let i = 0; i < 10; i++) w3.update(1 / 60);
+  const cv3 = createCanvas(1170, 540);
+  const ctx3 = cv3.getContext('2d') as unknown as CanvasRenderingContext2D;
+  const r3 = new Renderer(ctx3, make);
+  const cam3 = new Camera(); cam3.setMap(map.w, map.h); cam3.setView(585, 270); cam3.fit(); cam3.zoom *= 1.5; cam3.centerOnGrid(camp.cx + 2.5, camp.cy);
+  ctx3.setTransform(2, 0, 0, 2, 0, 0);
+  r3.draw(w3, cam3, { selected: new Set(), markers: [], box: null, playerTeam: 0, time: 1 });
+  drawPowerAim(ctx3, cam3, w3, 'gouter', { x: camp.cx + 2.2, y: camp.cy - 0.5 }, 0, 1, false);
+  fx.draw(ctx3, cam3);
+  writeFileSync(`${OUT}/powers.png`, cv3.toBuffer('image/png'));
+}
