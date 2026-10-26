@@ -20,6 +20,8 @@ import { CampPanel } from './ui/camp-panel';
 import { ClassSection } from './ui/class-section';
 import { PionSection } from './ui/pion-section';
 import { PowersHud } from './ui/powers-hud';
+import { TutorialUi } from './ui/tutorial-ui';
+import { TUTORIAL_MAP } from './core/tutorial';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const minimapCanvas = document.getElementById('minimap') as HTMLCanvasElement;
@@ -82,6 +84,7 @@ const campPanel = new CampPanel(hudRoot, () => game, (text, ms) => hud.showHint(
 campPanel.addSection(new ClassSection((text, ms) => hud.showHint(text, ms)));
 campPanel.addSection(new PionSection((text, ms) => hud.showHint(text, ms)));
 const powersHud = new PowersHud(hudRoot, () => game, (text, ms) => hud.showHint(text, ms));
+const tutorialUi = new TutorialUi(hudRoot, () => skipTutorial());
 
 const menu = new Menu(menuRoot, progress, {
   onPlay: (state) => startGame(state),
@@ -95,12 +98,14 @@ const menu = new Menu(menuRoot, progress, {
     return !!progress.musicMuted;
   },
   onInstallHelp: () => overlay.installHelp(() => overlay.hide()),
+  onHowTo: () => overlay.howTo(() => overlay.hide()),
 });
 
 function startGame(state: MenuState): void {
   sfx.unlock();
   progress = { ...progress, lastTeam: state.team, lastDifficulty: state.difficulty };
   saveProgress(progress);
+  if (state.mode === 'campagne' && state.tutorial && !state.code) return startTutorial();
   const code: MapCode = state.code ?? {
     spec: state.mode === 'escarmouche' ? { kind: 'escarmouche', ...state.skirmish } : { kind: 'campagne', level: state.mapIndex },
     seed: randomSeed(),
@@ -114,11 +119,27 @@ function play(code: MapCode, o: Pick<GameOptions, 'playerColor' | 'difficulty' |
   launch({ map: mapWithRules(code, o.rules), mapIndex, playerColor: o.playerColor, difficulty: o.difficulty, seed: code.seed, rules: code.spec.kind === 'escarmouche' ? o.rules : undefined }, code);
 }
 
+/** Lance le tutoriel (carte fixe, IA passive, étapes guidées). */
+function startTutorial(): void {
+  sfx.unlock();
+  progress = { ...progress, tutorialSeen: true };
+  saveProgress(progress);
+  launch({ map: TUTORIAL_MAP, mapIndex: -1, playerColor: progress.lastTeam, difficulty: 'facile', seed: 1, tutorial: true }, null);
+}
+
+/** « Passer » : fin du tutoriel, retour au menu. */
+function skipTutorial(): void {
+  if (!game?.tutorial) return;
+  game.tutorial.skip();
+  backToMenu();
+}
+
 let tipTimer = 0;
 
-function launch(opts: GameOptions, code: MapCode): void {
-  const codeText = encodeMapCode(code);
-  const campaign = code.spec.kind === 'campagne';
+function launch(opts: GameOptions, code: MapCode | null): void {
+  const codeText = code ? encodeMapCode(code) : '';
+  const campaign = code?.spec.kind === 'campagne';
+  const tutorial = !!opts.tutorial;
   game?.destroy();
   overlay.hide();
   menu.hide();
@@ -126,24 +147,55 @@ function launch(opts: GameOptions, code: MapCode): void {
   game = new Game(canvas, minimapCanvas, sfx, opts, {
     onHud: (world, selected) => (hud.update(world, selected, 0), kingHud.update(world, 0), campPanel.refresh(), powersHud.refresh()),
     onCampTap: (camp) => campPanel.open(camp),
+    onFrame: () => tutorialUi.refresh(),
+    onTutorial: (ev) => {
+      if (ev.kind === 'step') {
+        sfx.play('upgrade');
+        // Le panneau du camp se referme une fois l'amélioration faite.
+        if (game?.tutorial?.step.id === 'power') campPanel.close();
+      }
+    },
     onRally: (cleared) =>
       hud.showHint(cleared ? 'Point de ralliement effacé.' : 'Point de ralliement posé : les nouveaux élèves de ce camp iront au drapeau.', 2400),
     onAnnounce: (text) => hud.showHint(text, 2600),
     onPauseChange: (paused) => {
       if (paused) {
-        overlay.pause(
-          () => {
-            overlay.hide();
-            game?.setPaused(false);
-          },
-          () => backToMenu(),
-          [codeBlock(codeText)],
-        );
+        const showPause = (): void =>
+          overlay.pause(
+            () => {
+              overlay.hide();
+              game?.setPaused(false);
+            },
+            () => backToMenu(),
+            code ? [codeBlock(codeText)] : [],
+            () => overlay.howTo(showPause),
+          );
+        showPause();
       } else overlay.hide();
     },
     onEnd: (result, o) => {
       const win = result === 'victoire';
       const extras: HTMLElement[] = [];
+      tutorialUi.hide();
+      if (tutorial) {
+        if (win) {
+          progress = { ...progress, tutorialSeen: true, tutorialDone: true };
+          saveProgress(progress);
+          menu.setProgress(progress);
+        }
+        hud.closeDiplomacy();
+        overlay.end(win, o.map.name, {
+          nextAvailable: false,
+          stats: game ? endStats(game.stats, game.world, game.playerTeam) : undefined,
+          onReplay: () => startTutorial(),
+          onNext: () => undefined,
+          onMenu: () => backToMenu(),
+          winTitle: 'Tutoriel réussi !',
+          winText: 'Bravo, tu connais les bases. La campagne t’attend !',
+          loseText: 'Pas grave : rejoue le tutoriel pour réessayer.',
+        });
+        return;
+      }
       // Les victoires d'escarmouche ne débloquent pas la campagne et ne donnent pas de médailles.
       if (win && campaign) {
         progress = recordWin(progress, o.map.id, o.mapIndex, LEVELS.length);
@@ -156,7 +208,7 @@ function launch(opts: GameOptions, code: MapCode): void {
       }
       const king = game ? kingEnd(game.world, game.playerTeam) : null;
       if (king) extras.push(king.block);
-      extras.push(codeBlock(codeText, () => play(code, o)));
+      if (code) extras.push(codeBlock(codeText, () => play(code, o)));
       const nextAvailable = win && campaign && o.mapIndex + 1 < LEVELS.length;
       // Victoire partagée : l'alliance gagne ensemble (couleurs des alliés sur l'écran de fin).
       const victors = game?.victors ?? [];
@@ -167,7 +219,7 @@ function launch(opts: GameOptions, code: MapCode): void {
         nextAvailable,
         stats: game ? endStats(game.stats, game.world, game.playerTeam) : undefined,
         // Rejouer et carte suivante : nouvelle disposition tirée au sort.
-        onReplay: () => play({ spec: code.spec, seed: randomSeed() }, o),
+        onReplay: () => (code ? play({ spec: code.spec, seed: randomSeed() }, o) : backToMenu()),
         onNext: () => play({ spec: { kind: 'campagne', level: o.mapIndex + 1 }, seed: randomSeed() }, o),
         onMenu: () => backToMenu(),
         winText: campaign ? undefined : king?.winText ?? 'L’escarmouche est à toi !',
@@ -182,11 +234,15 @@ function launch(opts: GameOptions, code: MapCode): void {
   kingHud.update(game.world, 0);
   campPanel.refresh();
   tactics.set(game.charge);
-  hud.showHint('Touche un élève puis le sol pour le déplacer (il fuit sans se battre) ; touche un ennemi pour attaquer.', 4200);
+  if (tutorial) tutorialUi.show(game);
+  else {
+    tutorialUi.hide();
+    hud.showHint('Touche un élève puis le sol pour le déplacer (il fuit sans se battre) ; touche un ennemi pour attaquer.', 4200);
+  }
   // Puis, à partir de 3 équipes, un mot sur la diplomatie.
   clearTimeout(tipTimer);
   const g = game;
-  if (opts.map.teams >= 3)
+  if (opts.map.teams >= 3 && !tutorial)
     tipTimer = window.setTimeout(() => {
       if (game === g && !g.over && !g.paused) hud.showHint('Touche la puce d’une équipe, en haut, pour lui proposer une alliance.', 3600);
     }, 4600);
@@ -195,6 +251,7 @@ function launch(opts: GameOptions, code: MapCode): void {
 
 function backToMenu(): void {
   campPanel.close();
+  tutorialUi.hide();
   game?.destroy();
   game = null;
   overlay.hide();
@@ -235,6 +292,18 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 }
 
 menu.show();
+
+// Premier lancement : on propose le tutoriel (une seule fois ; il reste dans le menu).
+if (!progress.tutorialSeen) {
+  overlay.welcome(
+    () => startTutorial(),
+    () => {
+      progress = { ...progress, tutorialSeen: true };
+      saveProgress(progress);
+      overlay.hide();
+    },
+  );
+}
 
 /** Accès à la partie en cours (tests d'intégration). */
 export function __game(): Game | null {

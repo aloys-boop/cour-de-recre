@@ -1,7 +1,7 @@
 {
   "name": "cour-de-recre",
   "private": true,
-  "version": "1.0.0",
+  "version": "3.5.0",
   "description": "Jeu de stratégie en temps réel isométrique, remake personnel et non commercial. Interface en français, pensé pour iPhone.",
   "type": "module",
   "scripts": {

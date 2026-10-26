@@ -107,10 +107,12 @@ export class CampPanel {
 
   private buy(branch: UpgradeBranch): void {
     const g = this.getGame();
-    if (!g || !this.camp) return;
-    const r = g.upgradeCamp(this.camp, branch);
-    if (r === 'pas-assez') this.hint(`Pas assez de bons points : il en faut ${upgradeCost(this.camp, branch)}.`, 2200);
-    else if (r === 'ok') this.hint(`${UPGRADES[branch].label} : niveau ${this.camp.upgrades[branch]} !`, 1800);
+    const camp = this.camp;
+    if (!g || !camp) return;
+    // L'achat peut refermer le panneau (tutoriel) : on garde le camp sous la main.
+    const r = g.upgradeCamp(camp, branch);
+    if (r === 'pas-assez') this.hint(`Pas assez de bons points : il en faut ${upgradeCost(camp, branch)}.`, 2200);
+    else if (r === 'ok') this.hint(`${UPGRADES[branch].label} : niveau ${camp.upgrades[branch]} !`, 1800);
     this.refresh();
   }
 

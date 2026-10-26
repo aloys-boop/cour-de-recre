@@ -19,6 +19,8 @@ export interface MenuState {
   rules: GameRules;
   /** Code de carte saisi : il prime sur le mode et la carte choisis. */
   code?: MapCode;
+  /** Campagne : le tutoriel est choisi (en tête de la liste des cartes). */
+  tutorial?: boolean;
 }
 
 export interface MenuHooks {
@@ -26,6 +28,8 @@ export interface MenuHooks {
   onToggleSound(): boolean; // retourne le nouvel état « coupé »
   onToggleMusic?(): boolean; // retourne le nouvel état « musique coupée »
   onInstallHelp(): void;
+  /** Écran « Comment jouer ». */
+  onHowTo?(): void;
 }
 
 const DIFFS: Array<{ id: Difficulty; label: string }> = [
@@ -160,10 +164,24 @@ export class Menu {
     skirPane.append(skirmishPanel(this.state.skirmish), rulesPanel(this.state.rules));
     const list = el('div', 'map-list');
     const mapBtns: HTMLButtonElement[] = [];
+    // Tutoriel, en tête de campagne : toujours disponible, rejouable.
+    const tuto = document.createElement('button');
+    tuto.className = 'tuto-btn' + (this.state.tutorial ? ' active' : '');
+    const tl = document.createElement('span');
+    tl.textContent = 'Tutoriel';
+    const tr = document.createElement('small');
+    tr.textContent = this.progress.tutorialDone ? 'Terminé ✓ · rejouable' : '11 étapes guidées · 11×11';
+    tuto.append(tl, tr);
+    tuto.addEventListener('click', () => {
+      this.state.tutorial = true;
+      tuto.classList.add('active');
+      mapBtns.forEach((x) => x.classList.remove('active'));
+    });
+    campPane.append(tuto);
     LEVELS.forEach((m, i) => {
       const locked = i >= this.progress.unlocked;
       const b = document.createElement('button');
-      b.className = 'map-btn' + (this.state.mapIndex === i ? ' active' : '') + (locked ? ' locked' : '');
+      b.className = 'map-btn' + (this.state.mapIndex === i && !this.state.tutorial ? ' active' : '') + (locked ? ' locked' : '');
       const wins = this.progress.wins[m.id] ?? 0;
       const left = document.createElement('span');
       left.textContent = `${i + 1}. ${m.name}`;
@@ -178,6 +196,8 @@ export class Menu {
       b.disabled = locked;
       b.addEventListener('click', () => {
         this.state.mapIndex = i;
+        this.state.tutorial = false;
+        tuto.classList.remove('active');
         mapBtns.forEach((x, j) => x.classList.toggle('active', j === i));
       });
       mapBtns.push(b);
@@ -244,6 +264,13 @@ export class Menu {
     setSoundLabel(this.progress.muted);
     sound.addEventListener('click', () => setSoundLabel(this.hooks.onToggleSound()));
     actions.append(codeWrap, play, sound, codeHint);
+    if (this.hooks.onHowTo) {
+      const how = document.createElement('button');
+      how.className = 'btn btn-secondary btn-howto';
+      how.textContent = 'Comment jouer';
+      how.addEventListener('click', () => this.hooks.onHowTo!());
+      actions.append(how);
+    }
     if (this.hooks.onToggleMusic) {
       const music = document.createElement('button');
       music.className = 'btn btn-secondary btn-music';

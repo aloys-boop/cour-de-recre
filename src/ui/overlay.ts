@@ -17,9 +17,44 @@ export class Overlay {
     this.root.classList.remove('hidden');
   }
 
-  pause(onResume: () => void, onQuit: () => void, extras: HTMLElement[] = []): void {
+  pause(onResume: () => void, onQuit: () => void, extras: HTMLElement[] = [], onHowTo?: () => void): void {
     const card = this.card('Pause', 'La partie est en pause.');
-    card.append(this.row([this.btn('Reprendre', onResume), this.btn('Quitter', onQuit, 'btn-danger')]), ...extras);
+    const buttons = [this.btn('Reprendre', onResume)];
+    if (onHowTo) buttons.push(this.btn('Comment jouer', onHowTo, 'btn-secondary btn-howto'));
+    buttons.push(this.btn('Quitter', onQuit, 'btn-danger'));
+    card.append(this.row(buttons), ...extras);
+    this.show(card);
+  }
+
+  /** Premier lancement : proposer le tutoriel. */
+  welcome(onTutorial: () => void, onLater: () => void): void {
+    const card = this.card('Bienvenue dans la cour !', 'Première fois ici ? Le tutoriel t’apprend à jouer en quelques minutes, en jouant pour de vrai.');
+    card.classList.add('welcome');
+    card.append(this.row([this.btn('Faire le tutoriel', onTutorial, 'btn-tuto'), this.btn('Plus tard', onLater, 'btn-secondary')]));
+    const note = document.createElement('p');
+    note.className = 'welcome-note';
+    note.textContent = 'Tu pourras le refaire à tout moment depuis le menu.';
+    card.append(note);
+    this.show(card);
+  }
+
+  /** Écran « Comment jouer » : les règles en bref, consultable depuis le menu et la pause. */
+  howTo(onClose: () => void): void {
+    const card = this.card('Comment jouer', '');
+    card.classList.add('howto');
+    card.querySelector('p')!.remove();
+    const body = document.createElement('div');
+    body.className = 'howto-body';
+    for (const [title, text] of HOW_TO) {
+      const sec = document.createElement('section');
+      const h = document.createElement('h3');
+      h.textContent = title;
+      const p = document.createElement('p');
+      p.textContent = text;
+      sec.append(h, p);
+      body.append(sec);
+    }
+    card.append(body, this.row([this.btn('Retour', onClose)]));
     this.show(card);
   }
 
@@ -154,3 +189,18 @@ function listFr(items: string[]): string {
   if (items.length <= 1) return items.join('');
   return `${items.slice(0, -1).join(', ')} et ${items[items.length - 1]}`;
 }
+
+/** Rubriques de l'écran « Comment jouer » (textes courts). */
+export const HOW_TO: ReadonlyArray<[string, string]> = [
+  ['Le but', 'Prends les cases et les camps des autres équipes. Tu gagnes quand tu es le dernier à avoir des élèves ou un camp, ou quand tu tiens tous les camps.'],
+  ['Sélectionner', 'Touche un élève : lui et ses voisins sont choisis. Appui long puis glisse : rectangle de sélection. Double-tap : tous tes élèves à l’écran.'],
+  ['Déplacer et attaquer', 'Touche le sol : tes élèves y courent sans se battre (mode Fuir). Touche un ennemi pour l’attaquer. Le bouton Fuir / Charger change le mode.'],
+  ['Cases et camps', 'Reste sur une case blanche pour la capturer : ♥ vie, ♠ dégâts, ♣ production, ♦ vitesse. Ton camp produit des élèves, 30 au plus.'],
+  ['Bons points ★', '+2 par ennemi mis KO, +10 par case prise, +25 par camp pris, +1 toutes les 10 s par case tenue.'],
+  ['Améliorer un camp', 'Sans sélection, touche ton camp (ou la pastille ★) : Production, Uniformes, Entraînement, Défense. Un camp perdu perd ses améliorations.'],
+  ['Classes', 'Production niveau 2 : choisis Costaud (solide), Sprinteur (rapide, capture vite) ou Infirmier (soigne). Chaque élève spécial coûte des bons points.'],
+  ['Pouvoirs', 'Boutons en bas : Sonnerie (fige les ennemis), Boules de neige (dégâts), Goûter (soins). Touche le bouton, vise, puis touche la zone.'],
+  ['Pion', 'Dans le panneau du camp : un surveillant à tes couleurs garde le camp et frappe les intrus. Il revient 60 s après un KO.'],
+  ['Caméra', 'Glisse un doigt pour bouger la vue, pince pour zoomer, touche la mini-carte pour y aller. Appui long sans sélection : point de ralliement.'],
+  ['Alliances', 'Touche la puce d’une équipe, en haut, pour lui proposer une alliance… ou la rompre.'],
+];

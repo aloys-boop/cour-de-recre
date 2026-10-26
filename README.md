@@ -4,6 +4,11 @@ Jeu de stratégie en temps réel isométrique, jouable au doigt sur iPhone (Safa
 
 De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Rouge, Bleu, Orange, Rose) se disputent les cases d'une cour de récréation. Tu diriges l'une d'elles, les autres (jusqu'à sept) sont contrôlées par l'ordinateur, toutes sur le même téléphone, sans réseau. En cours de partie, les équipes peuvent s'allier… et se trahir.
 
+## Tutoriel et « Comment jouer »
+
+- **Tutoriel.** Proposé automatiquement au premier lancement (« Faire le tutoriel » ou « Plus tard »), puis rejouable à tout moment : il est en tête de l'onglet « Campagne » du menu. Petite cour de 11 × 11 contre les Verts, IA passive (ses élèves restent chez eux et ne sont pas produits) jusqu'à la dernière étape, où elle se réveille en Facile avec des coups adoucis. Onze étapes guidées par une bulle de texte et une main animée qui montre où toucher ; chacune n'avance que sur l'action réelle du joueur : sélectionner un élève, sélection rectangle, déplacer, capturer une case, attaquer (deux Verts approchent), poser un point de ralliement, bouger la caméra (glisser, pincer ou mini-carte), gagner des bons points en prenant une case, améliorer le camp, utiliser un pouvoir (le Goûter), gagner la partie en prenant le camp vert. Le directeur complète au besoin les bons points pour essayer l'amélioration et le pouvoir. Le bouton « Passer » reste toujours visible et ramène au menu. Le tutoriel ne fait pas partie de la liste des niveaux : les codes de carte et la progression de la campagne sont inchangés.
+- **Comment jouer.** Les règles en onze rubriques courtes (but, sélection, déplacement et attaque, cases et camps, bons points, améliorations, classes, pouvoirs, pion, caméra, alliances), depuis le bouton « Comment jouer » du menu et du menu pause.
+
 ## Règles du jeu
 
 - **Les camps.** Chaque équipe part d'un camp (grande zone colorée dans un coin de la cour ; à partir de 5 équipes, aussi au milieu des bords). Le camp produit régulièrement un nouvel élève, dans la limite de **30 élèves par équipe**, sur toutes les cartes et quel que soit le nombre d'équipes (jusqu'à 240 élèves à 8 équipes).
@@ -202,6 +207,17 @@ Pour tester sur un iPhone pendant le développement, lance `npm run dev` et ouvr
 
 Le dépôt contient un workflow GitHub Actions (`.github/workflows/deploy.yml`) qui teste, construit et publie `dist/` sur GitHub Pages à chaque push sur `main`. Dans les réglages du dépôt, « Pages » doit être configuré sur la source **GitHub Actions**. Les chemins du build sont relatifs, le jeu fonctionne donc sous n'importe quel préfixe d'URL.
 
+## Versions
+
+| Version | Contenu |
+| --- | --- |
+| `v2-avant-bons-points` | état du jeu avant cette refonte (point de retour) |
+| `v3.1` | plafond de 30 élèves par équipe, optimisations pour 240 élèves |
+| `v3.2` | bons points et améliorations de camp |
+| `v3.3` | classes d'élèves |
+| `v3.4` | pouvoirs de récré et pion |
+| `v3.5` | tutoriel et « Comment jouer » |
+
 ## Architecture
 
 ```
@@ -233,6 +249,7 @@ src/
     classes.ts         classes d'élèves : Costaud, Sprinteur, Infirmier
     powers.ts          pouvoirs de récré : Sonnerie, Boules de neige, Goûter
     pion.ts            pion : surveillant d'équipe qui garde un camp
+    tutorial.ts        tutoriel : carte, étapes, validation par les actions du joueur
   render/              rendu canvas 2D
     sprites.ts         élèves dessinés pixel par pixel : 8 directions, marche, coup, KO, silhouettes des classes
     suits.ts           symboles de cartes en vectoriel
@@ -244,14 +261,15 @@ src/
     powers.ts          aperçu de la zone visée, effets des pouvoirs, élèves figés
   input/touch.ts       gestes tactiles et souris
   audio/sfx.ts         sons synthétisés (Web Audio)
-  ui/                  menu, HUD, fenêtres (pause, fin, installation)
+  ui/                  menu, HUD, fenêtres (pause, fin, installation, accueil, « Comment jouer »)
     camp-panel.ts      pastille des bons points et panneau d'amélioration d'un camp
     class-section.ts   rubrique « Ce camp produit » (classes d'élèves)
     pion-section.ts    rubrique « Pion » du panneau du camp
     powers-hud.ts      boutons des pouvoirs de récré
+    tutorial-ui.ts     bulle, main animée et bouton « Passer » du tutoriel
 public/
   manifest.webmanifest, sw.js, icons/
-tests/                 capture, combat, victoire, alliances, pathfinding, test d'intégration jsdom
+tests/                 capture, combat, victoire, alliances, pathfinding, bons points, classes, pouvoirs, pion, tutoriel, tests d'intégration jsdom
 scripts/dev/           outils de développement (lancés avec `npx tsx`)
   balance.ts           équilibrage IA contre IA (modes 4, 4mix, 8, 8d)
   perf8.ts             temps de simulation à 8 équipes

@@ -14,6 +14,10 @@ export interface Progress {
   musicMuted?: boolean;
   /** Médailles de campagne par niveau (facultatif : absent des anciennes sauvegardes). */
   medals?: MedalMap;
+  /** Le tutoriel a été proposé au premier lancement (accepté ou non). */
+  tutorialSeen?: boolean;
+  /** Le tutoriel a été terminé (victoire). */
+  tutorialDone?: boolean;
 }
 
 const DEFAULT: Progress = { unlocked: 1, wins: {}, muted: false, lastTeam: 0, lastDifficulty: 'normal', musicMuted: false };
@@ -48,6 +52,8 @@ export function loadProgress(store: StorageLike | null = storage()): Progress {
         : 'normal',
       musicMuted: !!parsed.musicMuted,
       medals: sanitizeMedals(parsed.medals),
+      tutorialSeen: !!parsed.tutorialSeen,
+      tutorialDone: !!parsed.tutorialDone,
     };
   } catch {
     return { ...DEFAULT, wins: {} };

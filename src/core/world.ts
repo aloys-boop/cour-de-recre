@@ -73,6 +73,8 @@ export class World {
   teamColors: number[] = Array.from({ length: MAX_TEAMS }, (_, i) => i);
   /** Règles optionnelles de la partie (escarmouche) ; voir rules.ts. */
   rules: GameRules = { ...DEFAULT_RULES };
+  /** Rythme de production par équipe (1 : normal, 0 : à l'arrêt ; tutoriel). */
+  productionScale: number[] = new Array<number>(MAX_TEAMS).fill(1);
   /** Multiplicateur de dégâts par équipe (handicap / bonus des IA selon la difficulté). */
   damageScale: number[] = new Array<number>(MAX_TEAMS).fill(1);
   /** Alliances en cours : `allied[a][b]` (symétrique). Deux alliés ne se battent pas. */
@@ -650,8 +652,8 @@ export class World {
       }
 
       // Apparition : seuls les camps produisent, au rythme du profil et des bonus.
-      if (t.isCamp && t.owner !== NO_TEAM) {
-        t.spawnTimer += dt;
+      if (t.isCamp && t.owner !== NO_TEAM && (this.productionScale[t.owner] ?? 1) > 0) {
+        t.spawnTimer += dt * (this.productionScale[t.owner] ?? 1);
         const interval = this.map.spawnInterval / (this.mods[t.owner].prod * campProdMul(t));
         if (t.spawnTimer >= interval) {
           t.spawnTimer = 0;

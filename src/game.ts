@@ -33,6 +33,7 @@ import { buyPion, type PionResult } from './core/pion';
 import { meritsOf } from './core/merits';
 import { drawPowerAim, PowerEffects } from './render/powers';
 import type { Vec2 } from './core/types';
+import { TutorialState, type TutorialEvent } from './core/tutorial';
 
 export type GameResult = 'victoire' | 'defaite';
 
@@ -47,6 +48,8 @@ export interface GameOptions {
   seed?: number;
   /** Règles optionnelles (escarmouche). */
   rules?: GameRules;
+  /** Partie guidée du tutoriel (IA passive jusqu'à la dernière étape). */
+  tutorial?: boolean;
 }
 
 export interface GameHooks {
@@ -61,6 +64,10 @@ export interface GameHooks {
   onCampTap?(camp: Tile): void;
   /** Action du joueur, pour le tutoriel (sélection, ordre, achat…). */
   onAction?(action: PlayerAction): void;
+  /** Tutoriel : étape franchie ou tutoriel terminé. */
+  onTutorial?(ev: TutorialEvent): void;
+  /** Appelé après chaque image dessinée (bulle et main du tutoriel). */
+  onFrame?(): void;
 }
 
 /** Actions du joueur observées par le tutoriel. */
@@ -95,6 +102,8 @@ export class Game {
   private fx = new Effects();
   /** Gains de bons points du joueur (« +10 ★ » qui s'envolent). */
   private gains = new MeritPopups();
+  /** Tutoriel en cours (null hors tutoriel). */
+  readonly tutorial: TutorialState | null = null;
   /** Effets des pouvoirs lancés. */
   private powerFx = new PowerEffects();
   /** Pouvoir armé par le joueur (visée en cours) et point visé (aperçu de la zone). */
@@ -148,6 +157,11 @@ export class Game {
       seed,
     );
     this.extras = new DiplomacyExtras(this.world, this.diplomacy, this.playerTeam, seed);
+    if (opts.tutorial) {
+      this.tutorial = new TutorialState(this.world, this.playerTeam);
+      // Adversaire ménagé : il frappe moins fort.
+      for (let t = 1; t < this.world.numTeams; t++) this.world.damageScale[t] = 0.6;
+    }
 
     const ctx = canvas.getContext('2d', { alpha: false })!;
     this.renderer = new Renderer(ctx, (w, h) => {
@@ -171,6 +185,8 @@ export class Game {
       const cy = opts.map.h / 2;
       const f = startFocus({ x: home.cx, y: home.cy }, { x: cx, y: cy }, this.cam.zoom, this.cam.viewW, this.cam.viewH);
       this.cam.centerOnGrid(f.x, f.y);
+      // Tutoriel : la vue descend un peu pour laisser la bulle au-dessus des élèves.
+      if (opts.tutorial) this.cam.pan(0, 70);
     }
 
     this.input = new TouchInput(canvas, {
@@ -187,11 +203,11 @@ export class Game {
       },
       onPan: (dx, dy) => {
         this.cam.pan(dx, dy);
-        this.hooks.onAction?.({ kind: 'camera', how: 'pan' });
+        this.act({ kind: 'camera', how: 'pan' });
       },
       onPinch: (f, cx, cy) => {
         this.cam.zoomAt(f, cx, cy);
-        this.hooks.onAction?.({ kind: 'camera', how: 'zoom' });
+        this.act({ kind: 'camera', how: 'zoom' });
       },
       canArrowFrom: (x, y) => this.canArrowFrom(x, y),
       onArrowMove: (x0, y0, x1, y1) => this.arrowMove(x0, y0, x1, y1),
@@ -207,7 +223,7 @@ export class Game {
         const r = minimapCanvas.getBoundingClientRect();
         const g = this.minimap.toGrid(e.clientX - r.left, e.clientY - r.top);
         this.cam.centerOnGrid(g.x, g.y);
-        this.hooks.onAction?.({ kind: 'camera', how: 'minimap' });
+        this.act({ kind: 'camera', how: 'minimap' });
       },
       { signal: this.ac.signal },
     );
@@ -272,7 +288,8 @@ export class Game {
 
   private step(dt: number): void {
     const w = this.world;
-    for (const ai of this.ais) ai.update(dt);
+    // Tutoriel : l'IA adverse reste passive jusqu'à la dernière étape.
+    if (!this.tutorial || this.tutorial.aiActive) for (const ai of this.ais) ai.update(dt);
     w.update(dt);
     if (takeWhistles(w)) playWhistle(this.sfx);
     this.diplomacy.update(dt);
@@ -281,6 +298,7 @@ export class Game {
       const color = w.teamColors[ev.team];
       this.stats.record(ev);
       this.diplomacy.record(ev);
+      this.tutorial?.onWorldEvent(ev);
       if (!eventPerceived(w, this.playerTeam, ev)) continue; // brouillard : combat hors vue, ni son ni effet
       this.fx.onEvent(ev, this.cam);
       switch (ev.kind) {
@@ -330,6 +348,10 @@ export class Game {
       if (m) this.announce(m.text, m.important);
     }
     this.extras.update(dt);
+    if (this.tutorial) {
+      this.tutorial.update();
+      for (const ev of this.tutorial.drainEvents()) this.hooks.onTutorial?.(ev);
+    }
     for (const m of this.extras.drainMessages()) this.announce(m.text, m.important);
     // Nettoyage de la sélection.
     for (const id of this.selected) {
@@ -349,6 +371,10 @@ export class Game {
       this.over = true;
       this.victors = victors;
       const result: GameResult = me.alive && victors.includes(this.playerTeam) ? 'victoire' : 'defaite';
+      if (this.tutorial && result === 'victoire') {
+        this.tutorial.onVictory();
+        for (const ev of this.tutorial.drainEvents()) this.hooks.onTutorial?.(ev);
+      }
       this.sfx.play(result === 'victoire' ? 'victory' : 'defeat');
       this.hooks.onHud(w, this.selected.size);
       this.endTimer = window.setTimeout(() => this.hooks.onEnd(result, this.opts), 900);
@@ -372,6 +398,16 @@ export class Game {
     this.fx.draw(ctx, this.cam);
     this.gains.draw(ctx, this.cam);
     this.minimap.draw(this.world, this.cam);
+    this.hooks.onFrame?.();
+  }
+
+  /** Action du joueur : transmise au tutoriel et aux observateurs. */
+  private act(a: PlayerAction): void {
+    if (this.tutorial) {
+      this.tutorial.onAction(a);
+      for (const ev of this.tutorial.drainEvents()) this.hooks.onTutorial?.(ev);
+    }
+    this.hooks.onAction?.(a);
   }
 
   // ---------------------------------------------------------------- entrées
@@ -407,7 +443,7 @@ export class Game {
     else this.world.orderAttack(units, hit.id);
     this.markers.push({ x: hit.x, y: hit.y, t: 0, kind: 'attack', team: this.opts.playerColor });
     this.sfx.play('order');
-    this.hooks.onAction?.({ kind: 'attack', count: units.length });
+    this.act({ kind: 'attack', count: units.length });
   }
 
   private tap(sx: number, sy: number): void {
@@ -434,7 +470,7 @@ export class Game {
       }
       this.sfx.play('select');
       this.hooks.onHud(this.world, this.selected.size);
-      this.hooks.onAction?.({ kind: 'select', count: this.selected.size, box: false });
+      this.act({ kind: 'select', count: this.selected.size, box: false });
       return;
     }
     if (this.selected.size === 0) return;
@@ -469,7 +505,7 @@ export class Game {
     }
     this.markers.push({ x: target.x, y: target.y, t: 0, kind: this.charge ? 'charge' : 'move', team: this.opts.playerColor });
     this.sfx.play('order');
-    this.hooks.onAction?.({ kind: 'move', count: units.length });
+    this.act({ kind: 'move', count: units.length });
   }
 
   /** Camp du joueur sous un point de l'écran, ou null. */
@@ -485,7 +521,7 @@ export class Game {
     this.sfx.play('select');
     this.flash = { tile: camp, t: 0 };
     this.hooks.onCampTap?.(camp);
-    this.hooks.onAction?.({ kind: 'campPanel' });
+    this.act({ kind: 'campPanel' });
   }
 
   /** Camp principal du joueur (le premier qu'il tient), pour le bouton des bons points. */
@@ -540,7 +576,7 @@ export class Game {
     this.armedPower = null;
     this.powerAim = null;
     if (r !== 'ok') this.sfx.play('deny');
-    else this.hooks.onAction?.({ kind: 'power', id });
+    else this.act({ kind: 'power', id });
     this.hooks.onHud(this.world, this.selected.size);
     return r;
   }
@@ -550,7 +586,7 @@ export class Game {
     if (this.over) return 'pas-ton-camp';
     const r = buyPion(this.world, this.playerTeam, camp);
     this.sfx.play(r === 'ok' ? 'upgrade' : 'deny');
-    if (r === 'ok') this.hooks.onAction?.({ kind: 'pion' });
+    if (r === 'ok') this.act({ kind: 'pion' });
     this.hooks.onHud(this.world, this.selected.size);
     return r;
   }
@@ -560,7 +596,7 @@ export class Game {
     if (this.over) return 'pas-ton-camp';
     const r = setProduce(this.playerTeam, camp, cls);
     this.sfx.play(r === 'ok' ? 'select' : 'deny');
-    if (r === 'ok') this.hooks.onAction?.({ kind: 'class', id: cls });
+    if (r === 'ok') this.act({ kind: 'class', id: cls });
     return r;
   }
 
@@ -569,7 +605,7 @@ export class Game {
     if (this.over) return 'pas-ton-camp';
     const r = buyUpgrade(this.world, this.playerTeam, camp, branch);
     this.sfx.play(r === 'ok' ? 'upgrade' : 'deny');
-    if (r === 'ok') this.hooks.onAction?.({ kind: 'upgrade', branch });
+    if (r === 'ok') this.act({ kind: 'upgrade', branch });
     this.hooks.onHud(this.world, this.selected.size);
     return r;
   }
@@ -596,7 +632,7 @@ export class Game {
     }
     if (this.selected.size) this.sfx.play('select');
     this.hooks.onHud(this.world, this.selected.size);
-    if (this.selected.size) this.hooks.onAction?.({ kind: 'select', count: this.selected.size, box: x0 !== x1 || y0 !== y1 });
+    if (this.selected.size) this.act({ kind: 'select', count: this.selected.size, box: x0 !== x1 || y0 !== y1 });
   }
 
   selectAll(): void {
@@ -810,6 +846,6 @@ export class Game {
     this.markers.push({ x: at.x, y: at.y, t: 0, kind: 'capture', team: this.opts.playerColor });
     this.sfx.play('order');
     this.hooks.onRally?.(res.cleared);
-    if (!res.cleared) this.hooks.onAction?.({ kind: 'rally' });
+    if (!res.cleared) this.act({ kind: 'rally' });
   }
 }
