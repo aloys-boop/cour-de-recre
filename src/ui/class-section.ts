@@ -71,10 +71,10 @@ export class ClassSection implements CampSection {
       }
     }
     const text = !unlocked
-      ? 'Débloque les classes dans « Toute l’équipe » pour choisir ce que produit ce camp.'
+      ? 'À débloquer dans « Toute l’équipe ».'
       : camp.produce === 'eleve'
-        ? 'Élèves normaux, gratuits.'
-        : `${CLASSES[camp.produce].blurb}. Sans bons points, le camp produit un élève normal.`;
+        ? ''
+        : `${CLASSES[camp.produce].blurb} ; sans bons points, élève normal.`;
     if (this.note.textContent !== text) this.note.textContent = text;
   }
 

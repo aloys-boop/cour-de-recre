@@ -63,7 +63,7 @@ export class RallySection implements CampSection {
     this.camp = camp;
     const has = !!game.world.rallyFor(camp);
     const placing = game.placingRally === camp;
-    const text = placing ? 'Touche la carte pour placer le drapeau…' : has ? 'Les nouveaux élèves de ce camp vont au drapeau.' : 'Aucun : les nouveaux élèves restent au camp.';
+    const text = placing ? 'Touche la carte…' : has ? 'Nouveaux élèves au drapeau.' : 'Aucun : ils restent au camp.';
     if (this.status.textContent !== text) this.status.textContent = text;
     const label = placing ? 'Annuler' : has ? 'Déplacer' : 'Placer';
     if (this.placeBtn.textContent !== label) this.placeBtn.textContent = label;

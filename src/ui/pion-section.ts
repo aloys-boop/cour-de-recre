@@ -41,10 +41,10 @@ export class PionSection implements CampSection {
     this.game = game;
     this.camp = camp;
     let text: string;
-    if (!camp.pionBought) text = `Surveillant à tes couleurs, ${PION.hp} PV : il garde ce camp et frappe les intrus. Revient 60 s après un KO.`;
+    if (!camp.pionBought) text = `${PION.hp} PV, garde ce camp et frappe les intrus ; revient ${PION.respawn} s après un KO.`;
     else {
       const p = pionOf(game.world, camp);
-      text = p ? `Ton pion garde le camp (${Math.ceil(p.hp)} / ${p.maxHp} PV).` : `Pion KO : retour dans ${Math.ceil(pionRespawnLeft(game.world, camp))} s.`;
+      text = p ? `Garde le camp (${Math.ceil(p.hp)} / ${p.maxHp} PV).` : `Pion KO : retour dans ${Math.ceil(pionRespawnLeft(game.world, camp))} s.`;
     }
     if (this.status.textContent !== text) this.status.textContent = text;
     const label = camp.pionBought ? 'Acheté' : `Engager · ${PION.cost} ★`;

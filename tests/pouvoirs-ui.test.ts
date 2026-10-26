@@ -94,7 +94,7 @@ describe('interface des pouvoirs et du pion', () => {
     awardMerit(world, 0, PION.cost, 0, 0, 'hold');
     btn.click();
     expect(btn.disabled).toBe(true);
-    expect(panel.panel.querySelector('.pion-status')!.textContent).toMatch(/garde le camp \(400 \/ 400 PV\)/);
+    expect(panel.panel.querySelector('.pion-status')!.textContent).toMatch(/Garde le camp \(400 \/ 400 PV\)/);
     world.units.find((u) => u.pion)!.takeDamage(1000, 0, 0);
     for (let i = 0; i < 120; i++) world.update(1 / 60);
     panel.refresh();

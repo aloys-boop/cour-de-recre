@@ -64,7 +64,7 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
   | Case tenue (cases bonus, camps et trône) | +1 toutes les 10 s, par case |
   | Surveillant mis KO (dernier coup, option « Surveillants ») | +40 |
 
-- **Améliorations : globales ou par camp.** Sans sélection, touche un de tes camps (à côté des élèves qui y stationnent) ou la pastille « ★ » : le panneau s'ouvre en deux zones bien séparées, côte à côte.
+- **Améliorations : globales ou par camp.** Sans sélection, touche un de tes camps (à côté des élèves qui y stationnent) ou la pastille « ★ » : le panneau s'ouvre en deux zones bien séparées, côte à côte. Il tient dans l'écran d'un iPhone en paysage (encoche comprise) ; sur un écran plus petit, il défile verticalement, et son en-tête (bons points et croix de fermeture) reste toujours visible.
   - **Toute l'équipe** (achetées une fois, valables pour tous tes élèves, y compris ceux déjà sur le terrain, et pour tous tes camps, y compris ceux capturés plus tard) :
 
     | Amélioration | Effet par niveau | Coût des niveaux 1 / 2 / 3 |

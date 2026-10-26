@@ -130,7 +130,7 @@ describe('panneau du camp', () => {
     const btns = panel.panel.querySelectorAll<HTMLButtonElement>('.class-btn');
     expect([...btns].map((b) => b.querySelector('.class-name')!.textContent)).toEqual(['Élève', 'Costaud', 'Sprinteur', 'Infirmier']);
     expect(btns[1].classList.contains('locked')).toBe(true);
-    expect(panel.panel.querySelector('.class-note')!.textContent).toMatch(/Débloque les classes/);
+    expect(panel.panel.querySelector('.class-note')!.textContent).toMatch(/À débloquer dans « Toute l’équipe »/);
     btns[1].click();
     expect(hints.pop()).toMatch(/Débloque d’abord les classes/);
     expect(world.tiles[0].produce).toBe('eleve');
@@ -158,5 +158,15 @@ describe('panneau du camp', () => {
     zone.querySelector<HTMLButtonElement>('.pion-buy')!.click();
     expect(world.tiles[1].pionBought).toBe(true);
     expect(world.tiles[0].pionBought).toBe(false);
+  });
+
+  it('panneau : en-tête (et croix) fixe pendant le défilement, jamais de défilement horizontal', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/ui/camp.css'), 'utf8');
+    expect(css).toMatch(/\.camp-head \{[^}]*position: sticky;[^}]*top: 0;/s);
+    expect(css).toMatch(/\.camp-panel \{[^}]*overflow-x: hidden;[^}]*overflow-y: auto;/s);
+    const { world, panel } = setup();
+    panel.open(world.tiles[0]);
+    expect(panel.panel.firstElementChild!.classList.contains('camp-head')).toBe(true);
+    expect(panel.panel.querySelector('.camp-head .camp-close')).not.toBeNull();
   });
 });
