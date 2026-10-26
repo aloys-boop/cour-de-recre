@@ -80,15 +80,15 @@ describe('panneau du camp', () => {
     expect(names(team)).toEqual(['Production', 'Uniformes', 'Entraînement', 'Classes d’élèves']);
     expect(names(camp)).toEqual(['Défense']);
     const buy = team.querySelector<HTMLButtonElement>('.camp-row[data-branch="prod"] .camp-buy')!;
-    expect(buy.textContent).toMatch(/40 ★/);
+    expect(buy.textContent).toMatch(/50 ★/);
     buy.click();
     expect(hints.pop()).toMatch(/Pas assez de bons points/);
     awardMerit(world, 0, 200, 0, 0, 'hold');
     buy.click();
     expect(world.teamUpgrades[0].prod).toBe(1);
     expect(team.querySelector('.camp-row[data-branch="prod"] .camp-level')!.textContent).toBe('★☆☆');
-    expect(buy.textContent).toMatch(/80 ★/);
-    expect(panel.panel.querySelector('.camp-balance')!.textContent).toBe('160 ★');
+    expect(buy.textContent).toMatch(/100 ★/);
+    expect(panel.panel.querySelector('.camp-balance')!.textContent).toBe('150 ★');
     camp.querySelector<HTMLButtonElement>('.camp-buy')!.click();
     expect(world.tiles[0].defense).toBe(1);
     team.querySelector<HTMLButtonElement>('.camp-row[data-branch="classes"] .camp-buy')!.click();

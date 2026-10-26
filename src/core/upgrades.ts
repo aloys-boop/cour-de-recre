@@ -34,14 +34,14 @@ export interface UpgradeInfo {
  * vaut plus cher qu'une amélioration d'un seul camp.
  */
 export const UPGRADES: Record<UpgradeBranch, UpgradeInfo> = {
-  prod: { label: 'Production', effect: 'production de tous tes camps', perLevel: 0.15, costs: [40, 80, 140], color: '#5fd35a' },
-  hp: { label: 'Uniformes', effect: 'PV de tous tes élèves', perLevel: 0.1, costs: [40, 80, 140], color: '#4fa3ff' },
-  dmg: { label: 'Entraînement', effect: 'dégâts de tous tes élèves', perLevel: 0.1, costs: [40, 80, 140], color: '#ff6a4a' },
+  prod: { label: 'Production', effect: 'production de tous tes camps', perLevel: 0.15, costs: [50, 100, 170], color: '#5fd35a' },
+  hp: { label: 'Uniformes', effect: 'PV de tous tes élèves', perLevel: 0.1, costs: [50, 100, 170], color: '#4fa3ff' },
+  dmg: { label: 'Entraînement', effect: 'dégâts de tous tes élèves', perLevel: 0.1, costs: [50, 100, 170], color: '#ff6a4a' },
   def: { label: 'Défense', effect: 'prise plus lente, soins plus rapides', perLevel: 0.3, costs: [20, 40, 70], color: '#c9c9d4' },
 };
 
 /** Déblocage des classes d'élèves (Costaud, Sprinteur, Infirmier) pour toute l'équipe. */
-export const CLASS_UNLOCK = { label: 'Classes d’élèves', effect: 'tous tes camps peuvent produire costauds, sprinteurs, infirmiers', cost: 60 };
+export const CLASS_UNLOCK = { label: 'Classes d’élèves', effect: 'tous tes camps peuvent produire costauds, sprinteurs, infirmiers', cost: 40 };
 
 /** Améliorations globales d'une équipe. */
 export interface TeamUpgrades {

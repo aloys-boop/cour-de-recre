@@ -55,8 +55,16 @@ export const ECONOMY_PROFILES: Record<Difficulty, EconomyProfile> = {
   difficile: { interval: 2, maxLevel: 3, margin: 1, smart: true, classes: 'mix', classReserve: 10, powers: { sonnerie: 5, neige: 4, gouter: 3 }, pionSpare: 10, pionSpareThreat: 0, pionAfter: 4 },
 };
 
+/** Élèves qu'un camp produira dans la classe choisie avant la prochaine réflexion (répartition entre camps). */
+const PLANNED_PER_CAMP = 2;
+/** Distance maximale (cases) entre un camp et son ralliement placé par l'IA. Mutable pour les essais. */
+export let RALLY_REACH = 6;
+export function setRallyReach(v: number): void {
+  RALLY_REACH = v;
+}
+
 /** Mélange visé des classes (parts de l'armée) ; voir chooseClass. Mutables pour les essais d'équilibrage. */
-export const CLASS_MIX = { costaud: 0.45, sprintBase: 0.05, sprintFree: 0.12, nursePer: 8 };
+export const CLASS_MIX = { costaud: 0.6, sprintBase: 0.05, sprintFree: 0.12, nursePer: 8 };
 
 /** Poids de base de chaque achat dans le choix raisonné (divisés ensuite par le coût). Mutables pour les essais. */
 export const BUY_WEIGHT = { prod: 1.25, hp: 1, dmg: 1.05, classes: 0.9, def: 0.45, defThreat: 0.9 };
@@ -101,14 +109,59 @@ export class EconomyAi {
     if (this.buyPionIfUseful(camps)) return;
     // Épargne pour un pion : un camp bien amélioré mérite d'être gardé ; plus d'achat d'amélioration en attendant.
     const saving = this.allowPion && camps.some((c) => !c.pionBought) && totalTeamUpgrades(w, this.team) >= this.profile.pionAfter && !camps.some((c) => c.pionBought);
-    const pick = saving ? null : this.profile.smart ? this.bestPurchase(camps) : this.randomPurchase();
+    const pick = saving || !this.allowUpgrades ? null : this.profile.smart ? this.bestPurchase(camps) : this.randomPurchase();
     if (pick) {
       const cost = purchaseCost(w, this.team, pick);
       if (cost !== null && meritsOf(w, this.team) >= cost * this.profile.margin) buy(w, this.team, pick);
     }
-    for (const camp of camps) {
+    // Types d'élèves différents selon les camps : chaque camp prend la classe la plus en retard,
+    // en tenant compte de ce que les camps déjà servis vont produire (le camp le plus menacé d'abord).
+    const planned = new Map<UnitClass, number>();
+    for (const camp of camps.slice().sort((a, b) => this.threat(b) - this.threat(a))) {
       const f = this.forceClass;
-      camp.produce = f === null ? this.chooseClass(camp) : f === 'aucune' || !classUnlocked(w, this.team, f) ? 'eleve' : f;
+      const cls = f === null ? this.chooseClass(camp, planned) : f === 'aucune' || !classUnlocked(w, this.team, f) ? 'eleve' : f;
+      camp.produce = cls;
+      planned.set(cls, (planned.get(cls) ?? 0) + PLANNED_PER_CAMP);
+    }
+    if (this.allowRallies) this.placeRallies(camps);
+  }
+
+  /** Outils d'équilibrage : points de ralliement et améliorations (globales et Défense) autorisés. */
+  allowRallies = true;
+  allowUpgrades = true;
+  /** Cible d'attaque courante de l'IA (fournie par TeamAi) : sert à placer les ralliements vers le front. */
+  targetOf: () => Tile | null = () => null;
+
+  /**
+   * Ralliements vers les fronts (Normal et Difficile) : chaque camp envoie ses nouveaux élèves
+   * vers sa case menacée la plus proche, sinon un peu en avant vers la cible d'attaque de l'IA
+   * (au plus RALLY_REACH cases du camp, pour ne pas les envoyer seuls trop loin).
+   */
+  placeRallies(camps: Tile[]): void {
+    const w = this.world;
+    if (!this.profile.smart) return;
+    const owned = w.tiles.filter((t) => t.owner === this.team && !t.isCamp);
+    const target = this.targetOf();
+    for (const camp of camps) {
+      let goal: { x: number; y: number } | null = null;
+      let bd = Infinity;
+      for (const t of owned) {
+        if (this.threat(t) <= 0) continue;
+        const d = Math.hypot(t.cx - camp.cx, t.cy - camp.cy);
+        if (d < bd && d <= RALLY_REACH * 1.6) {
+          bd = d;
+          goal = { x: t.cx, y: t.cy };
+        }
+      }
+      if (!goal && target && target !== camp) {
+        const dx = target.cx - camp.cx;
+        const dy = target.cy - camp.cy;
+        const d = Math.hypot(dx, dy) || 1;
+        const step = Math.min(RALLY_REACH, d * 0.4);
+        goal = { x: camp.cx + (dx / d) * step, y: camp.cy + (dy / d) * step };
+      }
+      if (goal && Math.hypot(goal.x - camp.cx, goal.y - camp.cy) > 1.5) w.setCampRally(this.team, camp, goal);
+      else w.clearCampRally(this.team, camp);
     }
   }
 
@@ -167,7 +220,7 @@ export class EconomyAi {
    *  - des costauds pour encaisser, d'autant plus que les combats sont nombreux ou le camp menacé ;
    * on prend la classe la plus en retard sur sa part visée ; faute de bons points, des élèves normaux.
    */
-  chooseClass(camp: Tile): UnitClass {
+  chooseClass(camp: Tile, planned: Map<UnitClass, number> = new Map()): UnitClass {
     const w = this.world;
     if (!classUnlocked(w, this.team, 'costaud')) return 'eleve';
     const points = meritsOf(w, this.team);
@@ -186,15 +239,22 @@ export class EconomyAi {
     };
     let best: UnitClass = 'eleve';
     let bestGap = 0.5; // au moins un demi-élève de retard
+    // Une classe déjà confiée à un autre camp passe après toute autre classe qui manque d'au moins un élève.
+    let fresh: UnitClass | null = null;
+    let freshGap = 1;
     for (const cls of ['infirmier', 'costaud', 'sprinteur'] as UnitClass[]) {
       if (CLASSES[cls].max > 0 && classCount(w, this.team, cls) >= CLASSES[cls].max) continue;
-      const gap = target[cls] * n - classCount(w, this.team, cls);
+      const gap = target[cls] * n - classCount(w, this.team, cls) - (planned.get(cls) ?? 0);
       if (gap > bestGap) {
         bestGap = gap;
         best = cls;
       }
+      if (!planned.has(cls) && gap >= freshGap) {
+        freshGap = gap;
+        fresh = cls;
+      }
     }
-    return best;
+    return planned.has(best) && fresh ? fresh : best;
   }
 
   /** Facile : une amélioration globale au hasard (niveau 2 au plus), parfois le déblocage des classes. */

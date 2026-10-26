@@ -69,21 +69,25 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
 
     | Amélioration | Effet par niveau | Coût des niveaux 1 / 2 / 3 |
     | --- | --- | --- |
-    | Production | tous tes camps produisent 15 % plus vite | 40 / 80 / 140 |
-    | Uniformes | +10 % de PV pour tous tes élèves | 40 / 80 / 140 |
-    | Entraînement | +10 % de dégâts pour tous tes élèves | 40 / 80 / 140 |
-    | Classes d'élèves | débloque Costaud, Sprinteur, Infirmier dans tous tes camps | 60 (une fois) |
+    | Production | tous tes camps produisent 15 % plus vite | 50 / 100 / 170 |
+    | Uniformes | +10 % de PV pour tous tes élèves | 50 / 100 / 170 |
+    | Entraînement | +10 % de dégâts pour tous tes élèves | 50 / 100 / 170 |
+    | Classes d'élèves | débloque Costaud, Sprinteur, Infirmier dans tous tes camps | 40 (une fois) |
 
   - **Ce camp** : Défense (le camp se prend 30 % plus lentement et soigne 30 % plus vite par niveau ; 20 / 40 / 70), le pion gardien, le type d'élève produit et le point de ralliement. En tête de zone, « Camp 2/4 · Camp vert » : chaque camp porte le nom de l'équipe qui en est partie (« Camp de départ » pour le tien, « Camp fantôme 1 » pour un camp sans propriétaire au départ). Les flèches ‹ › passent d'un de tes camps à l'autre sans fermer le panneau, et la caméra glisse vers le camp affiché.
 
   Chaque camp a son propre pion gardien (acheté pour ce camp, il revient 60 s après un KO) et choisit le type d'élève qu'il produit dès que les classes sont débloquées pour l'équipe, y compris un camp capturé. Contre le coin gauche de chaque camp de la carte (le tien comme ceux des autres, s'ils sont visibles), deux pastilles cerclées à la couleur de l'équipe : le type d'élève produit (petit élève de cette classe : carrure du costaud, bandeau du sprinteur, calot de l'infirmier) et, si le camp a un pion, un sifflet (grisé, avec un arc doré qui se remplit jusqu'à son retour, quand il est KO).
 
   La Défense se voit sur le camp : un fanion gris planté sur son bord avant, avec une étoile dorée par niveau. **Un camp capturé perd son pion, sa Défense et son ralliement**, mais profite aussitôt des améliorations globales de son nouveau propriétaire (production, PV et dégâts de ses élèves).
-- **Les IA aussi.** Elles gagnent des bons points comme toi et les dépensent selon la difficulté : en Facile, lentement, au hasard et jamais au-delà du niveau 2 ; en Normal, un achat raisonné toutes les 4 s (Production d'abord, puis Entraînement et Uniformes, Défense si le camp est menacé) ; en Difficile, toutes les 2 s, avec la même logique.
+- **Les IA aussi**, avec le même système. Elles gagnent des bons points comme toi et les dépensent selon la difficulté :
+  - Facile : toutes les 9 s, une amélioration globale au hasard (niveau 2 au plus), parfois le déblocage des classes ; ni ralliement, ni pouvoir ;
+  - Normal (toutes les 4 s) et Difficile (toutes les 2 s) : achat raisonné. Les améliorations globales d'abord (Production tant que l'équipe est loin du plafond, puis Entraînement et Uniformes), le déblocage des classes dès que l'armée compte 10 élèves ; la Défense et le pion vont aux camps menacés (ennemis à moins de 4 cases ou jauge de capture adverse), et l'IA met de côté pour le pion de son camp principal quand elle a 5 niveaux globaux (4 en Difficile) ;
+  - chaque camp produit un type d'élève différent quand c'est possible (le camp le plus menacé choisit d'abord, souvent des costauds ; les autres prennent la classe suivante la plus en retard) ;
+  - chaque camp envoie ses nouveaux élèves vers son front : la case de l'IA attaquée la plus proche, sinon un point en direction de sa cible d'attaque, à 6 cases au plus du camp.
 
 ## Classes d'élèves
 
-Dans le panneau d'un camp, la rubrique « Ce camp produit » choisit la classe de ses prochains élèves. Les classes spéciales se débloquent pour **toute l'équipe** (amélioration globale « Classes d'élèves », 60 ★) : chacun de tes camps, y compris ceux capturés ensuite, choisit alors sa propre classe. Elles se paient à chaque élève produit ; faute de bons points (ou au-delà de la limite), le camp produit un élève normal. Un camp capturé repasse aux élèves normaux.
+Dans le panneau d'un camp, la rubrique « Ce camp produit » choisit la classe de ses prochains élèves. Les classes spéciales se débloquent pour **toute l'équipe** (amélioration globale « Classes d'élèves », 40 ★) : chacun de tes camps, y compris ceux capturés ensuite, choisit alors sa propre classe. Elles se paient à chaque élève produit ; faute de bons points (ou au-delà de la limite), le camp produit un élève normal. Un camp capturé repasse aux élèves normaux.
 
 | Classe | Coût | Caractéristiques | Silhouette |
 | --- | --- | --- | --- |
@@ -94,7 +98,7 @@ Dans le panneau d'un camp, la rubrique « Ce camp produit » choisit la classe d
 
 Le sprinteur compte pour 4 élèves dans la jauge de capture : seul sur une case, il la prend deux fois plus vite (la vitesse de capture suit la racine du nombre d'élèves, plafonnée à 2). Les infirmiers soignent aussi les alliés.
 
-Les IA mélangent les classes dès que leur camp est débloqué et qu'il leur reste une réserve de bons points (15 en Normal, 10 en Difficile) : elles visent environ 45 % de costauds (plus quand le camp est menacé), des sprinteurs tant qu'il reste des cases libres, et un infirmier par tranche de 8 élèves (3 au plus) ; à chaque réflexion, chaque camp produit la classe la plus en retard sur sa part visée. En Facile, l'IA ne produit qu'un costaud de temps en temps, quand elle est riche.
+Les IA mélangent les classes dès que leur camp est débloqué et qu'il leur reste une réserve de bons points (15 en Normal, 10 en Difficile) : elles visent environ 60 % de costauds (plus quand le camp est menacé), des sprinteurs tant qu'il reste des cases libres, et un infirmier par tranche de 8 élèves (3 au plus) ; à chaque réflexion, chaque camp produit la classe la plus en retard sur sa part visée, en évitant celle qu'un autre camp produit déjà. En Facile, l'IA ne produit qu'un costaud de temps en temps, quand elle est riche.
 
 ## Pouvoirs de récré et pion
 
@@ -156,6 +160,20 @@ Réglés par simulation IA contre IA (`npx tsx scripts/dev/bons-points.ts normal
 - pouvoirs (`… normal pouvoirs`, 120 parties) : les IA qui les utilisent gagnent 55 % des parties ; une partie de 2 min 30 voit en moyenne 3 sonneries (8,6 élèves figés), 4,6 lancers de boules de neige (9,1 élèves touchés) et 2,3 goûters (7 élèves soignés) ;
 - pion (`… normal pion0` : la moitié des équipes en reçoit un gratuit dès le départ) : aucun effet mesurable entre IA (48 à 50 % quels que soient ses dégâts), car leurs parties ne se jouent presque jamais sur les camps de départ ; il sert surtout au joueur, contre les raids pendant que son armée est loin. Ses dégâts (×3) sont donc réglés à vue : un intrus isolé tombe en 2 à 3 coups ;
 - au total, avec toutes les dépenses, les IA qui dépensent leurs bons points gagnent 62 % des parties contre celles qui les gardent (75 % avec les seules améliorations, 79 % avec des coûts de 20 / 40 / 70 partout, 71 % à 30 / 60 / 100) : les bons points comptent nettement, sans tout décider.
+
+**Version 4 (améliorations globales ou par camp, ralliements des IA)**, 240 parties par mesure (`npx tsx scripts/dev/bons-points.ts normal <mode>`, 4 équipes, positions alternées) :
+
+| Mesure | Résultat |
+| --- | --- |
+| Revenu | 114 ★ par minute et par équipe (captures 43 %, KO 29 %, cases tenues 29 %) ; 7 niveaux d'amélioration en place en fin de partie |
+| Améliorations globales à 40 / 80 / 140, contre celles qui n'en achètent pas (`ameliorations`) | 53 % |
+| … à 50 / 100 / 170 (retenu) | 56 % |
+| … à 30 / 60 / 110 et 60 / 120 / 200 (120 parties) | 60 % et 60 % (bruit de ± 5 points) |
+| Ralliements des IA vers leurs fronts (`ralliement`), à 3 / 5 / 6 / 8 cases du camp au plus | 54 % / 63 % / 67 % (retenu) / 65 % |
+| Classes mélangées par camp, déblocage d'emblée (`PROD2=1 … classes`) | 57 % (costauds seuls : 63 %) ; avec un déblocage à 60 ★, les IA ne produisaient que 2 % d'élèves spéciaux, 10 % à 40 ★ (retenu) |
+| Toutes dépenses comprises (`eco`) | 68 % en Normal, 75 % en Difficile |
+
+Une amélioration globale (50 ★ le premier niveau) coûte 2,5 fois une Défense de camp (20 ★) : elle profite à toute l'équipe et à tous ses camps, présents et futurs. Les simulations ne départagent pas nettement les coûts globaux (les bons points économisés partent en pouvoirs, classes et pions, qui rapportent aussi) ; 50 / 100 / 170 laisse le premier niveau à environ 30 s de jeu et un niveau 3 à plusieurs minutes.
 
 ### Performances à 240 élèves
 
@@ -241,6 +259,7 @@ Le dépôt contient un workflow GitHub Actions (`.github/workflows/deploy.yml`) 
 | `v4.3` | pion et type d'élève par camp, pastilles sur la carte |
 | `v4.4` | point de ralliement par camp |
 | `v4.5` | aide et glisser-déposer des pouvoirs |
+| `v4.6` | IA (améliorations globales, Défense et pion des camps menacés, types par camp, ralliements vers les fronts) et équilibrage |
 
 ## Architecture
 

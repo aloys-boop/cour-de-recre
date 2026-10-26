@@ -45,6 +45,7 @@ export class TeamAi {
   ) {
     this.profile = AI_PROFILES[difficulty];
     this.economy = new EconomyAi(world, team, difficulty);
+    this.economy.targetOf = () => this.target;
     // Décalage initial pour que les IA ne jouent pas toutes au même instant.
     this.timer = 0.5 + team * 0.4;
   }

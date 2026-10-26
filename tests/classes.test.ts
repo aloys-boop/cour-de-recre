@@ -156,7 +156,7 @@ describe('classes d’élèves', () => {
     expect(eco.chooseClass(camp)).toBe('costaud');
     // Assez de costauds, plus de case libre : un infirmier.
     w.tiles[2].owner = 0;
-    for (let i = 0; i < 8; i++) w.spawnUnit(1, 9.5, 8 + i * 0.3, false, undefined, 'costaud');
+    for (let i = 0; i < 20; i++) w.spawnUnit(1, 9.5, 8 + (i % 8) * 0.3, false, undefined, 'costaud');
     expect(eco.chooseClass(camp)).toBe('infirmier');
     for (let i = 0; i < 3; i++) w.spawnUnit(1, 8, 8 + i * 0.3, false, undefined, 'infirmier');
     const next = eco.chooseClass(camp);
