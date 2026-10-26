@@ -337,3 +337,8 @@
     grid-template-columns: 1fr;
   }
 }
+
+.rally-place.armed {
+  background: #fff3c4;
+  box-shadow: 0 0 0 3px rgba(255, 210, 63, 0.6);
+}

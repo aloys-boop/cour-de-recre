@@ -135,6 +135,11 @@ export class CampPanel {
   close(): void {
     this.camp = null;
     this.panel.classList.add('hidden');
+    const g = this.getGame();
+    if (g) {
+      g.panelCamp = null;
+      g.startRallyPlacement?.(null);
+    }
   }
 
   /** Camp précédent ou suivant du joueur, sans fermer le panneau ; la caméra glisse vers lui. */
@@ -202,6 +207,7 @@ export class CampPanel {
       this.camp = other;
       return this.refresh();
     }
+    g.panelCamp = camp;
     const color = g.world.teamColors[g.playerTeam];
     this.panel.querySelector<HTMLElement>('.dot')!.style.background = TEAM_COLORS[color].ui;
     setText(this.panel.querySelector('.camp-balance')!, `${points} ★`);

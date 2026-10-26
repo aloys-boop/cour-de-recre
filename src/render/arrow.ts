@@ -6,6 +6,8 @@ export interface OrderArrow {
   y1: number;
   /** Vrai quand le doigt est sur un ennemi : l'ordre sera une attaque. */
   attack: boolean;
+  /** Couleur imposée (ralliement d'un camp : couleur de l'équipe). */
+  color?: string;
 }
 
 /** Dessine la flèche (blanche pour un déplacement, rouge pour une attaque). */
@@ -17,7 +19,7 @@ export function drawArrow(ctx: CanvasRenderingContext2D, a: OrderArrow): void {
   const ux = dx / len;
   const uy = dy / len;
   const head = Math.min(18, len * 0.45);
-  const color = a.attack ? '#ff3b2f' : '#ffffff';
+  const color = a.color ?? (a.attack ? '#ff3b2f' : '#ffffff');
   const bx = a.x1 - ux * head;
   const by = a.y1 - uy * head;
   ctx.save();

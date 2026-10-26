@@ -79,6 +79,8 @@ export class Renderer {
       box: SelectionBox | null;
       playerTeam: number;
       time: number;
+      /** Camps dont on montre la ligne de ralliement (« all » : tous). */
+      rallyLines?: Tile[] | 'all';
     },
   ): void {
     const ctx = this.ctx;
@@ -90,8 +92,10 @@ export class Renderer {
     this.drawFloor(world, cam);
     for (const t of world.tiles) this.drawTile(world, t, cam, opts.time);
     this.drawMarkers(opts.markers, cam, 'floor');
-    drawRallies(ctx, world, cam, opts.playerTeam, opts.time);
     this.drawUnitsAndObstacles(world, cam, opts.selected, opts.playerTeam);
+    // Drapeaux de ralliement par-dessus les élèves : ceux qui s'y rassemblent ne les cachent pas.
+    const lines = opts.rallyLines;
+    drawRallies(ctx, world, cam, opts.playerTeam, opts.time, (c) => lines === 'all' || (!!lines && lines.includes(c)));
     drawFog(ctx, world, cam, opts.playerTeam, this.makeCanvas);
     for (const t of world.tiles) if (t.isCamp && t.owner !== NO_TEAM) this.drawCampBadge(world, t, cam);
     this.drawMarkers(opts.markers, cam, 'air');

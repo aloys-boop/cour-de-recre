@@ -9,7 +9,7 @@ import { World } from './core/world';
 import { rhythmAnnouncement } from './core/events';
 import { isKingMode, kingAnnouncement, withThrone } from './core/king';
 import { Diplomacy, diploMessage, type BreakResult, type DiploView, type ProposeResult } from './core/diplomacy';
-import { MAX_TEAMS } from './config';
+import { MAX_TEAMS, TEAM_COLORS } from './config';
 import { DiplomacyExtras } from './core/diplomacy-extras';
 import { TouchInput } from './input/touch';
 import { Camera } from './render/camera';
@@ -216,7 +216,7 @@ export class Game {
       canArrowFrom: (x, y) => this.canArrowFrom(x, y),
       onArrowMove: (x0, y0, x1, y1) => this.arrowMove(x0, y0, x1, y1),
       onArrowEnd: (_x0, _y0, x1, y1) => this.arrowEnd(x1, y1),
-      onArrowCancel: () => (this.arrow = this.flash = null),
+      onArrowCancel: () => ((this.arrow = this.flash = null), (this.rallyDrag = null)),
       onLongPress: (x, y) => this.longPress(x, y),
     });
 
@@ -396,6 +396,7 @@ export class Game {
       box: this.box,
       playerTeam: this.playerTeam,
       time: this.time,
+      rallyLines: this.rallyDrag || this.placingRally ? 'all' : this.panelCamp ? [this.panelCamp] : [],
     });
     if (this.flash) drawTileFlash(ctx, this.cam, this.flash);
     if (this.armedPower && this.powerAim) drawPowerAim(ctx, this.cam, this.world, this.armedPower, this.powerAim, this.playerTeam, this.time, false);
@@ -457,6 +458,12 @@ export class Game {
     if (this.paused || this.over) return;
     this.sfx.unlock();
     if (this.armedPower) return this.aimPower(sx, sy);
+    if (this.placingRally) {
+      const camp = this.placingRally;
+      this.placingRally = null;
+      if (camp.owner === this.playerTeam) this.placeRally(camp, sx, sy);
+      return;
+    }
     const pk = this.pick(sx, sy);
     // Sans sélection, un tap sur un de ses camps ouvre son panneau d'amélioration, sauf si le doigt
     // est vraiment sur un élève (silhouette touchée) : il est alors sélectionné.
@@ -824,12 +831,61 @@ export class Game {
   }
 
   private canArrowFrom(sx: number, sy: number): boolean {
-    if (this.paused || this.over || this.selected.size === 0) return false;
+    this.rallyDrag = null;
+    if (this.paused || this.over || this.armedPower) return false;
     const hit = this.unitAt(sx, sy);
-    return !!hit && !isSupervisor(hit) && this.selected.has(hit.id);
+    if (this.selected.size > 0 && !!hit && !isSupervisor(hit) && this.selected.has(hit.id)) return true;
+    // Glisser depuis un de ses camps (pas depuis un élève sélectionné) : ralliement de ce camp.
+    const pk = this.pick(sx, sy);
+    const camp = this.ownCampAt(sx, sy);
+    if (camp && !(pk && pk.direct && pk.unit.team === this.playerTeam && this.selected.has((pk.unit as Unit).id))) {
+      this.rallyDrag = camp;
+      return true;
+    }
+    return false;
+  }
+
+  /** Camp dont on trace le ralliement au doigt (glisser depuis le camp), ou null. */
+  rallyDrag: Tile | null = null;
+  /** Camp dont on place le ralliement au prochain tap (bouton « Ralliement » du panneau), ou null. */
+  placingRally: Tile | null = null;
+  /** Camp affiché dans le panneau (sa ligne de ralliement est visible), ou null. */
+  panelCamp: Tile | null = null;
+
+  /** Le prochain tap sur la carte placera le ralliement de ce camp (null : annuler). */
+  startRallyPlacement(camp: Tile | null): void {
+    this.placingRally = camp && camp.owner === this.playerTeam ? camp : null;
+    if (this.placingRally) this.armedPower = null;
+  }
+
+  /** Pose le ralliement d'un camp du joueur en un point de l'écran. */
+  private placeRally(camp: Tile, sx: number, sy: number): boolean {
+    const g = this.cam.screenToGrid(sx, sy);
+    if (camp.contains(g.x, g.y, camp.size / 2)) return false;
+    if (!this.world.setCampRally(this.playerTeam, camp, g)) return false;
+    const r = this.world.rallyFor(camp)!;
+    this.markers.push({ x: r.x, y: r.y, t: 0, kind: 'capture', team: this.opts.playerColor });
+    this.sfx.play('order');
+    this.hooks.onRally?.(false);
+    this.act({ kind: 'rally' });
+    return true;
+  }
+
+  /** Supprime le ralliement d'un camp du joueur (ses nouveaux élèves restent au camp). */
+  clearRally(camp: Tile): boolean {
+    const ok = this.world.clearCampRally(this.playerTeam, camp);
+    if (ok) {
+      this.sfx.play('order');
+      this.hooks.onRally?.(true);
+    }
+    return ok;
   }
 
   private arrowMove(x0: number, y0: number, x1: number, y1: number): void {
+    if (this.rallyDrag) {
+      this.arrow = { x0, y0, x1, y1, attack: false, color: TEAM_COLORS[this.opts.playerColor]?.light };
+      return;
+    }
     const hit = this.unitAt(x1, y1);
     this.arrow = { x0, y0, x1, y1, attack: !!hit && this.hostile(hit) };
     const tile = this.arrow.attack ? null : this.aimTile(x1, y1);
@@ -841,6 +897,12 @@ export class Game {
     this.arrow = null;
     if (this.flash && this.flash.t < 0) this.flash = null;
     if (this.paused || this.over) return;
+    if (this.rallyDrag) {
+      const camp = this.rallyDrag;
+      this.rallyDrag = null;
+      this.placeRally(camp, sx, sy);
+      return;
+    }
     const units = this.selectedUnits();
     if (units.length === 0) return;
     const hit = this.unitAt(sx, sy);

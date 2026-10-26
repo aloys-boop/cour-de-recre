@@ -19,6 +19,7 @@ import { KingHud, kingEnd } from './ui/king-hud';
 import { CampPanel } from './ui/camp-panel';
 import { ClassSection } from './ui/class-section';
 import { PionSection } from './ui/pion-section';
+import { RallySection } from './ui/rally-section';
 import { PowersHud } from './ui/powers-hud';
 import { TutorialUi } from './ui/tutorial-ui';
 import { BrawlHud } from './ui/brawl-hud';
@@ -84,6 +85,7 @@ const tactics = new TacticsHud(hudRoot, {
 const campPanel = new CampPanel(hudRoot, () => game, (text, ms) => hud.showHint(text, ms));
 campPanel.addSection(new ClassSection((text, ms) => hud.showHint(text, ms)));
 campPanel.addSection(new PionSection((text, ms) => hud.showHint(text, ms)));
+campPanel.addSection(new RallySection((text, ms) => hud.showHint(text, ms)));
 const powersHud = new PowersHud(hudRoot, () => game, (text, ms) => hud.showHint(text, ms));
 const tutorialUi = new TutorialUi(hudRoot, () => skipTutorial());
 const brawlHud = new BrawlHud(hudRoot, () => game);
@@ -157,8 +159,10 @@ function launch(opts: GameOptions, code: MapCode | null): void {
         if (game?.tutorial?.step.id === 'power') campPanel.close();
       }
     },
-    onRally: (cleared) =>
-      hud.showHint(cleared ? 'Point de ralliement effacé.' : 'Point de ralliement posé : les nouveaux élèves de ce camp iront au drapeau.', 2400),
+    onRally: (cleared) => {
+      hud.showHint(cleared ? 'Point de ralliement effacé.' : 'Point de ralliement posé : les nouveaux élèves de ce camp iront au drapeau.', 2400);
+      campPanel.refresh();
+    },
     onAnnounce: (text) => hud.showHint(text, 2600),
     onPauseChange: (paused) => {
       if (paused) {

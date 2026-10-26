@@ -36,7 +36,12 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
 - **Barre de bagarre.** Le jeu repère les bagarres (élèves d'équipes ennemies au contact, regroupés de proche en proche, recalculé 4 fois par seconde). Au-dessus de chacune, une petite barre partagée en segments aux couleurs des équipes impliquées, proportionnels à leur force dans la bagarre : somme des PV restants × dégâts (profil, cases ♠, améliorations, classe, bonus de surveillant compris). Un petit chevron blanc, au-dessus du segment de l'équipe qui gagne du terrain (sa part a monté d'au moins 3 points sur les 3 dernières secondes), montre la tendance. La barre se place au-dessus des têtes et disparaît en fondu à la fin de la bagarre ; elle n'est pas affichée pour une bagarre cachée par le brouillard. Une bagarre de ton équipe hors de l'écran apparaît en haut de l'écran sous forme de mini-barre avec une flèche dans sa direction (3 au plus) : touche-la pour que la caméra glisse jusqu'à elle.
 - **Combat.** Les élèves se battent à coups de poing au corps à corps. Un élève inoccupé engage de lui-même les ennemis qui s'approchent. À zéro point de vie, il s'assoit, KO, puis disparaît.
 - **Repli.** Un ordre de déplacement est un rappel : les élèves cessent le combat et courent sans riposter jusqu'à destination (ils peuvent se faire frapper en fuyant). Arrivés, ils se défendent à nouveau. Pour attaquer, touche un ennemi. Le bouton **Fuir / Charger** (en haut à droite) change ce comportement : en mode Charger, les élèves se battent contre tout ce qu'ils croisent en chemin (marqueur orange).
-- **Point de ralliement.** Sans sélection, un appui long sur le sol (sans glisser) plante un drapeau : les nouveaux élèves du camp le plus proche s'y rendent dès leur naissance. Un appui long sur un de tes camps efface son drapeau.
+- **Point de ralliement (par camp).** Chaque camp a son propre drapeau ; les nouveaux élèves de ce camp s'y rendent dès leur naissance. Trois façons de le poser :
+  - dans le panneau du camp, rubrique « Ralliement » : « Placer » (ou « Déplacer »), puis touche la carte ; « Supprimer » retire le drapeau, et les nouveaux élèves restent alors au camp ;
+  - raccourci : glisse le doigt depuis le camp jusqu'à un point de la carte (une flèche à ta couleur suit le doigt) ;
+  - comme avant : sans sélection, un appui long sur le sol (sans glisser) pose le drapeau du camp le plus proche ; un appui long sur un de tes camps efface son drapeau.
+
+  Le drapeau est à la couleur de ton équipe et porte le numéro du camp (celui du panneau, « Camp 2/4 »). La ligne pointillée du camp vers son drapeau est visible quand le panneau de ce camp est ouvert, et pour tous tes camps pendant que tu poses un ralliement. Un camp capturé perd son ralliement.
 - **Régénération.** Un élève qui se tient sur son propre camp, ou sur un cœur que son équipe possède, récupère ses points de vie (environ 7 par seconde) : de petits cœurs montent au-dessus de lui. Les élèves d'une équipe qui possède au moins un pique marchent sur une aura rougeâtre.
 - **Victoire.** Une équipe gagne quand elle est la dernière à avoir encore des élèves ou un camp, ou quand elle possède tous les camps. Si toutes les équipes encore en vie sont alliées entre elles (ou si une alliance tient tous les camps), **l'alliance gagne ensemble** : « Victoire de l'alliance ! », avec les couleurs alliées. Tu perds dès que tu n'as plus ni élèves ni camp, même si ton alliance l'emporte.
 - **Cartes.** Six niveaux de taille croissante (du Préau au Campus, de 14 à 22 cases bonus, puis « Le tournoi » : 8 équipes, 26 × 26, 28 cases, débloqué après le 5e). La disposition des cases et des obstacles est tirée au sort à chaque partie, de façon symétrique pour rester équitable. Chaque victoire débloque le niveau suivant ; la progression est sauvegardée sur l'appareil.
@@ -170,6 +175,7 @@ Les pointes dépassaient le budget d'une image sur iPhone ; elles venaient des r
 | Appui long puis glisser | Rectangle de sélection |
 | Tap sur le sol | Rappel : déplacement sans combat (marqueur blanc), ou charge en mode Charger (marqueur orange). Près d'une case ou d'un camp, l'ordre est aimanté : la case visée s'entoure d'un liseré blanc et les élèves se répartissent à l'intérieur |
 | Appui long sans bouger, sans sélection | Point de ralliement du camp le plus proche (drapeau) |
+| Glisser depuis un de tes camps jusqu'à un point | Point de ralliement de ce camp |
 | Tap sur un ennemi | Ordre d'attaque (marqueur rouge) |
 | Glisser à un doigt | Déplacer la caméra |
 | Pincer / glisser à deux doigts | Zoom et caméra |
@@ -228,6 +234,7 @@ Le dépôt contient un workflow GitHub Actions (`.github/workflows/deploy.yml`) 
 | `v4.1` | barre de bagarre |
 | `v4.2` | améliorations globales / par camp, panneau à deux zones avec navigation |
 | `v4.3` | pion et type d'élève par camp, pastilles sur la carte |
+| `v4.4` | point de ralliement par camp |
 
 ## Architecture
 
@@ -281,6 +288,7 @@ src/
     pion-section.ts    rubrique « Pion » du panneau du camp
     powers-hud.ts      boutons des pouvoirs de récré
     tutorial-ui.ts     bulle, main animée et bouton « Passer » du tutoriel
+    rally-section.ts   rubrique « Ralliement » du panneau du camp
     brawl-hud.ts       mini-barres des bagarres hors écran
 public/
   manifest.webmanifest, sw.js, icons/

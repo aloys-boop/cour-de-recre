@@ -123,12 +123,14 @@ writeFileSync(`${OUT}/camp.png`, cv.toBuffer('image/png'));
   buyPion(w5, 0, w5.camps[0]);
   buyPion(w5, 0, w5.camps[2]);
   pionOf(w5, w5.camps[2])!.takeDamage(1000, 0, 0);
+  w5.setCampRally(0, w5.camps[0], { x: w5.camps[0].cx + 3, y: w5.camps[0].cy - 2.5 });
+  w5.setCampRally(0, w5.camps[2], { x: w5.camps[2].cx + 2.5, y: w5.camps[2].cy - 1 });
   for (let i = 0; i < 600; i++) w5.update(1 / 60);
   const cv5 = createCanvas(1170, 540);
   const ctx5 = cv5.getContext('2d') as unknown as CanvasRenderingContext2D;
   const r5 = new Renderer(ctx5, make);
   const cam5 = new Camera(); cam5.setMap(map.w, map.h); cam5.setView(585, 270); cam5.fit(); cam5.zoom *= 2; cam5.centerOnGrid(w5.camps[0].cx + 2, w5.camps[0].cy - 2);
   ctx5.setTransform(2, 0, 0, 2, 0, 0);
-  r5.draw(w5, cam5, { selected: new Set(), markers: [], box: null, playerTeam: 0, time: 1 });
+  r5.draw(w5, cam5, { selected: new Set(), markers: [], box: null, playerTeam: 0, time: 1, rallyLines: [w5.camps[0]] });
   writeFileSync(`${OUT}/badges.png`, cv5.toBuffer('image/png'));
 }
