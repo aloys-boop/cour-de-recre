@@ -47,6 +47,10 @@ export class Unit {
   healedAt = -1;
   /** Option « Surveillants » : identifiant du surveillant combattu (0 : aucun ; exclusif avec engagedId). */
   supId = 0;
+  /** Multiplicateurs propres à l'élève (améliorations de son camp d'origine, classe), en plus de ceux de l'équipe. */
+  hpMul = 1;
+  dmgMul = 1;
+  speedMul = 1;
 
   constructor(team: number, x: number, y: number) {
     this.id = nextId++;

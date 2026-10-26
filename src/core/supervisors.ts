@@ -5,6 +5,7 @@ import { Rng } from './rng';
 import { NO_TEAM, type Dir, type MapDef, type Vec2 } from './types';
 import type { Unit } from './unit';
 import type { World } from './world';
+import { MERITS, awardMerit } from './merits';
 
 /**
  * Option d'escarmouche « Surveillants » (rules.supervisors) : des adultes costauds, neutres et
@@ -293,6 +294,7 @@ function knockOut(world: World, st: State, s: Supervisor, team: number): void {
   setAnim(s, 'ko');
   if (team >= 0) st.buffUntil[team] = world.time + SUPERVISOR_BUFF_SECONDS;
   world.events.push({ kind: 'supKo', x: s.x, y: s.y, team });
+  if (team >= 0) awardMerit(world, team, MERITS.supervisor, s.x, s.y, 'supervisor');
 }
 
 /** Retour d'un surveillant KO, à un bord de la cour, loin des camps. */

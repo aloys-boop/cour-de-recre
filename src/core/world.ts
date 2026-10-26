@@ -22,6 +22,8 @@ import {
 import { KingState, kingVictors, updateKing, type KingEvent } from './king';
 import { NO_TEAM, type MapDef, type Suit, type Vec2 } from './types';
 import { Unit, punchDamage, resetUnitIds } from './unit';
+import { MERITS, MeritState, awardMerit, captureReward, updateMerits, type MeritEvent } from './merits';
+import { campDmgMul, campHpMul, campProdMul } from './upgrades';
 
 export type WorldEvent =
   | { kind: 'punch'; x: number; y: number; team: number }
@@ -31,7 +33,8 @@ export type WorldEvent =
   | { kind: 'spawn'; x: number; y: number; team: number }
   | RhythmEvent
   | KingEvent
-  | SupervisorEvent;
+  | SupervisorEvent
+  | MeritEvent;
 
 /** Nombre maximal de recherches de chemin (A*) par pas de simulation ; les suivantes attendent le pas d'après. */
 export const PATHS_PER_STEP = 40;
@@ -78,6 +81,8 @@ export class World {
   readonly rhythm = new RhythmState();
   /** Mode « Roi de la cour » : trône et temps de règne (voir king.ts). */
   readonly king = new KingState();
+  /** Bons points de chaque équipe (voir merits.ts). */
+  readonly merits: MeritState;
   private presence: number[][] = [];
   private friendFn = (a: number, b: number): boolean => this.isFriend(a, b);
   private byId = new Map<number, Unit>();
@@ -90,6 +95,7 @@ export class World {
     this.map = map;
     this.numTeams = numTeams;
     this.rng = new Rng(seed);
+    this.merits = new MeritState(numTeams);
     if (teamColors) this.teamColors = teamColors;
     this.grid = new Grid(map.w, map.h, map.obstacles ?? []);
     this.tiles = map.tiles.filter((t) => t.kind !== 'camp' || t.ghost || (t.owner ?? 99) < numTeams).map((t) => new Tile(t));
@@ -251,7 +257,7 @@ export class World {
         for (const u of this.units) {
           if (u.team !== team || !u.alive) continue;
           const ratio = u.hp / u.maxHp;
-          u.maxHp = Math.max(1, Math.round(TUNING.unitHp * m.hp));
+          u.maxHp = Math.max(1, Math.round(TUNING.unitHp * m.hp * u.hpMul));
           u.hp = Math.max(1, Math.round(u.maxHp * ratio));
         }
       }
@@ -260,10 +266,18 @@ export class World {
 
   // ---------------------------------------------------------------- ordres
 
-  spawnUnit(team: number, x: number, y: number, announce = true): Unit {
+  /**
+   * Fait apparaître un élève. `from` : camp qui le produit (ses améliorations Uniformes et
+   * Entraînement s'appliquent à l'élève pour toute sa vie).
+   */
+  spawnUnit(team: number, x: number, y: number, announce = true, from?: Tile): Unit {
     const p = this.grid.clampPos({ x, y }, 0.3);
     const u = new Unit(team, p.x, p.y);
-    u.maxHp = Math.max(1, Math.round(TUNING.unitHp * this.mods[team].hp));
+    if (from) {
+      u.hpMul = campHpMul(from);
+      u.dmgMul = campDmgMul(from);
+    }
+    u.maxHp = Math.max(1, Math.round(TUNING.unitHp * this.mods[team].hp * u.hpMul));
     u.hp = u.maxHp;
     this.units.push(u);
     this.byId.set(u.id, u);
@@ -375,6 +389,7 @@ export class World {
     this.updateTiles(dt);
     if (updateRhythm(this, dt)) this.refreshMods();
     updateKing(this, dt);
+    updateMerits(this, dt);
     this.removeDead();
     // Les ordres donnés entre deux pas (joueur, IA) disposent à nouveau de tout le budget.
     this.pathsThisStep = 0;
@@ -427,7 +442,7 @@ export class World {
       u.pendingHit -= dt;
       if (u.pendingHit <= 0) {
         u.pendingHit = 0;
-        const scale = this.mods[u.team].dmg * (this.damageScale[u.team] ?? 1) * supervisorDamageBonus(this, u.team);
+        const scale = this.mods[u.team].dmg * u.dmgMul * (this.damageScale[u.team] ?? 1) * supervisorDamageBonus(this, u.team);
         const sup = u.supId > 0 ? supervisorById(this, u.supId) : undefined;
         const target = u.supId > 0 ? undefined : this.byId.get(u.engagedId);
         if (sup && supervisorActive(sup) && dist2(u.x, u.y, sup.x, sup.y) < (SUPERVISOR_HIT_RANGE * 1.5) ** 2) {
@@ -436,7 +451,10 @@ export class World {
           const dmg = Math.max(1, Math.round(punchDamage(() => this.rng.next()) * scale));
           const ko = target.takeDamage(dmg, u.x, u.y);
           this.events.push({ kind: 'hit', x: target.x, y: target.y, team: target.team });
-          if (ko) this.events.push({ kind: 'ko', x: target.x, y: target.y, team: target.team, by: u.team });
+          if (ko) {
+            this.events.push({ kind: 'ko', x: target.x, y: target.y, team: target.team, by: u.team });
+            awardMerit(this, u.team, MERITS.koUnit, target.x, target.y, 'ko');
+          }
         }
       }
     }
@@ -527,7 +545,7 @@ export class World {
     const dx = wp.x - u.x;
     const dy = wp.y - u.y;
     const d = Math.hypot(dx, dy);
-    const step = TUNING.unitSpeed * this.mods[u.team].speed * dt;
+    const step = TUNING.unitSpeed * this.mods[u.team].speed * u.speedMul * dt;
     if (d <= step || d < 0.08) {
       u.x = wp.x;
       u.y = wp.y;
@@ -603,7 +621,7 @@ export class World {
         if (!u.alive || !t.contains(u.x, u.y)) return;
         pres[u.team]++;
         if (heals && u.team === t.owner && u.hp < u.maxHp && !this.rhythm.starving[u.team]) {
-          u.hp = Math.min(u.maxHp, u.hp + TUNING.regenPerSec * dt);
+          u.hp = Math.min(u.maxHp, u.hp + TUNING.regenPerSec * t.defenseMul * dt);
           u.healedAt = this.time;
         }
       });
@@ -611,17 +629,18 @@ export class World {
       if (ev && ev.kind === 'captured') {
         changed = true;
         this.events.push({ kind: 'captured', x: t.cx, y: t.cy, team: ev.team, camp: t.isCamp });
+        awardMerit(this, ev.team, captureReward(t.kind), t.cx, t.cy, 'capture');
       }
 
       // Apparition : seuls les camps produisent, au rythme du profil et des bonus.
       if (t.isCamp && t.owner !== NO_TEAM) {
         t.spawnTimer += dt;
-        const interval = this.map.spawnInterval / this.mods[t.owner].prod;
+        const interval = this.map.spawnInterval / (this.mods[t.owner].prod * campProdMul(t));
         if (t.spawnTimer >= interval) {
           t.spawnTimer = 0;
           if (this.teamUnitCount(t.owner) < this.map.unitCap) {
             const a = this.rng.next() * Math.PI * 2;
-            this.applyRally(t, this.spawnUnit(t.owner, t.cx + Math.cos(a) * 0.5, t.cy + Math.sin(a) * 0.5));
+            this.applyRally(t, this.spawnUnit(t.owner, t.cx + Math.cos(a) * 0.5, t.cy + Math.sin(a) * 0.5, true, t));
           }
         }
       }

@@ -1,4 +1,5 @@
 import { AI_PROFILES, type AiProfile } from '../config';
+import { EconomyAi } from './ai-economy';
 import { goldenAiBonus, goldenRetarget } from './events';
 import { pointVisible, unitVisible } from './fog';
 import { nearestSupervisor, supervisorsNear, type Supervisor } from './supervisors';
@@ -31,6 +32,8 @@ export const TAG_LOANED = 4;
  */
 export class TeamAi {
   readonly profile: AiProfile;
+  /** Dépenses de bons points (améliorations de camp…). */
+  readonly economy: EconomyAi;
   private timer: number;
   private target: Tile | null = null;
   private targetSince = 0;
@@ -41,6 +44,7 @@ export class TeamAi {
     difficulty: Difficulty,
   ) {
     this.profile = AI_PROFILES[difficulty];
+    this.economy = new EconomyAi(world, team, difficulty);
     // Décalage initial pour que les IA ne jouent pas toutes au même instant.
     this.timer = 0.5 + team * 0.4;
   }
@@ -50,6 +54,7 @@ export class TeamAi {
   }
 
   update(dt: number): void {
+    this.economy.update(dt);
     this.timer -= dt;
     if (this.timer > 0) return;
     const p = this.profile;

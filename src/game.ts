@@ -25,6 +25,8 @@ import { eventPerceived, pointVisible, unitVisible } from './core/fog';
 import { isSupervisor, supervisorActive, supervisorAnnouncement, supervisorsOf, takeWhistles, type Supervisor } from './core/supervisors';
 import { teamPlural } from './core/diplomacy';
 import { playWhistle } from './audio/whistle';
+import { MeritPopups } from './render/merits';
+import { buyUpgrade, type UpgradeBranch, type UpgradeResult } from './core/upgrades';
 
 export type GameResult = 'victoire' | 'defaite';
 
@@ -49,7 +51,24 @@ export interface GameHooks {
   onRally?(cleared: boolean): void;
   /** Annonce courte à afficher (case dorée, plus de camp, diplomatie…). */
   onAnnounce?(text: string): void;
+  /** Tap sur un camp du joueur (sans sélection) : ouvrir son panneau d'amélioration. */
+  onCampTap?(camp: Tile): void;
+  /** Action du joueur, pour le tutoriel (sélection, ordre, achat…). */
+  onAction?(action: PlayerAction): void;
 }
+
+/** Actions du joueur observées par le tutoriel. */
+export type PlayerAction =
+  | { kind: 'select'; count: number; box: boolean }
+  | { kind: 'move'; count: number }
+  | { kind: 'attack'; count: number }
+  | { kind: 'rally' }
+  | { kind: 'camera'; how: 'pan' | 'zoom' | 'minimap' }
+  | { kind: 'campPanel' }
+  | { kind: 'upgrade'; branch: UpgradeBranch }
+  | { kind: 'power'; id: string }
+  | { kind: 'class'; id: string }
+  | { kind: 'pion' };
 
 const STEP = 1 / 60;
 
@@ -68,6 +87,8 @@ export class Game {
   victors: number[] = [];
   private importantUntil = 0;
   private fx = new Effects();
+  /** Gains de bons points du joueur (« +10 ★ » qui s'envolent). */
+  private gains = new MeritPopups();
   private ais: TeamAi[] = [];
   private markers: Marker[] = [];
   private box: SelectionBox | null = null;
@@ -153,8 +174,14 @@ export class Game {
         this.box = null;
         this.boxSelect(x0, y0, x1, y1);
       },
-      onPan: (dx, dy) => this.cam.pan(dx, dy),
-      onPinch: (f, cx, cy) => this.cam.zoomAt(f, cx, cy),
+      onPan: (dx, dy) => {
+        this.cam.pan(dx, dy);
+        this.hooks.onAction?.({ kind: 'camera', how: 'pan' });
+      },
+      onPinch: (f, cx, cy) => {
+        this.cam.zoomAt(f, cx, cy);
+        this.hooks.onAction?.({ kind: 'camera', how: 'zoom' });
+      },
       canArrowFrom: (x, y) => this.canArrowFrom(x, y),
       onArrowMove: (x0, y0, x1, y1) => this.arrowMove(x0, y0, x1, y1),
       onArrowEnd: (_x0, _y0, x1, y1) => this.arrowEnd(x1, y1),
@@ -169,6 +196,7 @@ export class Game {
         const r = minimapCanvas.getBoundingClientRect();
         const g = this.minimap.toGrid(e.clientX - r.left, e.clientY - r.top);
         this.cam.centerOnGrid(g.x, g.y);
+        this.hooks.onAction?.({ kind: 'camera', how: 'minimap' });
       },
       { signal: this.ac.signal },
     );
@@ -222,6 +250,7 @@ export class Game {
       }
       this.time += dt;
       this.fx.update(dt);
+      this.gains.update(dt);
       for (const m of this.markers) m.t += dt;
       this.markers = this.markers.filter((m) => m.t < 1);
       if (this.flash && this.flash.t >= 0) this.flash.t += dt;
@@ -259,6 +288,12 @@ export class Game {
           break;
         case 'spawn':
           if (ev.team === this.playerTeam) this.sfx.play('spawn');
+          break;
+        case 'merit':
+          if (ev.team === this.playerTeam) {
+            this.gains.add(ev.x, ev.y, ev.amount);
+            if (ev.reason !== 'ko') this.sfx.play('coin');
+          }
           break;
         default:
           this.announce(
@@ -312,6 +347,7 @@ export class Game {
     if (this.flash) drawTileFlash(ctx, this.cam, this.flash);
     if (this.arrow) drawArrow(ctx, this.arrow);
     this.fx.draw(ctx, this.cam);
+    this.gains.draw(ctx, this.cam);
     this.minimap.draw(this.world, this.cam);
   }
 
@@ -347,12 +383,19 @@ export class Game {
     else this.world.orderAttack(units, hit.id);
     this.markers.push({ x: hit.x, y: hit.y, t: 0, kind: 'attack', team: this.opts.playerColor });
     this.sfx.play('order');
+    this.hooks.onAction?.({ kind: 'attack', count: units.length });
   }
 
   private tap(sx: number, sy: number): void {
     if (this.paused || this.over) return;
     this.sfx.unlock();
     const pk = this.pick(sx, sy);
+    // Sans sélection, un tap sur un de ses camps ouvre son panneau d'amélioration, sauf si le doigt
+    // est vraiment sur un élève (silhouette touchée) : il est alors sélectionné.
+    if (this.selected.size === 0 && !(pk && pk.direct)) {
+      const camp = this.ownCampAt(sx, sy);
+      if (camp) return this.openCamp(camp);
+    }
     // Avec une sélection, un tap à côté (pas sur) de ses élèves mais visant une case donne l'ordre.
     const hit = pk && (pk.direct || pk.unit.team !== this.playerTeam || !this.selected.size || !this.aimTile(sx, sy)) ? pk.unit : null;
     const dbl = this.unitTaps.hit(performance.now(), hit && hit.team === this.playerTeam ? 'own' : 'other', { x: sx, y: sy });
@@ -366,6 +409,7 @@ export class Game {
       }
       this.sfx.play('select');
       this.hooks.onHud(this.world, this.selected.size);
+      this.hooks.onAction?.({ kind: 'select', count: this.selected.size, box: false });
       return;
     }
     if (this.selected.size === 0) return;
@@ -400,6 +444,38 @@ export class Game {
     }
     this.markers.push({ x: target.x, y: target.y, t: 0, kind: this.charge ? 'charge' : 'move', team: this.opts.playerColor });
     this.sfx.play('order');
+    this.hooks.onAction?.({ kind: 'move', count: units.length });
+  }
+
+  /** Camp du joueur sous un point de l'écran, ou null. */
+  ownCampAt(sx: number, sy: number): Tile | null {
+    const g = this.cam.screenToGrid(sx, sy);
+    const t = this.world.tileAt(g.x, g.y);
+    return t && t.isCamp && t.owner === this.playerTeam ? t : null;
+  }
+
+  /** Ouvre le panneau d'amélioration d'un camp du joueur. */
+  openCamp(camp: Tile): void {
+    if (camp.owner !== this.playerTeam || !camp.isCamp) return;
+    this.sfx.play('select');
+    this.flash = { tile: camp, t: 0 };
+    this.hooks.onCampTap?.(camp);
+    this.hooks.onAction?.({ kind: 'campPanel' });
+  }
+
+  /** Camp principal du joueur (le premier qu'il tient), pour le bouton des bons points. */
+  mainCamp(): Tile | null {
+    return (this.homeCamp && this.homeCamp.owner === this.playerTeam ? this.homeCamp : null) ?? this.world.tiles.find((t) => t.isCamp && t.owner === this.playerTeam) ?? null;
+  }
+
+  /** Le joueur achète le niveau suivant d'une branche pour l'un de ses camps. */
+  upgradeCamp(camp: Tile, branch: UpgradeBranch): UpgradeResult {
+    if (this.over) return 'pas-ton-camp';
+    const r = buyUpgrade(this.world, this.playerTeam, camp, branch);
+    this.sfx.play(r === 'ok' ? 'upgrade' : 'deny');
+    if (r === 'ok') this.hooks.onAction?.({ kind: 'upgrade', branch });
+    this.hooks.onHud(this.world, this.selected.size);
+    return r;
   }
 
   /** Envoie chaque élève sur sa propre place à l'intérieur de la zone de capture d'une case. */
@@ -424,6 +500,7 @@ export class Game {
     }
     if (this.selected.size) this.sfx.play('select');
     this.hooks.onHud(this.world, this.selected.size);
+    if (this.selected.size) this.hooks.onAction?.({ kind: 'select', count: this.selected.size, box: x0 !== x1 || y0 !== y1 });
   }
 
   selectAll(): void {
@@ -636,5 +713,6 @@ export class Game {
     this.markers.push({ x: at.x, y: at.y, t: 0, kind: 'capture', team: this.opts.playerColor });
     this.sfx.play('order');
     this.hooks.onRally?.(res.cleared);
+    if (!res.cleared) this.hooks.onAction?.({ kind: 'rally' });
   }
 }

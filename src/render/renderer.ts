@@ -14,6 +14,8 @@ import type { Supervisor } from '../core/supervisors';
 import { CHARGE_COLOR, drawHealHeart, drawRallies, drawSpadeAura, spadeAuraTeams } from './tactics';
 import { tileView, unitVisible, pointVisible } from '../core/fog';
 import { drawFog } from './fog';
+import { campPennants, drawPennant } from './merits';
+import type { UpgradeBranch } from '../core/upgrades';
 
 export interface Marker {
   x: number; // grille
@@ -249,10 +251,12 @@ export class Renderer {
   private drawUnitsAndObstacles(world: World, cam: Camera, selected: Set<number>, playerTeam: number): void {
     const ctx = this.ctx;
     const z = cam.zoom;
-    type Item = { depth: number; unit?: Unit; obstacle?: Vec2; sup?: Supervisor };
+    type Item = { depth: number; unit?: Unit; obstacle?: Vec2; sup?: Supervisor; pennant?: { x: number; y: number; branch: UpgradeBranch; level: number } };
     const items: Item[] = [];
     for (const u of world.units) items.push({ depth: u.x + u.y, unit: u });
     for (const o of world.map.obstacles ?? []) items.push({ depth: o.x + o.y + 1, obstacle: o });
+    // Fanions d'amélioration des camps (visibles seulement si le camp l'est).
+    for (const t of world.tiles) if (t.isCamp && t.owner !== NO_TEAM && tileView(world, playerTeam, t).visible) for (const p of campPennants(t)) items.push({ depth: p.depth, pennant: p });
     pushSupervisorItems(world, items);
     items.sort((a, b) => a.depth - b.depth);
     const margin = 80 * z;
@@ -261,6 +265,10 @@ export class Renderer {
     for (const it of items) {
       if (it.obstacle) {
         this.drawObstacle(it.obstacle, cam);
+        continue;
+      }
+      if (it.pennant) {
+        drawPennant(ctx, cam, it.pennant.x, it.pennant.y, it.pennant.branch, it.pennant.level);
         continue;
       }
       if (it.sup) {

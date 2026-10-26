@@ -1,5 +1,6 @@
 import { TUNING } from '../config';
 import { NO_TEAM, type Suit, type TileDef } from './types';
+import { campDefenseMul, freshUpgrades, type CampUpgrades } from './upgrades';
 
 export type CaptureEvent = { kind: 'captured'; team: number } | null;
 
@@ -22,8 +23,9 @@ export class Tile {
   readonly half: number;
   /** Camp fantôme (neutre au départ, voir ghosts.ts). */
   readonly ghost: boolean;
-  /** Équipe propriétaire ou NO_TEAM. */
-  owner: number;
+  private _owner: number;
+  /** Améliorations du camp (bons points) : perdues quand le camp change de main. */
+  upgrades: CampUpgrades = freshUpgrades();
   /** Équipe qui remplit la jauge, ou NO_TEAM. */
   capTeam: number = NO_TEAM;
   /** Jauge 0..1. */
@@ -41,8 +43,24 @@ export class Tile {
     this.cy = def.y + this.size / 2;
     this.suit = def.suit ?? null;
     this.half = def.kind === 'bonus' ? TUNING.bonusTileHalf : TUNING.campHalf;
-    this.owner = def.owner ?? NO_TEAM;
+    this._owner = def.owner ?? NO_TEAM;
     this.ghost = def.kind === 'camp' && def.ghost === true;
+  }
+
+  /** Équipe propriétaire ou NO_TEAM. Changer de propriétaire efface les améliorations du camp. */
+  get owner(): number {
+    return this._owner;
+  }
+
+  set owner(team: number) {
+    if (team === this._owner) return;
+    this._owner = team;
+    this.upgrades = freshUpgrades();
+  }
+
+  /** Défense du camp (amélioration) : la capture par un ennemi est d'autant plus lente. */
+  get defenseMul(): number {
+    return this.kind === 'camp' ? campDefenseMul(this) : 1;
   }
 
   get isCamp(): boolean {
@@ -135,12 +153,14 @@ export function updateCapture(tile: Tile, presence: number[], dt: number, friend
     return null;
   }
 
+  // Camp amélioré en Défense : tout ce qui avance contre le propriétaire est ralenti.
+  const hostile = speed / tile.defenseMul;
   if (tile.capTeam !== present) {
     if (tile.capTeam === NO_TEAM || tile.cap <= 0) {
       tile.capTeam = present;
       tile.cap = 0;
     } else {
-      tile.cap -= speed * dt;
+      tile.cap -= hostile * dt;
       if (tile.cap <= 0) {
         tile.cap = 0;
         tile.capTeam = present;
@@ -149,7 +169,7 @@ export function updateCapture(tile: Tile, presence: number[], dt: number, friend
     }
   }
 
-  tile.cap += speed * dt;
+  tile.cap += hostile * dt;
   if (tile.cap >= 1) {
     tile.owner = present;
     tile.cap = 0;

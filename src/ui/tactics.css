@@ -10,6 +10,12 @@
   touch-action: manipulation;
 }
 
+/* Le style des onglets du menu (.mode-btn, fond transparent) ne doit pas effacer le fond du bouton. */
+.icon-btn.mode-btn {
+  background: rgba(0, 0, 0, 0.45);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+}
+
 .mode-btn.charge {
   background: #e8721c;
   border-color: #ffc27a;

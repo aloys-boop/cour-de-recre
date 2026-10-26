@@ -41,6 +41,30 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
 - **Difficulté.** Facile, Normal ou Difficile : les IA réagissent plus vite, attaquent avec de plus petits groupes, gardent moins de défenseurs et frappent plus fort.
 - **Option « Camps fantômes » (escarmouche).** La cour compte en plus 1 à 3 camps sans propriétaire (selon sa taille), gris pâle à liseré pointillé avec un petit fantôme, placés vers le centre à égale distance des équipes (symétriques quand la carte l’est). Ils se capturent comme un camp (lentement) ; pris, ils produisent des élèves comme un camp normal et peuvent être repris. Ils comptent comme des camps pour la victoire : une équipe qui ne tient plus qu’un camp fantôme reste en vie, et « tenir tous les camps » les inclut. Même code de carte et même option : même disposition.
 
+## Bons points et améliorations de camp
+
+- **Bons points.** Chaque équipe accumule des bons points (étoile dorée ; ton solde est affiché dans la pastille « ★ » en haut à droite, et chaque gain s'envole au-dessus de l'endroit où il a été gagné). Gains :
+
+  | Action | Bons points |
+  | --- | --- |
+  | Élève ennemi mis KO (dernier coup) | +2 |
+  | Case bonus capturée | +10 |
+  | Camp capturé (camp fantôme et trône compris) | +25 |
+  | Case tenue (cases bonus, camps et trône) | +1 toutes les 10 s, par case |
+  | Surveillant mis KO (dernier coup, option « Surveillants ») | +40 |
+
+- **Améliorer un camp.** Sans sélection, touche un de tes camps (à côté des élèves qui y stationnent) ou la pastille « ★ » : le panneau de ce camp s'ouvre. Quatre branches de trois niveaux, propres à chaque camp :
+
+  | Branche | Effet par niveau | Coût des niveaux 1 / 2 / 3 |
+  | --- | --- | --- |
+  | Production | élèves produits 15 % plus vite | 25 / 50 / 90 |
+  | Uniformes | +10 % de PV pour les élèves sortis de ce camp (pour toute leur vie) | 25 / 50 / 90 |
+  | Entraînement | +10 % de dégâts pour les élèves sortis de ce camp | 25 / 50 / 90 |
+  | Défense | le camp se prend 30 % plus lentement et soigne 30 % plus vite | 20 / 40 / 70 |
+
+  Les niveaux se voient sur le camp : un fanion par branche améliorée (vert, bleu, rouge, gris), planté sur son bord avant, avec une étoile dorée par niveau. **Un camp capturé perd toutes ses améliorations.**
+- **Les IA aussi.** Elles gagnent des bons points comme toi et les dépensent selon la difficulté : en Facile, lentement, au hasard et jamais au-delà du niveau 2 ; en Normal, un achat raisonné toutes les 4 s (Production d'abord, puis Entraînement et Uniformes, Défense si le camp est menacé) ; en Difficile, toutes les 2 s, avec la même logique.
+
 ## Alliances
 
 - **Proposer.** Touche la puce d'une équipe, en haut de l'écran : le panneau « Diplomatie » permet de lui proposer une alliance ou de rompre la vôtre. L'IA répond tout de suite (« Les Jaunes acceptent l'alliance. » ou « Les Jaunes refusent. »).
@@ -74,6 +98,13 @@ Les profils ont été réglés par simulation IA contre IA (`npx tsx scripts/dev
 
 À 8 équipes, chaque couleur ne gagne que 8 parties en moyenne sur 64 : les écarts y sont surtout du bruit. Avec la diplomatie des IA (mode `8d`), les parties sont encore plus imprévisibles.
 
+### Bons points
+
+Réglés par simulation IA contre IA (`npx tsx scripts/dev/bons-points.ts normal revenus` et `… normal eco`, cartes à 4 équipes, difficulté Normal) :
+
+- une équipe gagne environ 120 bons points par minute de jeu (42 % par les captures, 30 % par les KO, 28 % par les cases tenues) : un premier niveau s'achète au bout de 15 à 30 s, un camp entièrement amélioré (440 bons points) demande plusieurs minutes ;
+- les équipes qui dépensent leurs bons points gagnent 75 % des parties contre celles qui les gardent (79 % avec des coûts de 20 / 40 / 70 partout, 71 % à 30 / 60 / 100) : les améliorations comptent nettement, sans tout décider.
+
 ### Performances à 240 élèves
 
 `npx tsx scripts/dev/perf240.ts` mesure le pas de simulation (1/60 s) à 8 équipes × 30 élèves, dans trois situations : une partie IA Difficile + diplomatie maintenue près du plafond, une mêlée générale de 240 élèves au centre, et des rafales d'ordres (les 240 élèves changent de destination toutes les 0,5 s). Le budget d'une image à 60 i/s est de 16,7 ms ; on vise un pas sous 4 ms sur iPhone, soit environ 2 ms sur un ordinateur de bureau (Safari mobile est 2 à 3 fois plus lent que Node).
@@ -105,6 +136,7 @@ Les pointes dépassaient le budget d'une image sur iPhone ; elles venaient des r
 | Glisser depuis un élève sélectionné | Flèche d'ordre : déplacement au relâchement, attaque si on relâche sur un ennemi |
 | Boutons « 1 », « 2 », « 3 » | Appui long : mémoriser la sélection ; tap : la rappeler ; second tap rapide : centrer la vue dessus |
 | Bouton « Camp » | Repli de la sélection (sans combat) sur ton camp le plus proche, pour se soigner |
+| Tap sur un de tes camps (sans sélection) ou sur la pastille « ★ » | Panneau d'amélioration du camp |
 | Tap sur la puce d'une équipe (en haut) | Panneau « Diplomatie » : proposer ou rompre une alliance |
 | Boutons | « Tout sélectionner », « Annuler », « Fuir / Charger », pause, son |
 
@@ -163,6 +195,9 @@ src/
     challenges.ts      médailles de campagne
     ghosts.ts          option « Camps fantômes » : placement, carte d’une partie, intérêt des IA
     save.ts            progression (localStorage)
+    merits.ts          bons points : gains, solde, dépenses
+    upgrades.ts        améliorations de camp (4 branches × 3 niveaux)
+    ai-economy.ts      dépenses de bons points des IA selon la difficulté
   render/              rendu canvas 2D
     sprites.ts         élèves dessinés pixel par pixel : 8 directions, marche, coup, KO
     suits.ts           symboles de cartes en vectoriel
@@ -170,9 +205,11 @@ src/
     minimap.ts         mini-carte
     king.ts            trône doré, couronne pixel, repère sur la mini-carte
     camera.ts          zoom, déplacement, cadrage
+    merits.ts          étoile, gains flottants, fanions d'amélioration des camps
   input/touch.ts       gestes tactiles et souris
   audio/sfx.ts         sons synthétisés (Web Audio)
   ui/                  menu, HUD, fenêtres (pause, fin, installation)
+    camp-panel.ts      pastille des bons points et panneau d'amélioration d'un camp
 public/
   manifest.webmanifest, sw.js, icons/
 tests/                 capture, combat, victoire, alliances, pathfinding, test d'intégration jsdom
@@ -180,6 +217,8 @@ scripts/dev/           outils de développement (lancés avec `npx tsx`)
   balance.ts           équilibrage IA contre IA (modes 4, 4mix, 8, 8d)
   perf8.ts             temps de simulation à 8 équipes
   perf240.ts           pas de simulation et rendu au plafond (8 × 30 élèves)
+  bons-points.ts       équilibrage des bons points (revenus, effet des dépenses)
+  render-v3.ts         aperçus des nouveautés v3 (fanions, gains, classes, pouvoirs)
   roi.ts               parties IA contre IA en mode Roi de la cour (durée, type de victoire)
   render-check.ts      rendu hors navigateur (planches de sprites, scène de jeu)
   white-check.ts       comparaison Blanc / Rose pour la 8e couleur

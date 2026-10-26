@@ -2,7 +2,22 @@
  * Petits sons synthétisés avec la Web Audio API (aucun fichier audio).
  * Le contexte est créé/relancé à la première interaction (exigence d'iOS).
  */
-export type SfxName = 'punch' | 'hit' | 'ko' | 'capture' | 'select' | 'order' | 'victory' | 'defeat' | 'spawn';
+export type SfxName =
+  | 'punch'
+  | 'hit'
+  | 'ko'
+  | 'capture'
+  | 'select'
+  | 'order'
+  | 'victory'
+  | 'defeat'
+  | 'spawn'
+  | 'coin'
+  | 'upgrade'
+  | 'deny'
+  | 'bell'
+  | 'snow'
+  | 'snack';
 
 /** Timbre des coups par couleur d'uniforme : hauteur et coupure du filtre. */
 const TEAM_PITCH = [1, 1.14, 1.3, 0.84];
@@ -85,6 +100,28 @@ export class Sfx {
         break;
       case 'victory':
         [523, 659, 784, 1047, 784, 1047].forEach((f, i) => this.tone(t + i * 0.12, f, f, 0.2, 'square', 0.35));
+        break;
+      case 'coin':
+        // Petit « ding » de bons points.
+        this.tone(t, 1320, 1320, 0.05, 'square', 0.14);
+        this.tone(t + 0.05, 1760, 1760, 0.09, 'square', 0.14);
+        break;
+      case 'upgrade':
+        [392, 523, 659, 784].forEach((f, i) => this.tone(t + i * 0.05, f, f * 1.02, 0.1, 'triangle', 0.32));
+        break;
+      case 'deny':
+        this.tone(t, 220, 180, 0.12, 'square', 0.18);
+        break;
+      case 'bell':
+        // Sonnerie d'école : trille aigu qui vibre.
+        for (let i = 0; i < 10; i++) this.tone(t + i * 0.06, i % 2 ? 1180 : 1240, 1200, 0.07, 'square', 0.16);
+        break;
+      case 'snow':
+        this.noise(t, 0.25, 900, 0.5);
+        this.tone(t, 300, 90, 0.22, 'sine', 0.5);
+        break;
+      case 'snack':
+        [659, 784, 988].forEach((f, i) => this.tone(t + i * 0.09, f, f, 0.14, 'sine', 0.3));
         break;
       case 'defeat':
         [440, 415, 392, 330].forEach((f, i) => this.tone(t + i * 0.22, f, f * 0.9, 0.3, 'sawtooth', 0.3));

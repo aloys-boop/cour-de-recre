@@ -16,6 +16,7 @@ import { Overlay } from './ui/overlay';
 import { TacticsHud } from './ui/tactics-hud';
 import { codeBlock, medalsBlock } from './ui/share';
 import { KingHud, kingEnd } from './ui/king-hud';
+import { CampPanel } from './ui/camp-panel';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const minimapCanvas = document.getElementById('minimap') as HTMLCanvasElement;
@@ -73,6 +74,9 @@ const tactics = new TacticsHud(hudRoot, {
   },
 });
 
+// Bons points (pastille) et panneau d'amélioration des camps.
+const campPanel = new CampPanel(hudRoot, () => game, (text, ms) => hud.showHint(text, ms));
+
 const menu = new Menu(menuRoot, progress, {
   onPlay: (state) => startGame(state),
   onToggleSound: toggleSound,
@@ -114,7 +118,8 @@ function launch(opts: GameOptions, code: MapCode): void {
   menu.hide();
   hud.show();
   game = new Game(canvas, minimapCanvas, sfx, opts, {
-    onHud: (world, selected) => (hud.update(world, selected, 0), kingHud.update(world, 0)),
+    onHud: (world, selected) => (hud.update(world, selected, 0), kingHud.update(world, 0), campPanel.refresh()),
+    onCampTap: (camp) => campPanel.open(camp),
     onRally: (cleared) =>
       hud.showHint(cleared ? 'Point de ralliement effacé.' : 'Point de ralliement posé : les nouveaux élèves de ce camp iront au drapeau.', 2400),
     onAnnounce: (text) => hud.showHint(text, 2600),
@@ -166,8 +171,10 @@ function launch(opts: GameOptions, code: MapCode): void {
       });
     },
   });
+  campPanel.close();
   hud.update(game.world, 0, 0);
   kingHud.update(game.world, 0);
+  campPanel.refresh();
   tactics.set(game.charge);
   hud.showHint('Touche un élève puis le sol pour le déplacer (il fuit sans se battre) ; touche un ennemi pour attaquer.', 4200);
   // Puis, à partir de 3 équipes, un mot sur la diplomatie.
@@ -181,6 +188,7 @@ function launch(opts: GameOptions, code: MapCode): void {
 }
 
 function backToMenu(): void {
+  campPanel.close();
   game?.destroy();
   game = null;
   overlay.hide();
