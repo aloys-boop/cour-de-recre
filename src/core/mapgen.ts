@@ -13,6 +13,8 @@ export interface LevelDef {
   unitCap: number;
   spawnInterval: number;
   startUnits: number;
+  /** Cases personnalisées (escarmouche) : nombre de cases de chaque symbole ; sinon, parts égales. */
+  suits?: Partial<Record<Suit, number>>;
 }
 
 export const LEVELS: LevelDef[] = [
@@ -117,7 +119,15 @@ export function generateMap(level: LevelDef, seed: number): MapDef {
     [groups[i], groups[j]] = [groups[j], groups[i]];
   }
   const suitOf = new Map<number, Suit>();
-  groups.forEach((g, k) => g.forEach((idx) => suitOf.set(idx, SUITS[k % 4])));
+  if (level.suits) {
+    // Répartition choisie : sur une carte symétrique, les paires miroir reçoivent le même symbole
+    // tant que c'est possible ; les symboles en nombre impair forment des paires mixtes à la fin.
+    const list = customSuitList(level.suits, symmetric);
+    // La case seule (total impair) passe en dernier, pour que les paires restent alignées.
+    groups.sort((a, b) => b.length - a.length);
+    let k = 0;
+    for (const g of groups) for (const idx of g) suitOf.set(idx, list[k++] ?? SUITS[idx % 4]);
+  } else groups.forEach((g, k) => g.forEach((idx) => suitOf.set(idx, SUITS[k % 4])));
   placed.forEach((p, i) => {
     tiles.push({ kind: 'bonus', x: p.x, y: p.y, suit: suitOf.get(i)! });
     occupied.add(key(p.x, p.y));
@@ -159,6 +169,22 @@ export function generateMap(level: LevelDef, seed: number): MapDef {
     obstacles,
     seed,
   };
+}
+
+/** Liste des symboles d'une répartition personnalisée : paires de même symbole d'abord (carte symétrique). */
+function customSuitList(counts: Partial<Record<Suit, number>>, symmetric: boolean): Suit[] {
+  const out: Suit[] = [];
+  const odd: Suit[] = [];
+  for (const s of SUITS) {
+    const n = Math.max(0, Math.floor(counts[s] ?? 0));
+    if (!symmetric) {
+      for (let i = 0; i < n; i++) out.push(s);
+      continue;
+    }
+    for (let i = 0; i < Math.floor(n / 2); i++) out.push(s, s);
+    if (n % 2) odd.push(s);
+  }
+  return out.concat(odd);
 }
 
 export function levelById(id: string): LevelDef {

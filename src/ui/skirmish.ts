@@ -6,14 +6,24 @@ import {
   SKIRMISH_TILES_MAX,
   SKIRMISH_TILES_MIN,
   clampSkirmish,
+  evenSuits,
   minTilesFor,
   skirmishLevel,
+  SUIT_ORDER,
+  suitTotal,
   type SkirmishSettings,
 } from '../core/skirmish';
+import { SUIT_BONUS } from '../config';
+import type { Suit } from '../core/types';
+
+const SUIT_GLYPH: Record<Suit, string> = { heart: '♥', spade: '♠', club: '♣', diamond: '♦' };
+/** Libellés courts (la grille tient à côté des boutons sur iPhone). */
+const SUIT_SHORT: Record<Suit, string> = { heart: 'Vie', spade: 'Dégâts', club: 'Prod.', diamond: 'Vitesse' };
 
 /**
  * Réglages de l'escarmouche dans le menu : nombre d'équipes, taille de la cour,
- * nombre de cases bonus. `settings` est modifié sur place.
+ * nombre de cases bonus (de 4 à 30), et leurs symboles : à parts égales, ou personnalisés
+ * symbole par symbole. `settings` est modifié sur place.
  */
 export function skirmishPanel(settings: SkirmishSettings): HTMLElement {
   const box = document.createElement('div');
@@ -32,7 +42,7 @@ export function skirmishPanel(settings: SkirmishSettings): HTMLElement {
   box.append(
     optionRow('Équipes', teams, () => settings.teams, (v) => {
       settings.teams = v;
-      setTiles(settings.tiles); // à partir de 5 équipes : au moins 20 cases
+      refresh();
     }),
   );
 
@@ -82,8 +92,80 @@ export function skirmishPanel(settings: SkirmishSettings): HTMLElement {
   range.addEventListener('input', () => setTiles(Number(range.value)));
   ctrl.append(minus, value, plus);
   row.append(lab, ctrl);
-  box.append(row, range, summary);
+
+  // Symboles : à parts égales ou personnalisés (nombre de cases de chaque symbole).
+  const custom = document.createElement('div');
+  custom.className = 'suit-grid';
+  const suitRows = SUIT_ORDER.map((s) => {
+    const line = document.createElement('div');
+    line.className = 'suit-line';
+    line.dataset.suit = s;
+    const name = document.createElement('span');
+    name.className = 'suit-name';
+    name.innerHTML = `<b class="suit-glyph">${SUIT_GLYPH[s]}</b> ${SUIT_SHORT[s]}`;
+    name.title = SUIT_BONUS[s].label;
+    const c = document.createElement('div');
+    c.className = 'stepper';
+    const m = stepBtn('−', `Moins de cases ${SUIT_GLYPH[s]}`);
+    const p = stepBtn('+', `Plus de cases ${SUIT_GLYPH[s]}`);
+    const v = document.createElement('output');
+    v.className = 'stepper-value';
+    m.addEventListener('click', () => changeSuit(s, -1));
+    p.addEventListener('click', () => changeSuit(s, +1));
+    c.append(m, v, p);
+    line.append(name, c);
+    custom.append(line);
+    return { s, m, p, v };
+  });
+  const customNote = document.createElement('div');
+  customNote.className = 'skirmish-summary suit-note';
+  const syncCustom = () => {
+    const on = !!settings.suits;
+    custom.classList.toggle('hidden', !on);
+    customNote.classList.toggle('hidden', !on);
+    row.classList.toggle('hidden', on);
+    range.classList.toggle('hidden', on);
+    if (!settings.suits) return;
+    const total = suitTotal(settings.suits);
+    for (const r of suitRows) {
+      r.v.textContent = String(settings.suits[r.s]);
+      r.m.disabled = settings.suits[r.s] <= 0 || total <= SKIRMISH_TILES_MIN;
+      r.p.disabled = total >= SKIRMISH_TILES_MAX;
+    }
+    customNote.textContent = `Total : ${total} case${total > 1 ? 's' : ''} bonus (de ${SKIRMISH_TILES_MIN} à ${SKIRMISH_TILES_MAX}).`;
+  };
+  const changeSuit = (s: Suit, d: number) => {
+    if (!settings.suits) return;
+    const next = { ...settings.suits, [s]: settings.suits[s] + d };
+    const total = suitTotal(next);
+    if (next[s] < 0 || total < SKIRMISH_TILES_MIN || total > SKIRMISH_TILES_MAX) return;
+    settings.suits = next;
+    settings.tiles = total;
+    refresh();
+    syncCustom();
+  };
+  const mode = optionRow(
+    'Symboles',
+    [
+      { v: 0, label: 'Équilibrés' },
+      { v: 1, label: 'Personnalisés' },
+    ],
+    () => (settings.suits ? 1 : 0),
+    (v) => {
+      if (v === 1 && !settings.suits) settings.suits = evenSuits(settings.tiles);
+      if (v === 0 && settings.suits) {
+        const total = suitTotal(settings.suits);
+        delete settings.suits;
+        setTiles(total);
+      }
+      refresh();
+      syncCustom();
+    },
+  );
+  mode.classList.add('suit-mode');
+  box.append(row, range, mode, custom, customNote, summary);
   setTiles(settings.tiles);
+  syncCustom();
   return box;
 }
 

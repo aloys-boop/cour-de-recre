@@ -1056,3 +1056,51 @@ button {
 .rule-toggle { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; min-height: 44px; text-align: left; margin-bottom: 6px; padding: 6px 10px; }
 .rule-toggle small { font-weight: 600; opacity: 0.8; font-size: 11px; }
 .rule-toggle.active strong::before { content: "\2713  "; }
+
+/* Escarmouche : cases bonus personnalisées, symbole par symbole (2 colonnes, 1 en écran étroit). */
+.suit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 12px;
+}
+
+.suit-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+
+.suit-name {
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.suit-glyph {
+  font-size: 16px;
+}
+
+.suit-line[data-suit='heart'] .suit-glyph,
+.suit-line[data-suit='diamond'] .suit-glyph {
+  color: #ff6b7a;
+}
+
+.suit-grid .step-btn {
+  flex-basis: 36px;
+  min-width: 36px;
+}
+
+.suit-grid .stepper-value {
+  min-width: 26px;
+}
+
+@media (max-width: 420px) {
+  .suit-grid {
+    grid-template-columns: 1fr;
+  }
+}

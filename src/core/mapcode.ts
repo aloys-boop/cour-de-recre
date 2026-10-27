@@ -1,5 +1,5 @@
 import { generateMap, LEVELS, type LevelDef } from './mapgen';
-import { clampSkirmish, describeSkirmish, skirmishLevel, type SkirmishSettings } from './skirmish';
+import { clampSkirmish, describeSkirmish, SKIRMISH_TILES_MAX, SKIRMISH_TILES_MIN, skirmishLevel, SUIT_ORDER, suitTotal, type SkirmishSettings } from './skirmish';
 import type { MapDef } from './types';
 
 /**
@@ -16,9 +16,20 @@ import type { MapDef } from './types';
  *  - escarmouche à 5-8 équipes (20 à 30 cases) : bit 9 = 0 et en-tête ≥ 64, soit
  *    64 + ((équipes - 5) × 4 + taille) × 11 + (cases - 20), dans la place laissée libre par la
  *    campagne. Les anciens codes (2 à 4 équipes, 5 niveaux) se décodent donc à l'identique.
+ *
+ * Code long (10 caractères, 50 bits), pour les escarmouches que le code court ne sait pas
+ * décrire : moins de 10 cases (moins de 20 à 5 équipes ou plus) ou cases personnalisées
+ * symbole par symbole. 46 bits utiles = 26 bits d'en-tête + 20 bits de graine, les 4 bits
+ * du haut à zéro servant de contrôle :
+ *  - bits 0-2 : équipes - 2 ; bits 3-4 : taille ; bit 5 : cases personnalisées ;
+ *  - bits 6 à 25 : quatre champs de 5 bits (♥, ♠, ♣, ♦), ou le total dans le premier champ
+ *    (les autres à zéro) pour une répartition à parts égales.
+ * Un réglage descriptible par le code court garde toujours son code court.
  */
 
 export type MapSpec = { kind: 'campagne'; level: number } | ({ kind: 'escarmouche' } & SkirmishSettings);
+/** Longueur du code long (escarmouches personnalisées). */
+export const LONG_CODE_LENGTH = 10;
 
 export interface MapCode {
   spec: MapSpec;
@@ -65,6 +76,76 @@ const MANY_BASE = 64;
 const MANY_TILES = 11; // 20 à 30 cases
 const MANY_COUNT = 4 * 4 * MANY_TILES; // 5 à 8 équipes × 4 tailles × 11
 
+/** Le code court sait-il décrire ces réglages ? */
+function shortCodeFits(spec: MapSpec): boolean {
+  if (spec.kind === 'campagne') return true;
+  const s = clampSkirmish(spec);
+  return !s.suits && s.tiles >= (s.teams >= 5 ? 20 : 10);
+}
+
+// Code long : mélange réversible sur 50 bits (BigInt).
+const L_BITS = 50n;
+const L_MASK = (1n << L_BITS) - 1n;
+const L_MUL_A = 0x2c1b3c6d2f5n | 1n;
+const L_MUL_B = 0x3a7d29b1c4bn | 1n;
+function lInverse(a: bigint): bigint {
+  let x = a;
+  for (let i = 0; i < 6; i++) x = (x * (2n - a * x)) & L_MASK;
+  return x;
+}
+const L_INV_A = lInverse(L_MUL_A);
+const L_INV_B = lInverse(L_MUL_B);
+// x ^= x >> 25 est sa propre réciproque sur 50 bits.
+const lShuffle = (x: bigint) => (x ^ (x >> 25n)) & L_MASK;
+const lMix = (x: bigint) => lShuffle((lShuffle((x * L_MUL_A) & L_MASK) * L_MUL_B) & L_MASK);
+const lUnmix = (x: bigint) => (lShuffle((lShuffle(x) * L_INV_B) & L_MASK) * L_INV_A) & L_MASK;
+
+function longHeader(spec: Extract<MapSpec, { kind: 'escarmouche' }>): number {
+  const s = clampSkirmish(spec);
+  let h = (s.teams - 2) | (s.size << 3);
+  if (s.suits) {
+    h |= 1 << 5;
+    SUIT_ORDER.forEach((k, i) => (h += s.suits![k] * 2 ** (6 + 5 * i)));
+  } else h += s.tiles * 2 ** 6;
+  return h;
+}
+
+function encodeLong(spec: Extract<MapSpec, { kind: 'escarmouche' }>, seed: number): string {
+  let x = lMix(BigInt(longHeader(spec)) * BigInt(SEED_COUNT) + BigInt(seed));
+  let out = '';
+  for (let i = 0; i < LONG_CODE_LENGTH; i++) {
+    out = CODE_ALPHABET[Number(x & 31n)] + out;
+    x >>= 5n;
+  }
+  return out;
+}
+
+function decodeLong(s: string): MapCode | null {
+  let x = 0n;
+  for (const c of s) {
+    const v = CODE_ALPHABET.indexOf(c);
+    if (v < 0) return null;
+    x = x * 32n + BigInt(v);
+  }
+  x = lUnmix(x);
+  const seed = Number(x % BigInt(SEED_COUNT));
+  const h = Number(x / BigInt(SEED_COUNT));
+  if (h >= 2 ** 26) return null;
+  const teams = (h & 7) + 2;
+  const size = (h >> 3) & 3;
+  const field = (i: number) => Math.floor(h / 2 ** (6 + 5 * i)) & 31;
+  if (teams > 8) return null;
+  if (h & (1 << 5)) {
+    const suits = { heart: field(0), spade: field(1), club: field(2), diamond: field(3) };
+    const total = suitTotal(suits);
+    if (total < SKIRMISH_TILES_MIN || total > SKIRMISH_TILES_MAX || SUIT_ORDER.some((k) => suits[k] > SKIRMISH_TILES_MAX)) return null;
+    return { spec: { kind: 'escarmouche', teams, size, tiles: total, suits }, seed };
+  }
+  const tiles = field(0);
+  if (field(1) || field(2) || field(3) || tiles < SKIRMISH_TILES_MIN || tiles > SKIRMISH_TILES_MAX) return null;
+  return { spec: { kind: 'escarmouche', teams, size, tiles }, seed };
+}
+
 function header(spec: MapSpec): number {
   if (spec.kind === 'campagne') return spec.level & 7;
   const s = clampSkirmish(spec);
@@ -74,6 +155,7 @@ function header(spec: MapSpec): number {
 
 export function encodeMapCode(code: MapCode): string {
   const seed = ((code.seed % SEED_COUNT) + SEED_COUNT) % SEED_COUNT;
+  if (code.spec.kind === 'escarmouche' && !shortCodeFits(code.spec)) return encodeLong(code.spec, seed);
   let x = mix(header(code.spec) * SEED_COUNT + seed);
   let out = '';
   for (let i = 0; i < CODE_LENGTH; i++) {
@@ -91,6 +173,7 @@ export function normalizeCode(text: string): string {
 /** Décode un code saisi par le joueur ; null si le code n'est pas valide. */
 export function decodeMapCode(text: string): MapCode | null {
   const s = normalizeCode(text);
+  if (s.length === LONG_CODE_LENGTH) return decodeLong(s);
   if (s.length !== CODE_LENGTH) return null;
   let x = 0;
   for (const c of s) {

@@ -107,12 +107,12 @@ describe('HUD à 8 équipes et diplomatie', () => {
     expect(maps[5].classList.contains('locked')).toBe(true);
     const teamOpts = [...root.querySelectorAll('.skirmish .opt-line')[0].querySelectorAll('.opt-btn')].map((b) => b.textContent);
     expect(teamOpts).toEqual(['2', '3', '4', '5', '6', '7', '8']);
-    // 8 équipes : au moins 20 cases bonus.
+    // 8 équipes : le nombre de cases bonus est conservé (4 au minimum, quel que soit le nombre d'équipes).
     (root.querySelectorAll('.mode-btn')[1] as HTMLButtonElement).click();
     (root.querySelectorAll('.skirmish .opt-btn')[6] as HTMLButtonElement).click();
-    expect(root.querySelector('.stepper-value')!.textContent).toBe('20');
+    expect(root.querySelector('.stepper-value')!.textContent).toBe('18');
     (root.querySelector('.btn-play') as HTMLButtonElement).click();
-    expect(played[0]).toMatchObject({ mode: 'escarmouche', team: 6, skirmish: { teams: 8, tiles: 20 } });
+    expect(played[0]).toMatchObject({ mode: 'escarmouche', team: 6, skirmish: { teams: 8, tiles: 18 } });
   });
 
   it('brouillard de guerre : effectif des ennemis masqué, le sien et ceux des alliés visibles', () => {

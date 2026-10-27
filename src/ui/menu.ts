@@ -216,7 +216,7 @@ export class Menu {
     codeInput.type = 'text';
     codeInput.className = 'code-input';
     codeInput.placeholder = 'Code de carte';
-    codeInput.maxLength = 9;
+    codeInput.maxLength = 14;
     codeInput.autocomplete = 'off';
     codeInput.spellcheck = false;
     codeInput.setAttribute('autocapitalize', 'characters');
@@ -229,7 +229,7 @@ export class Menu {
       const raw = normalizeCode(codeInput.value);
       if (!raw) return null;
       const code = decodeMapCode(raw);
-      if (!code) return raw.length < 6 ? 'Le code compte 6 caractères.' : 'Code de carte inconnu.';
+      if (!code) return raw.length !== 6 && raw.length !== 10 ? 'Le code compte 6 caractères (10 pour une escarmouche personnalisée).' : 'Code de carte inconnu.';
       if (code.spec.kind === 'campagne' && code.spec.level >= this.progress.unlocked)
         return `Ce code correspond au niveau ${code.spec.level + 1}, pas encore débloqué.`;
       return code;

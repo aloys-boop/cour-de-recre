@@ -1,4 +1,5 @@
 import { unitCapFor, type LevelDef } from './mapgen';
+import type { Suit } from './types';
 
 /**
  * Mode escarmouche : une partie libre dont on choisit les réglages
@@ -24,26 +25,66 @@ export const COUR_SIZES: readonly CourSize[] = [
   { id: 'immense', label: 'Immense', w: 26, obstacles: 10, unitCap: 30, spawnInterval: 4.5, startUnits: 8 },
 ];
 
-export const SKIRMISH_TILES_MIN = 10;
+/** Cases bonus : de 4 à 30, quel que soit le nombre d'équipes. */
+export const SKIRMISH_TILES_MIN = 4;
 export const SKIRMISH_TILES_MAX = 30;
 export const SKIRMISH_TEAMS_MIN = 2;
 export const SKIRMISH_TEAMS_MAX = 8;
-/** À partir de 5 équipes, la cour compte toujours au moins une vingtaine de cases bonus. */
-export const SKIRMISH_MANY_TEAMS = 5;
-export const SKIRMISH_TILES_MIN_MANY = 20;
 
-/** Nombre minimal de cases bonus pour un nombre d'équipes donné. */
-export function minTilesFor(teams: number): number {
-  return teams >= SKIRMISH_MANY_TEAMS ? SKIRMISH_TILES_MIN_MANY : SKIRMISH_TILES_MIN;
+/** Nombre minimal de cases bonus (le même pour tous les nombres d'équipes depuis la v5.3). */
+export function minTilesFor(_teams: number): number {
+  return SKIRMISH_TILES_MIN;
 }
+
+/** Ordre d'affichage des symboles. */
+export const SUIT_ORDER: readonly Suit[] = ['heart', 'spade', 'club', 'diamond'];
+
+/** Nombre de cases de chaque symbole (0 à 30 chacun, total de 4 à 30). */
+export type SuitCounts = Record<Suit, number>;
 
 export interface SkirmishSettings {
   /** 2 à 8. */
   teams: number;
   /** Index dans COUR_SIZES (0 à 3). */
   size: number;
-  /** 10 à 30 (20 à 30 à partir de 5 équipes). */
+  /** 4 à 30 (total des cases bonus). */
   tiles: number;
+  /**
+   * Cases personnalisées : nombre de cases de chaque symbole (total = `tiles`).
+   * Absent : symboles répartis à parts égales, comme dans la campagne.
+   */
+  suits?: SuitCounts;
+}
+
+/** Répartition à parts égales de `total` cases entre les quatre symboles (♥ d'abord pour le reste). */
+export function evenSuits(total: number): SuitCounts {
+  const out = {} as SuitCounts;
+  SUIT_ORDER.forEach((s, i) => (out[s] = Math.floor(total / 4) + (i < total % 4 ? 1 : 0)));
+  return out;
+}
+
+/** Total des cases d'une répartition. */
+export function suitTotal(c: SuitCounts): number {
+  return SUIT_ORDER.reduce((n, s) => n + c[s], 0);
+}
+
+/** Ramène une répartition dans les bornes : 0 à 30 par symbole, total de 4 à 30. */
+export function clampSuits(input: Partial<Record<Suit, unknown>>): SuitCounts {
+  const out = {} as SuitCounts;
+  for (const s of SUIT_ORDER) {
+    const n = Math.round(Number(input[s]));
+    out[s] = Number.isFinite(n) ? Math.max(0, Math.min(SKIRMISH_TILES_MAX, n)) : 0;
+  }
+  // Trop de cases : on retire au symbole le plus nombreux ; pas assez : on ajoute au moins nombreux.
+  while (suitTotal(out) > SKIRMISH_TILES_MAX) {
+    const s = SUIT_ORDER.reduce((a, b) => (out[b] > out[a] ? b : a));
+    out[s]--;
+  }
+  while (suitTotal(out) < SKIRMISH_TILES_MIN) {
+    const s = SUIT_ORDER.reduce((a, b) => (out[b] < out[a] ? b : a));
+    out[s]++;
+  }
+  return out;
 }
 
 export const DEFAULT_SKIRMISH: SkirmishSettings = { teams: 4, size: 1, tiles: 18 };
@@ -55,11 +96,12 @@ export function clampSkirmish(s: Partial<SkirmishSettings>): SkirmishSettings {
     return Number.isFinite(n) ? Math.max(lo, Math.min(hi, n)) : def;
   };
   const teams = int(s.teams, SKIRMISH_TEAMS_MIN, SKIRMISH_TEAMS_MAX, DEFAULT_SKIRMISH.teams);
-  return {
-    teams,
-    size: int(s.size, 0, COUR_SIZES.length - 1, DEFAULT_SKIRMISH.size),
-    tiles: int(s.tiles, minTilesFor(teams), SKIRMISH_TILES_MAX, DEFAULT_SKIRMISH.tiles),
-  };
+  const size = int(s.size, 0, COUR_SIZES.length - 1, DEFAULT_SKIRMISH.size);
+  if (s.suits && typeof s.suits === 'object') {
+    const suits = clampSuits(s.suits);
+    return { teams, size, tiles: suitTotal(suits), suits };
+  }
+  return { teams, size, tiles: int(s.tiles, minTilesFor(teams), SKIRMISH_TILES_MAX, DEFAULT_SKIRMISH.tiles) };
 }
 
 /**
@@ -88,11 +130,15 @@ export function skirmishLevel(input: SkirmishSettings): LevelDef {
     unitCap: unitCapFor(size.unitCap, s.teams),
     spawnInterval: size.spawnInterval,
     startUnits: size.startUnits,
+    ...(s.suits ? { suits: s.suits } : {}),
   };
 }
 
 /** Description courte des réglages, par ex. « 4 équipes, cour moyenne, 18 cases ». */
 export function describeSkirmish(input: SkirmishSettings): string {
   const s = clampSkirmish(input);
-  return `${s.teams} équipes, cour ${COUR_SIZES[s.size].label.toLowerCase()}, ${s.tiles} cases`;
+  const base = `${s.teams} équipes, cour ${COUR_SIZES[s.size].label.toLowerCase()}, ${s.tiles} cases`;
+  if (!s.suits) return base;
+  const glyph: Record<Suit, string> = { heart: '♥', spade: '♠', club: '♣', diamond: '♦' };
+  return `${base} (${SUIT_ORDER.map((k) => `${s.suits![k]} ${glyph[k]}`).join(', ')})`;
 }

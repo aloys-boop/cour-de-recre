@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { TeamAi } from '../src/core/ai';
-import { canTargetUnit, eventPerceived, FOG_INTERVAL, fogFor, pointVisible, tileView, unitVisible } from '../src/core/fog';
+import { canTargetUnit, eventPerceived, FOG_INTERVAL, FOG_TILE_RADIUS, fogFor, pointVisible, tileView, unitVisible } from '../src/core/fog';
 import { RULE_TOGGLES } from '../src/core/rules';
 import { NO_TEAM, type MapDef } from '../src/core/types';
 import { World } from '../src/core/world';
@@ -56,6 +56,25 @@ describe('brouillard de guerre', () => {
     expect(pointVisible(w, 0, 5.5, 5.5)).toBe(false); // ni élève ni case proche
     // Le camp ennemi lointain : jamais vu, propriétaire inconnu.
     expect(tileView(w, 0, w.tiles[1])).toEqual({ owner: NO_TEAM, visible: false, seen: false });
+  });
+
+  it('une case possédée éclaire une petite zone autour d’elle, même sans élève', () => {
+    const w = world(true);
+    const heart = w.tiles[3]; // (15, 4), loin du camp du joueur
+    expect(pointVisible(w, 0, 15.5, 4.5)).toBe(false);
+    heart.owner = 0;
+    w.time += FOG_INTERVAL;
+    expect(FOG_TILE_RADIUS).toBeGreaterThanOrEqual(2);
+    expect(pointVisible(w, 0, 15.5, 4.5)).toBe(true); // la case
+    expect(pointVisible(w, 0, 17.5, 4.5)).toBe(true); // 2 cases à côté
+    expect(pointVisible(w, 0, 15.5, 2.2)).toBe(true);
+    expect(pointVisible(w, 0, 15.5, 9.5)).toBe(false); // au-delà : brouillard
+    expect(pointVisible(w, 0, 10.5, 4.5)).toBe(false);
+    expect(tileView(w, 0, heart).visible).toBe(true);
+    // Une case ennemie n'éclaire rien pour le joueur.
+    heart.owner = 1;
+    w.time += FOG_INTERVAL;
+    expect(pointVisible(w, 0, 15.5, 4.5)).toBe(false);
   });
 
   it('le déjà-vu est conservé, avec le dernier propriétaire observé des cases', () => {
