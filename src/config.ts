@@ -24,23 +24,77 @@ export const TEAM_COLORS = [
  * Profil de chaque équipe (par couleur d'uniforme) : les forces sont volontairement inégales.
  *  hp : points de vie, dmg : dégâts, prod : vitesse de production, speed : vitesse de déplacement.
  */
+/** Les quatre caractéristiques d'une équipe. */
+export type TeamStat = 'hp' | 'dmg' | 'prod' | 'speed';
+export const TEAM_STATS: readonly TeamStat[] = ['hp', 'dmg', 'prod', 'speed'];
+
+/** Budget fixe : chaque équipe répartit exactement 12 points, de 1 à 5 par caractéristique. */
+export const TEAM_POINT_BUDGET = 12;
+export const STAT_POINTS_MIN = 1;
+export const STAT_POINTS_MAX = 5;
+
+/**
+ * Valeur réelle (multiplicateur) de 1, 2, 3, 4 et 5 points dans chaque caractéristique.
+ * 3 points = valeur de référence (×1). Les caractéristiques n'ont pas le même poids
+ * (la vitesse sert à capturer, la production compte moins depuis le plafond de 30 élèves) :
+ * la valeur d'un point a été réglée par simulations IA contre IA (voir README).
+ */
+export const STAT_POINT_VALUES: Record<TeamStat, number[]> = {
+  hp: [0.8, 0.9, 1, 1.08, 1.17],
+  dmg: [0.8, 0.9, 1, 1.1, 1.2],
+  prod: [0.83, 0.91, 1, 1.12, 1.22],
+  speed: [0.72, 0.84, 1, 1.23, 1.36],
+};
+
+export type TeamPoints = Record<TeamStat, number>;
+
 export interface TeamProfile {
-  hp: number;
-  dmg: number;
-  prod: number;
-  speed: number;
+  /** Points répartis (1 à 5 chacun, total 12). */
+  points: TeamPoints;
+  /** Multiplicateurs réels, calculés à partir des points. */
+  readonly hp: number;
+  readonly dmg: number;
+  readonly prod: number;
+  readonly speed: number;
   blurb: string;
 }
 
+/** Multiplicateur réel d'une caractéristique pour un nombre de points. */
+export function statValue(stat: TeamStat, points: number): number {
+  const p = Math.max(STAT_POINTS_MIN, Math.min(STAT_POINTS_MAX, Math.round(points)));
+  return STAT_POINT_VALUES[stat][p - 1];
+}
+
+function profile(hp: number, dmg: number, prod: number, speed: number, blurb: string): TeamProfile {
+  const points: TeamPoints = { hp, dmg, prod, speed };
+  return {
+    points,
+    blurb,
+    get hp() {
+      return statValue('hp', points.hp);
+    },
+    get dmg() {
+      return statValue('dmg', points.dmg);
+    },
+    get prod() {
+      return statValue('prod', points.prod);
+    },
+    get speed() {
+      return statValue('speed', points.speed);
+    },
+  };
+}
+
+/** Répartition des 12 points de chaque couleur (vie / dégâts / production / vitesse). */
 export const TEAM_PROFILES: readonly TeamProfile[] = [
-  { hp: 1.05, dmg: 1.05, prod: 1.05, speed: 1.0, blurb: 'Solides et équilibrés en tout' },
-  { hp: 0.7, dmg: 0.85, prod: 1.7, speed: 1.1, blurb: 'Production très rapide, mais fragiles' },
-  { hp: 0.95, dmg: 0.95, prod: 1.1, speed: 1.35, blurb: 'Très rapides, un peu légers' },
-  { hp: 1.4, dmg: 1.25, prod: 0.6, speed: 0.9, blurb: 'Très forts, mais lents à produire' },
-  { hp: 0.75, dmg: 1.4, prod: 1.0, speed: 1.05, blurb: 'Frappent très fort, mais peu de vie' },
-  { hp: 1.5, dmg: 0.95, prod: 0.95, speed: 0.86, blurb: 'Beaucoup de vie, mais lents' },
-  { hp: 0.95, dmg: 0.8, prod: 1.3, speed: 1.2, blurb: 'Production et vitesse élevées, petits poings' },
-  { hp: 1.15, dmg: 1.0, prod: 0.95, speed: 1.0, blurb: 'Polyvalents, un peu plus résistants' },
+  profile(3, 3, 3, 3, 'Équilibrés en tout'),
+  profile(2, 2, 5, 3, 'Production très rapide, mais fragiles'),
+  profile(2, 3, 3, 4, 'Rapides, un peu fragiles'),
+  profile(4, 4, 1, 3, 'Très forts, mais lents à produire'),
+  profile(2, 5, 2, 3, 'Frappent très fort, mais peu de vie'),
+  profile(5, 3, 2, 2, 'Beaucoup de vie, mais lents'),
+  profile(2, 2, 4, 4, 'Production et vitesse élevées, petits poings'),
+  profile(4, 3, 3, 2, 'Résistants, un peu lents'),
 ];
 
 /** Bonus accordé par chaque case possédée, selon son symbole. */

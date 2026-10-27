@@ -1,4 +1,4 @@
-import { SUIT_BONUS, TEAM_COLORS, TEAM_NAMES, TEAM_PROFILES } from '../config';
+import { STAT_POINTS_MAX, SUIT_BONUS, TEAM_COLORS, TEAM_NAMES, TEAM_PROFILES } from '../config';
 import { LEVELS } from '../core/maps';
 import { decodeMapCode, describeSpec, normalizeCode, type MapCode } from '../core/mapcode';
 import { DEFAULT_RULES, type GameRules } from '../core/rules';
@@ -91,10 +91,10 @@ export class Menu {
       const p = TEAM_PROFILES[i];
       profileBox.innerHTML =
         `<div class="team-blurb">${p.blurb}</div>` +
-        statRow('Vie', p.hp) +
-        statRow('Dégâts', p.dmg) +
-        statRow('Production', p.prod) +
-        statRow('Vitesse', p.speed);
+        statRow('Vie', p.points.hp) +
+        statRow('Dégâts', p.points.dmg) +
+        statRow('Production', p.points.prod) +
+        statRow('Vitesse', p.points.speed);
     };
     TEAM_NAMES.forEach((name, i) => {
       const b = document.createElement('button');
@@ -303,11 +303,12 @@ export class Menu {
 const SUIT_GLYPHS = { heart: '\u2665', spade: '\u2660', club: '\u2663', diamond: '\u2666' } as const;
 
 /** Ligne de statistique : libellé + cinq cases, remplies selon le multiplicateur (1 = trois cases). */
-function statRow(label: string, mult: number): string {
-  const n = Math.max(1, Math.min(5, Math.round(1 + (mult - 0.5) * 3.2)));
+/** Jauge d'une caractéristique : exactement les points de l'équipe (1 à 5). */
+function statRow(label: string, points: number): string {
+  const n = points;
   let boxes = '';
-  for (let i = 0; i < 5; i++) boxes += `<i class="${i < n ? 'on' : ''}"></i>`;
-  return `<div class="stat"><span>${label}</span><span class="boxes">${boxes}</span></div>`;
+  for (let i = 0; i < STAT_POINTS_MAX; i++) boxes += `<i class="${i < n ? 'on' : ''}"></i>`;
+  return `<div class="stat"><span>${label}</span><span class="boxes" data-points="${n}">${boxes}</span></div>`;
 }
 
 function el(tag: string, cls = '', text = ''): HTMLElement {

@@ -4,7 +4,8 @@
 //   mode « 4mix »  : 4 couleurs tirées parmi les 8, cartes à 4 équipes ;
 //   mode « 8 »     : les 8 couleurs sur « Le tournoi », rotation complète des positions ;
 //   mode « 8d »    : idem avec la diplomatie des IA (alliances et trahisons).
-// Profils de remplacement, en JSON : [[hp,dmg,prod,speed], ...] (index = couleur).
+// Répartitions de points de remplacement, en JSON : [[vie,dégâts,production,vitesse], ...] (index = couleur).
+// Pour l'équilibrage des couleurs, voir plutôt scripts/dev/equilibre.ts (couleurs et positions au hasard).
 import { TEAM_NAMES, TEAM_PROFILES } from '../../src/config';
 import { TeamAi } from '../../src/core/ai';
 import { Diplomacy } from '../../src/core/diplomacy';
@@ -16,7 +17,7 @@ const diff: Difficulty = (process.argv[2] as Difficulty) ?? 'normal';
 const mode = process.argv[3] ?? '4';
 if (process.argv[4] && process.argv[4] !== '-') {
   const over = JSON.parse(process.argv[4]) as number[][];
-  over.forEach((o, i) => o && Object.assign(TEAM_PROFILES[i], { hp: o[0], dmg: o[1], prod: o[2], speed: o[3] }));
+  over.forEach((o, i) => o && Object.assign(TEAM_PROFILES[i].points, { hp: o[0], dmg: o[1], prod: o[2], speed: o[3] }));
 }
 const seeds = (process.argv[5] ?? '3,11').split(',').map(Number);
 

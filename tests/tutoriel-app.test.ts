@@ -159,10 +159,13 @@ describe('tutoriel dans l’application', () => {
     // 8. Prendre une autre case pour gagner des bons points.
     game.cam.fit();
     const club = game.world.tiles.find((t) => t.suit === 'club')!;
-    (document.getElementById('btn-select-all') as HTMLButtonElement).click();
     const k = at(club.cx, club.cy);
-    tap(k.x, k.y);
-    advance(15, () => stepId() !== 'merits');
+    // Un Vert peut venir se battre sur la case et entraîner les élèves à l'écart : on redonne l'ordre.
+    for (let i = 0; i < 3 && stepId() === 'merits'; i++) {
+      (document.getElementById('btn-select-all') as HTMLButtonElement).click();
+      tap(k.x, k.y);
+      advance(12, () => stepId() !== 'merits');
+    }
     expect(stepId()).toBe('upgrade');
 
     // 9. Sans sélection, toucher son camp puis améliorer la Production.

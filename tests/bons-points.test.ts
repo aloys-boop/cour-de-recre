@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TUNING } from '../src/config';
+import { TEAM_PROFILES, TUNING } from '../src/config';
 import { EconomyAi } from '../src/core/ai-economy';
 import { awardMerit, MERITS, meritsOf, spendMerits } from '../src/core/merits';
 import { ensureSupervisors, hitSupervisor } from '../src/core/supervisors';
@@ -133,15 +133,16 @@ describe('améliorations de camp', () => {
       const w = new World({ ...ARENA, spawnInterval: 2 }, 2, 5);
       w.teamUpgrades[0].prod = level;
       w.refreshMods();
-      tick(w, 30);
+      tick(w, 31);
       return w.teamUnitCount(0);
     };
     const base = count(0);
     const max = count(3);
     expect(UPGRADES.prod.perLevel).toBe(0.15);
-    // Équipe Noire (production ×1,05) : 30 s à 2 s par élève → 15 élèves ; ×1,45 au niveau 3 → 22.
-    expect(base).toBe(Math.floor(30 / (2 / 1.05)));
-    expect(max).toBe(Math.floor(30 / (2 / (1.05 * 1.45))));
+    // Équipe Noire (3 points de production, ×1) : 31 s à 2 s par élève → 15 élèves ; ×1,45 au niveau 3 → 22.
+    const noir = TEAM_PROFILES[0].prod;
+    expect(base).toBe(Math.floor(31 / (2 / noir)));
+    expect(max).toBe(Math.floor(31 / (2 / (noir * 1.45))));
   });
 
   it('Uniformes et Entraînement : PV et dégâts de tous les élèves de l’équipe, y compris ceux déjà sur le terrain', () => {
@@ -156,11 +157,11 @@ describe('améliorations de camp', () => {
     tick(w, 1.1);
     const fresh = w.units.find((x) => x.team === 0 && x !== before)!;
     expect(fresh.maxHp).toBe(Math.round(TUNING.unitHp * w.mods[0].hp));
-    expect(w.mods[0].dmg).toBeCloseTo(1.05 * 1.3, 5);
+    expect(w.mods[0].dmg).toBeCloseTo(TEAM_PROFILES[0].dmg * 1.3, 5);
     // Les cases bonus s'ajoutent sans effacer les améliorations.
     w.tiles[2].owner = 0;
     w.refreshMods();
-    expect(w.mods[0].hp).toBeCloseTo(1.05 * 1.3 * 1.2, 5);
+    expect(w.mods[0].hp).toBeCloseTo(TEAM_PROFILES[0].hp * 1.3 * 1.2, 5);
   });
 
   it('Entraînement : les élèves entraînés frappent plus fort', () => {
@@ -218,7 +219,7 @@ describe('améliorations de camp', () => {
     // Le camp conquis produit aussitôt au rythme de l'équipe 0 (Production 3) : deux camps, deux fois plus d'élèves.
     tick(w, 2 / w.mods[0].prod + 0.05);
     expect(w.teamUnitCount(0)).toBe(2);
-    expect(w.mods[0].prod).toBeCloseTo(1.05 * 1.45, 5);
+    expect(w.mods[0].prod).toBeCloseTo(TEAM_PROFILES[0].prod * 1.45, 5);
   });
 });
 

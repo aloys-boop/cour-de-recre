@@ -378,7 +378,7 @@ describe('option « Surveillants » : IA et brouillard', () => {
   it('un gros groupe d’IA (8 élèves ou plus) va mettre KO un surveillant proche', () => {
     const { w, s } = arena();
     park(s, 8, 4.5);
-    for (let i = 0; i < AI_SUPERVISOR_GROUP + 1; i++) w.spawnUnit(1, 7 + (i % 3) * 0.5, 9.5 + Math.floor(i / 3) * 0.5, false);
+    for (let i = 0; i < AI_SUPERVISOR_GROUP + 1; i++) w.spawnUnit(1, 7 + (i % 3) * 0.5, 8.5 + Math.floor(i / 3) * 0.5, false);
     const ai = new TeamAi(w, 1, 'normal');
     let attacking = 0;
     tick(w, 6, () => {

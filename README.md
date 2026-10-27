@@ -18,18 +18,27 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
   - ♣ trèfle : production plus rapide (+35 %) ;
   - ♦ carreau : déplacement plus rapide (+15 %).
 - **Capturer.** Des élèves d'une seule équipe doivent rester sur une case pendant environ 3 secondes (jauge visible). Plus ils sont nombreux, plus c'est rapide (jusqu'à 2 fois). Si une autre équipe tient déjà une jauge, il faut d'abord la vider. Une case occupée par des équipes ennemies est **contestée** (pointillés rouges) : rien ne bouge tant que le combat n'est pas tranché (des alliés, eux, ne se la contestent pas, voir plus bas). Un camp se prend aussi, mais 2,5 fois plus lentement ; l'équipe qui le perd ne produit plus.
-- **Des équipes inégales.** Chaque uniforme a ses forces (le menu affiche le profil de chaque équipe) :
+- **Des équipes différentes, à budget égal.** Chaque uniforme répartit exactement **12 points** entre 4 caractéristiques (de 1 à 5 points chacune). Les jauges du menu montrent exactement ces points, et ce sont eux qu'on joue :
 
   | Équipe | Vie | Dégâts | Production | Vitesse | En bref |
   | --- | --- | --- | --- | --- | --- |
-  | Noir | ×1,05 | ×1,05 | ×1,05 | ×1 | Solides et équilibrés en tout |
-  | Vert | ×0,7 | ×0,85 | ×1,7 | ×1,1 | Production très rapide, mais fragiles |
-  | Jaune | ×0,95 | ×0,95 | ×1,1 | ×1,35 | Très rapides, un peu légers |
-  | Violet | ×1,4 | ×1,25 | ×0,6 | ×0,9 | Très forts, mais lents à produire |
-  | Rouge | ×0,75 | ×1,4 | ×1 | ×1,05 | Frappent très fort, mais peu de vie |
-  | Bleu | ×1,5 | ×0,95 | ×0,95 | ×0,86 | Beaucoup de vie, mais lents |
-  | Orange | ×0,95 | ×0,8 | ×1,3 | ×1,2 | Production et vitesse élevées, petits poings |
-  | Rose | ×1,15 | ×1 | ×0,95 | ×1 | Polyvalents, un peu plus résistants |
+  | Noir | 3 | 3 | 3 | 3 | Équilibrés en tout |
+  | Vert | 2 | 2 | 5 | 3 | Production très rapide, mais fragiles |
+  | Jaune | 2 | 3 | 3 | 4 | Rapides, un peu fragiles |
+  | Violet | 4 | 4 | 1 | 3 | Très forts, mais lents à produire |
+  | Rouge | 2 | 5 | 2 | 3 | Frappent très fort, mais peu de vie |
+  | Bleu | 5 | 3 | 2 | 2 | Beaucoup de vie, mais lents |
+  | Orange | 2 | 2 | 4 | 4 | Production et vitesse élevées, petits poings |
+  | Rose | 4 | 3 | 3 | 2 | Résistants, un peu lents |
+
+  Valeur réelle d'un nombre de points (multiplicateur ; 3 points = référence). Les caractéristiques n'ont pas le même poids : la vitesse sert à capturer et à arriver la première aux bagarres, la production compte moins depuis le plafond de 30 élèves. La valeur d'un point a donc été réglée par stat (voir « Équilibrage ») :
+
+  | Points | 1 | 2 | 3 | 4 | 5 |
+  | --- | --- | --- | --- | --- | --- |
+  | Vie | ×0,8 | ×0,9 | ×1 | ×1,08 | ×1,17 |
+  | Dégâts | ×0,8 | ×0,9 | ×1 | ×1,1 | ×1,2 |
+  | Production | ×0,83 | ×0,91 | ×1 | ×1,12 | ×1,22 |
+  | Vitesse | ×0,72 | ×0,84 | ×1 | ×1,23 | ×1,36 |
 
   La huitième couleur est le rose plutôt que le blanc : une case bonus prise par une équipe blanche resterait blanche sur blanc (symbole invisible), et son camp se confondrait avec le sol gris clair.
 
@@ -142,14 +151,28 @@ Le code de carte reproduit la disposition, pas les options : choisis-les à nouv
 
 ## Équilibrage et performances
 
+### Couleurs (budget de 12 points)
+
+La répartition des points est fixe ; seule la valeur d'un point dans chaque caractéristique a été réglée, par simulation IA contre IA en difficulté égale (`npx tsx scripts/dev/equilibre.ts equipes=4 parties=4000`) : à chaque partie, carte (niveaux de campagne et escarmouches de toutes tailles), couleurs (4 parmi les 8) et positions de départ sont tirées au hasard. Objectif : chaque couleur entre 22 % et 28 % de victoires à 4 équipes. Une partie sans vainqueur au bout de 8 minutes (1 sur 4 000) revient à l'équipe en tête. Taux de victoire avec les valeurs retenues (toutes les IA en difficulté Normal, devenue Difficile en v5.2) :
+
+| Mode | Noir | Vert | Jaune | Violet | Rouge | Bleu | Orange | Rose |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **4 équipes** (4 000 parties, ~2 000 par couleur ; moyenne 25 %) | 25,9 % | 23,8 % | 22,9 % | 26,0 % | 25,8 % | 25,5 % | 24,0 % | 26,0 % |
+| 2 équipes (2 000 parties ; moyenne 50 %) | 50,5 % | 53,9 % | 58,2 % | 51,8 % | 46,9 % | 37,1 % | 61,4 % | 38,9 % |
+| 8 équipes (800 parties ; moyenne 12,5 %) | 10,9 % | 12,8 % | 15,0 % | 14,9 % | 13,0 % | 9,4 % | 13,5 % | 10,6 % |
+
+Avec ~2 000 parties par couleur, l'écart dû au hasard est d'environ ±2 points. En duel, la vitesse pèse plus lourd (c'est une course aux cases) : les équipes rapides (Orange, Jaune) y sont avantagées et les lentes (Bleu, Rose) désavantagées. Les régler pour le duel déséquilibrerait les parties à 4 ; on a gardé la cible à 4 équipes. À 8 équipes, chaque couleur joue toutes les parties et les écarts restent modérés.
+
+Valeurs essayées en chemin (4 équipes, 2 000 parties) : avec 0,15 de plus par point partout (vitesse 0,08), le Bleu et le Rose (beaucoup de vie, lents) gagnaient 34–35 % et le Jaune 17 % ; il a fallu réduire la valeur d'un point de vie et presque doubler celle d'un point de vitesse.
+
+### Ancien réglage (multiplicateurs libres, avant la version 5)
+
 Les profils ont été réglés par simulation IA contre IA (`npx tsx scripts/dev/balance.ts normal 4mix` et `… normal 8`), en faisant tourner les couleurs sur toutes les positions. Taux de victoire rapporté à la moyenne, difficulté Normal :
 
 | Mode | Noir | Vert | Jaune | Violet | Rouge | Bleu | Orange | Rose |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 4 équipes, 4 couleurs parmi 8 (420 parties) | 1,22 | 0,90 | 1,24 | 0,59 | 0,99 | 1,35 | 0,72 | 0,99 |
 | « Le tournoi », 8 équipes (64 parties) | 0,91 | 0,91 | 1,36 | 0,15 | 1,51 | 1,21 | 0,91 | 1,06 |
-
-À 8 équipes, chaque couleur ne gagne que 8 parties en moyenne sur 64 : les écarts y sont surtout du bruit. Avec la diplomatie des IA (mode `8d`), les parties sont encore plus imprévisibles.
 
 ### Bons points
 
@@ -260,6 +283,8 @@ Le dépôt contient un workflow GitHub Actions (`.github/workflows/deploy.yml`) 
 | `v4.4` | point de ralliement par camp |
 | `v4.5` | aide et glisser-déposer des pouvoirs |
 | `v4.6` | IA (améliorations globales, Défense et pion des camps menacés, types par camp, ralliements vers les fronts) et équilibrage |
+| `v4-avant-equilibrage` | état avant le rééquilibrage (point de retour) |
+| `v5.1` | équipes à budget fixe de 12 points, valeur d'un point réglée par simulation |
 
 ## Architecture
 
@@ -320,6 +345,7 @@ public/
 tests/                 capture, combat, victoire, alliances, pathfinding, bons points, classes, pouvoirs, pion, tutoriel, tests d'intégration jsdom
 scripts/dev/           outils de développement (lancés avec `npx tsx`)
   balance.ts           équilibrage IA contre IA (modes 4, 4mix, 8, 8d)
+  equilibre.ts         équilibrage des couleurs : couleurs et positions au hasard, sur plusieurs processus
   perf8.ts             temps de simulation à 8 équipes
   perf240.ts           pas de simulation et rendu au plafond (8 × 30 élèves)
   bons-points.ts       équilibrage des bons points (revenus, effet des dépenses)
