@@ -134,7 +134,7 @@ describe('pouvoirs de récré', () => {
     const e = new EconomyAi(easy, 1, 'facile');
     expect(e.usePowers()).toBe(false);
     const normal = setup();
-    const n = new EconomyAi(normal, 1, 'normal');
+    const n = new EconomyAi(normal, 1, 'difficile');
     expect(n.usePowers()).toBe(true);
     const ev = normal.drainEvents().find((x) => x.kind === 'power');
     expect(ev && ev.kind === 'power' && ev.id).toBe('sonnerie');
@@ -221,9 +221,9 @@ describe('pion', () => {
     rich(w, 1, PION.cost);
     for (let i = 0; i < 8; i++) w.spawnUnit(0, 13 + (i % 3) * 0.4, 12.5 + Math.floor(i / 3) * 0.4, false);
     w.update(1 / 60);
-    const eco = new EconomyAi(w, 1, 'difficile');
+    const eco = new EconomyAi(w, 1, 'expert');
     expect(eco.buyPionIfUseful([w.tiles[1]])).toBe(true);
-    const ai = new TeamAi(w, 1, 'difficile');
+    const ai = new TeamAi(w, 1, 'expert');
     const p = pionOf(w, w.tiles[1])!;
     tick(w, 3, () => ai.update(1 / 60));
     expect(p.aiTag).toBe(0);

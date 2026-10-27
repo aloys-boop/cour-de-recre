@@ -18,7 +18,7 @@ beforeEach(() => {
 function setupHud() {
   const map = generateMap(LEVELS[5], 3);
   const world = new World(map, 8, 3, [5, 0, 1, 2, 3, 4, 6, 7]);
-  const dip = new Diplomacy(world, 'normal', [1, 2, 3, 4, 5, 6, 7], 3);
+  const dip = new Diplomacy(world, 'difficile', [1, 2, 3, 4, 5, 6, 7], 3);
   const calls: string[] = [];
   const hud = new Hud(
     document.getElementById('hud')!,

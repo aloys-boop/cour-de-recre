@@ -126,7 +126,7 @@ describe('brouillard de guerre', () => {
 
   it('l’IA ne voit que ce que voient ses élèves et ses cases', () => {
     const w = world(true);
-    const ai = new TeamAi(w, 1, 'normal');
+    const ai = new TeamAi(w, 1, 'difficile');
     const hidden = w.spawnUnit(0, 3.5, 10.5, false);
     w.spawnUnit(1, 16.5, 16.5, false);
     expect(unitVisible(w, 1, hidden)).toBe(false);

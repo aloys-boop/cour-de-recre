@@ -11,8 +11,8 @@ for (const full of [false, true]) {
   // « Pleine » : tous les élèves dès le départ et production rapide, pour rester au plafond.
   const map = full ? { ...base, startUnits: base.unitCap, spawnInterval: 1.5 } : base;
   const world = new World(map, 8, 21);
-  const ais = Array.from({ length: 8 }, (_, t) => new TeamAi(world, t, 'difficile'));
-  const dip = new Diplomacy(world, 'difficile', ais.map((a) => a.team), 21);
+  const ais = Array.from({ length: 8 }, (_, t) => new TeamAi(world, t, 'expert'));
+  const dip = new Diplomacy(world, 'expert', ais.map((a) => a.team), 21);
   const step = 1 / 60;
   let worst = 0;
   const all: number[] = [];

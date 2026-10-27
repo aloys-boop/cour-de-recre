@@ -13,7 +13,7 @@ import { generateMap, LEVELS } from '../../src/core/maps';
 import type { Difficulty, MapDef } from '../../src/core/types';
 import { World } from '../../src/core/world';
 
-const diff: Difficulty = (process.argv[2] as Difficulty) ?? 'normal';
+const diff: Difficulty = (process.argv[2] as Difficulty) ?? 'difficile';
 const mode = process.argv[3] ?? '4';
 if (process.argv[4] && process.argv[4] !== '-') {
   const over = JSON.parse(process.argv[4]) as number[][];

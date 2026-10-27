@@ -226,7 +226,7 @@ describe('améliorations de camp', () => {
 describe('IA : dépenses de bons points', () => {
   it('une IA Normal achète des améliorations globales quand elle en a les moyens', () => {
     const w = new World(ARENA, 2, 5);
-    const eco = new EconomyAi(w, 1, 'normal');
+    const eco = new EconomyAi(w, 1, 'difficile');
     awardMerit(w, 1, 300, 0, 0, 'hold');
     tick(w, 20, () => eco.update(1 / 60));
     expect(totalTeamUpgrades(w, 1)).toBeGreaterThanOrEqual(3);
@@ -243,7 +243,7 @@ describe('IA : dépenses de bons points', () => {
     camp.capTeam = 0;
     camp.cap = 0.3;
     w.update(1 / 60);
-    const eco = new EconomyAi(w, 1, 'difficile');
+    const eco = new EconomyAi(w, 1, 'expert');
     eco.allowPion = false;
     eco.allowPowers = false;
     awardMerit(w, 1, 45, 0, 0, 'hold');

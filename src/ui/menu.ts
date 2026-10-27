@@ -1,4 +1,4 @@
-import { STAT_POINTS_MAX, SUIT_BONUS, TEAM_COLORS, TEAM_NAMES, TEAM_PROFILES } from '../config';
+import { DIFFICULTIES, STAT_POINTS_MAX, SUIT_BONUS, TEAM_COLORS, TEAM_NAMES, TEAM_PROFILES } from '../config';
 import { LEVELS } from '../core/maps';
 import { decodeMapCode, describeSpec, normalizeCode, type MapCode } from '../core/mapcode';
 import { DEFAULT_RULES, type GameRules } from '../core/rules';
@@ -33,11 +33,7 @@ export interface MenuHooks {
   onHowTo?(): void;
 }
 
-const DIFFS: Array<{ id: Difficulty; label: string }> = [
-  { id: 'facile', label: 'Facile' },
-  { id: 'normal', label: 'Normal' },
-  { id: 'difficile', label: 'Difficile' },
-];
+const DIFFS = DIFFICULTIES;
 
 /** Écran d'accueil : choix de l'équipe, de la difficulté et de la carte. */
 export class Menu {

@@ -18,9 +18,26 @@ export interface Progress {
   tutorialSeen?: boolean;
   /** Le tutoriel a été terminé (victoire). */
   tutorialDone?: boolean;
+  /**
+   * Échelle de difficulté de la sauvegarde : absente avant la v5.2 (3 niveaux), 2 depuis (4 niveaux).
+   * Une ancienne sauvegarde est convertie : « normal » → « difficile », « difficile » → « expert ».
+   */
+  difficultyScale?: number;
 }
 
-const DEFAULT: Progress = { unlocked: 1, wins: {}, muted: false, lastTeam: 0, lastDifficulty: 'normal', musicMuted: false };
+/** Échelle de difficulté actuelle (Facile, Normal, Difficile, Expert). */
+export const DIFFICULTY_SCALE = 2;
+const DIFFICULTY_IDS: readonly Difficulty[] = ['facile', 'normal', 'difficile', 'expert'];
+/** Ancienne échelle à 3 niveaux → nouvelle : l'ancien Normal est le Difficile d'aujourd'hui, l'ancien Difficile l'Expert. */
+const LEGACY_DIFFICULTY: Record<string, Difficulty> = { facile: 'facile', normal: 'difficile', difficile: 'expert' };
+
+/** Difficulté lue dans une sauvegarde, convertie si elle date d'avant les 4 niveaux. */
+export function migrateDifficulty(value: unknown, scale: unknown): Difficulty {
+  if (scale === DIFFICULTY_SCALE) return DIFFICULTY_IDS.includes(value as Difficulty) ? (value as Difficulty) : 'normal';
+  return typeof value === 'string' && value in LEGACY_DIFFICULTY ? LEGACY_DIFFICULTY[value] : 'normal';
+}
+
+const DEFAULT: Progress = { unlocked: 1, wins: {}, muted: false, lastTeam: 0, lastDifficulty: 'normal', musicMuted: false, difficultyScale: DIFFICULTY_SCALE };
 
 interface StorageLike {
   getItem(k: string): string | null;
@@ -47,9 +64,8 @@ export function loadProgress(store: StorageLike | null = storage()): Progress {
       wins: parsed.wins && typeof parsed.wins === 'object' ? parsed.wins : {},
       muted: !!parsed.muted,
       lastTeam: ([0, 1, 2, 3, 4, 5, 6, 7] as TeamId[]).includes(parsed.lastTeam as TeamId) ? (parsed.lastTeam as TeamId) : 0,
-      lastDifficulty: (['facile', 'normal', 'difficile'] as Difficulty[]).includes(parsed.lastDifficulty as Difficulty)
-        ? (parsed.lastDifficulty as Difficulty)
-        : 'normal',
+      lastDifficulty: migrateDifficulty(parsed.lastDifficulty, parsed.difficultyScale),
+      difficultyScale: DIFFICULTY_SCALE,
       musicMuted: !!parsed.musicMuted,
       medals: sanitizeMedals(parsed.medals),
       tutorialSeen: !!parsed.tutorialSeen,
@@ -63,7 +79,7 @@ export function loadProgress(store: StorageLike | null = storage()): Progress {
 export function saveProgress(p: Progress, store: StorageLike | null = storage()): void {
   if (!store) return;
   try {
-    store.setItem(STORAGE_KEY, JSON.stringify(p));
+    store.setItem(STORAGE_KEY, JSON.stringify({ ...p, difficultyScale: DIFFICULTY_SCALE }));
   } catch {
     /* quota ou stockage indisponible : on ignore */
   }

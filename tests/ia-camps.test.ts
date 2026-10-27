@@ -30,7 +30,7 @@ describe('IA : camps, types, ralliements', () => {
     awardMerit(w, 1, 300, 0, 0, 'hold');
     for (let i = 0; i < 16; i++) w.spawnUnit(1, 16 + (i % 4) * 0.4, 16 + Math.floor(i / 4) * 0.4, false);
     w.update(1 / 60);
-    const eco = new EconomyAi(w, 1, 'normal');
+    const eco = new EconomyAi(w, 1, 'difficile');
     eco.allowPowers = false;
     eco.allowPion = false;
     eco.think();
@@ -44,7 +44,7 @@ describe('IA : camps, types, ralliements', () => {
     const w = new World(MAP, 2, 1);
     const tile = w.tiles[3];
     tile.owner = 1;
-    const eco = new EconomyAi(w, 1, 'normal');
+    const eco = new EconomyAi(w, 1, 'difficile');
     eco.allowPowers = false;
     eco.allowUpgrades = false;
     // Une case de l'IA attaquée près de son camp sud : les nouveaux élèves y vont.
@@ -78,7 +78,7 @@ describe('IA : camps, types, ralliements', () => {
     const w = new World(MAP, 2, 1);
     for (let i = 0; i < 8; i++) w.spawnUnit(0, 18.5 + (i % 3) * 0.3, 16.5 + Math.floor(i / 3) * 0.3, false);
     w.update(1 / 60);
-    const hard = new EconomyAi(w, 1, 'difficile');
+    const hard = new EconomyAi(w, 1, 'expert');
     hard.allowPowers = false;
     awardMerit(w, 1, PION.cost + 60, 0, 0, 'hold');
     hard.think();

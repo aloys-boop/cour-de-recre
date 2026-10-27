@@ -36,7 +36,7 @@ const make = (w: number, h: number) => createCanvas(w, h) as unknown as HTMLCanv
 const map = generateMap(skirmishLevel({ teams: 4, size: 1, tiles: 16 }), 4242);
 const world = new World(map, map.teams, 4242, [0, 1, 4, 5]);
 world.rules = { mode: 'classique', supervisors: true };
-const ais = [1, 2, 3].map((t) => new TeamAi(world, t, 'normal'));
+const ais = [1, 2, 3].map((t) => new TeamAi(world, t, 'difficile'));
 const step = 1 / 60;
 let whistles = 0;
 const t0 = Date.now();

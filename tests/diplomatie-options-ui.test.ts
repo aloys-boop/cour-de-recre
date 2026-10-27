@@ -35,7 +35,7 @@ const ARENA: MapDef = {
 function setup(rules: GameRules) {
   const world = new World(ARENA, 3, 2);
   world.rules = normalizeRules(rules);
-  const dip = new Diplomacy(world, 'normal', [1, 2], 2);
+  const dip = new Diplomacy(world, 'difficile', [1, 2], 2);
   const extras = new DiplomacyExtras(world, dip, 0, 2);
   const host: ExtrasHost = { world, extras, selected: new Set<number>(), playerTeam: 0, paused: false, over: false };
   const hints: string[] = [];

@@ -54,7 +54,7 @@ export interface MapDef {
   seed?: number;
 }
 
-export type Difficulty = 'facile' | 'normal' | 'difficile';
+export type Difficulty = 'facile' | 'normal' | 'difficile' | 'expert';
 
 export interface UnitOrder {
   kind: 'move' | 'attack' | 'none';

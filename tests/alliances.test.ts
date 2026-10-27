@@ -174,7 +174,7 @@ describe('diplomatie', () => {
   function setup(teams = 3) {
     const w = new World(ARENA, teams, 5);
     for (let t = 0; t < teams; t++) for (let i = 0; i < 4; i++) w.spawnUnit(t, 2 + t * 2 + i * 0.2, 5);
-    const d = new Diplomacy(w, 'normal', [1, 2].slice(0, teams - 1), 3);
+    const d = new Diplomacy(w, 'difficile', [1, 2].slice(0, teams - 1), 3);
     return { w, d };
   }
 
@@ -235,9 +235,9 @@ describe('diplomatie', () => {
     expect(d.propose(0, 1)).toBe('refuse');
   });
 
-  it('une IA rompt quand l’ennemi commun est presque éliminé (plus souvent en Difficile)', () => {
+  it('une IA rompt quand l’ennemi commun est presque éliminé (plus souvent en Expert, l’ancien Difficile)', () => {
     const counts: Record<string, number> = {};
-    for (const diff of ['facile', 'difficile'] as const) {
+    for (const diff of ['facile', 'expert'] as const) {
       counts[diff] = 0;
       for (let seed = 1; seed <= 20; seed++) {
         const w = new World(ARENA, 3, seed);
@@ -251,8 +251,8 @@ describe('diplomatie', () => {
         if (d.drainEvents().some((e) => e.kind === 'warn')) counts[diff]++;
       }
     }
-    expect(counts.difficile).toBeGreaterThan(counts.facile);
-    expect(counts.difficile).toBeGreaterThan(5);
+    expect(counts.expert).toBeGreaterThan(counts.facile);
+    expect(counts.expert).toBeGreaterThan(5);
   });
 });
 
@@ -351,8 +351,8 @@ describe('8 équipes', () => {
   it('une partie à 8 IA (avec diplomatie) se termine', () => {
     const map = generateMap(skirmishLevel({ teams: 8, size: 0, tiles: 20 }), 11);
     const w = new World(map, 8, 11);
-    const ais = Array.from({ length: 8 }, (_, t) => new TeamAi(w, t, 'difficile'));
-    const d = new Diplomacy(w, 'difficile', ais.map((a) => a.team), 11);
+    const ais = Array.from({ length: 8 }, (_, t) => new TeamAi(w, t, 'expert'));
+    const d = new Diplomacy(w, 'expert', ais.map((a) => a.team), 11);
     const step = 1 / 60;
     let maxUnits = 0;
     let t = 0;

@@ -146,7 +146,7 @@ describe('classes d’élèves', () => {
     const w = new World(ARENA, 2, 1);
     const camp = w.tiles[1];
     w.teamUpgrades[camp.owner].classes = true;
-    const eco = new EconomyAi(w, 1, 'normal');
+    const eco = new EconomyAi(w, 1, 'difficile');
     awardMerit(w, 1, 200, 0, 0, 'hold');
     // Petite armée, case libre : pas d'infirmier.
     for (let i = 0; i < 4; i++) w.spawnUnit(1, 10, 10 + i * 0.3, false);
@@ -164,10 +164,10 @@ describe('classes d’élèves', () => {
     // Sans réserve de bons points : élèves normaux.
     const poor = new World(ARENA, 2, 1);
     poor.teamUpgrades[1].classes = true;
-    expect(new EconomyAi(poor, 1, 'normal').chooseClass(poor.tiles[1])).toBe('eleve');
+    expect(new EconomyAi(poor, 1, 'difficile').chooseClass(poor.tiles[1])).toBe('eleve');
     // Classes verrouillées : élèves normaux.
     const locked = new World(ARENA, 2, 1);
     awardMerit(locked, 1, 200, 0, 0, 'hold');
-    expect(new EconomyAi(locked, 1, 'difficile').chooseClass(locked.tiles[1])).toBe('eleve');
+    expect(new EconomyAi(locked, 1, 'expert').chooseClass(locked.tiles[1])).toBe('eleve');
   });
 });

@@ -20,7 +20,7 @@ const map = mapWithRules(code, { ghostCamps: true });
 console.log(`code ${encodeMapCode(code)}, cour ${map.w}×${map.h}, camps fantômes :`, ghostCamps(map.tiles).map((g) => `(${g.x}, ${g.y})`).join(' '));
 const world = new World(map, map.teams, 7);
 world.rules = { mode: 'classique', ghostCamps: true };
-const ais = Array.from({ length: map.teams }, (_, t) => new TeamAi(world, t, 'normal'));
+const ais = Array.from({ length: map.teams }, (_, t) => new TeamAi(world, t, 'difficile'));
 const step = 1 / 60;
 for (let t = 0; t < seconds; t += step) {
   for (const a of ais) a.update(step);

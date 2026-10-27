@@ -43,8 +43,8 @@ function fill(world: World): void {
   const base = generateMap(LEVELS[5], 21);
   const map = { ...base, startUnits: 30, spawnInterval: 1.2 };
   const world = new World(map, 8, 21);
-  const ais = Array.from({ length: 8 }, (_, t) => new TeamAi(world, t, 'difficile'));
-  const dip = new Diplomacy(world, 'difficile', ais.map((a) => a.team), 21);
+  const ais = Array.from({ length: 8 }, (_, t) => new TeamAi(world, t, 'expert'));
+  const dip = new Diplomacy(world, 'expert', ais.map((a) => a.team), 21);
   const all: number[] = [];
   const units: number[] = [];
   for (let t = 0; t < seconds && world.victors().length === 0; t += step) {

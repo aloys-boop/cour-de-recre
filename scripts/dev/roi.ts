@@ -9,7 +9,7 @@ import type { Difficulty } from '../../src/core/types';
 import { World } from '../../src/core/world';
 
 const N = Number(process.argv[2] ?? 6);
-const diff = (process.argv[3] ?? 'normal') as Difficulty;
+const diff = (process.argv[3] ?? 'difficile') as Difficulty;
 const CONFIGS: SkirmishSettings[] = [
   { teams: 2, size: 0, tiles: 10 },
   { teams: 4, size: 1, tiles: 18 },

@@ -245,7 +245,7 @@ describe('camps fantômes : victoire', () => {
   it('les IA vont prendre un camp fantôme neutre', () => {
     const map = mapWithRules(code(2, 0, 10, 77), { ghostCamps: true });
     const w = new World(map, 2, 3);
-    const ais = [new TeamAi(w, 0, 'normal'), new TeamAi(w, 1, 'normal')];
+    const ais = [new TeamAi(w, 0, 'difficile'), new TeamAi(w, 1, 'difficile')];
     const ghost = w.tiles.find((t) => t.ghost)!;
     let taken = false;
     tick(w, 90, () => {

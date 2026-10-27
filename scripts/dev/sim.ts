@@ -5,7 +5,7 @@ const MAPS = LEVELS.map((l, i) => generateMap(l, 100 + i));
 import { NO_TEAM, type Difficulty } from '../../src/core/types';
 import { World } from '../../src/core/world';
 
-const diffs: Difficulty[] = ['facile', 'normal', 'difficile'];
+const diffs: Difficulty[] = ['facile', 'normal', 'difficile', 'expert'];
 for (const map of MAPS) {
   for (const d of diffs) {
     const world = new World(map, map.teams, 11);

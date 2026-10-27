@@ -42,8 +42,10 @@ export class TeamAi {
     readonly world: World,
     readonly team: number,
     difficulty: Difficulty,
+    /** Réglages remplacés (outils d'équilibrage, « joueur témoin »). */
+    override?: Partial<AiProfile>,
   ) {
-    this.profile = AI_PROFILES[difficulty];
+    this.profile = override ? { ...AI_PROFILES[difficulty], ...override } : AI_PROFILES[difficulty];
     this.economy = new EconomyAi(world, team, difficulty);
     this.economy.targetOf = () => this.target;
     // Décalage initial pour que les IA ne jouent pas toutes au même instant.

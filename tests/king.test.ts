@@ -249,7 +249,7 @@ describe('mode Roi de la cour : annonces et IA', () => {
     // Une IA seule avec quelques élèves près de son camp part vers le trône.
     const w2 = kingWorld();
     for (let i = 0; i < 5; i++) w2.spawnUnit(2, 1.2 + (i % 3) * 0.3, 1.2 + Math.floor(i / 3) * 0.3, false);
-    const ai = new TeamAi(w2, 2, 'normal');
+    const ai = new TeamAi(w2, 2, 'difficile');
     for (let i = 0; i < 60 * 4; i++) {
       ai.update(1 / 60);
       w2.update(1 / 60);

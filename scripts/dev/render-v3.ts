@@ -11,7 +11,7 @@ import { MeritPopups } from '../../src/render/merits';
 const OUT = process.argv[2];
 const map = generateMap(LEVELS[2], 102);
 const world = new World(map, 4, 7, [2, 0, 1, 3]);
-const ais = [1, 2, 3].map((t) => new TeamAi(world, t, 'normal'));
+const ais = [1, 2, 3].map((t) => new TeamAi(world, t, 'difficile'));
 for (let t = 0; t < 20; t += 1 / 60) { for (const a of ais) a.update(1 / 60); world.update(1 / 60); world.drainEvents(); }
 const home = world.camps[0];
 home.upgrades = { prod: 3, hp: 2, dmg: 1, def: 2 };

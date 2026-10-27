@@ -11,7 +11,7 @@ for (const on of [false, true]) {
   const map = generateMap(skirmishLevel({ teams: 8, size: 3, tiles: 28 }), 77);
   const world = new World(map, map.teams, 77);
   world.rules = { mode: 'classique', supervisors: on };
-  const ais = Array.from({ length: map.teams }, (_, t) => new TeamAi(world, t, 'normal'));
+  const ais = Array.from({ length: map.teams }, (_, t) => new TeamAi(world, t, 'difficile'));
   const step = 1 / 60;
   let whistles = 0;
   let kos = 0;

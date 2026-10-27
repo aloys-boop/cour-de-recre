@@ -62,7 +62,7 @@ function makeGame(rules: GameRules, announces: string[] = []) {
     document.getElementById('game') as HTMLCanvasElement,
     document.getElementById('minimap') as HTMLCanvasElement,
     sfx,
-    { map, mapIndex: -1, playerColor: 1, difficulty: 'normal', seed: 99, rules },
+    { map, mapIndex: -1, playerColor: 1, difficulty: 'difficile', seed: 99, rules },
     { onEnd: () => undefined, onPauseChange: () => undefined, onHud: () => undefined, onAnnounce: (t) => announces.push(t) },
   );
   game.stop();

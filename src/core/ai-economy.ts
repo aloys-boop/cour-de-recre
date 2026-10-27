@@ -1,7 +1,8 @@
 // Dépenses de bons points des IA : améliorations globales, Défense et pion des camps menacés,
 // classes d'élèves par camp, pouvoirs. Stratégie selon la difficulté : en Facile, achats lents
-// et au hasard ; en Normal, achats raisonnés ; en Difficile, achats rapides qui suivent la
-// situation (camp menacé → Défense et pion).
+// et au hasard ; en Normal, achats retardés, parfois au hasard, pouvoirs rares et mal visés ;
+// en Difficile, achats raisonnés ; en Expert, achats rapides qui suivent la situation
+// (camp menacé → Défense et pion).
 import { CLASSES, classCount, classUnlocked, type UnitClass } from './classes';
 import { meritsOf } from './merits';
 import { buyPion, PION } from './pion';
@@ -47,12 +48,20 @@ export interface EconomyProfile {
   pionSpareThreat: number;
   /** L'IA met de côté pour un pion (camp principal) quand elle totalise ce nombre de niveaux globaux. */
   pionAfter: number;
+  /** Probabilité qu'un achat soit choisi au hasard plutôt que raisonné (Normal : dépenses moins optimales). */
+  randomPick: number;
+  /** Probabilité de lancer un pouvoir quand l'occasion se présente. */
+  powerUse: number;
+  /** Imprécision de la visée des pouvoirs (cases autour du meilleur point). */
+  powerAim: number;
 }
 
 export const ECONOMY_PROFILES: Record<Difficulty, EconomyProfile> = {
-  facile: { interval: 9, maxLevel: 2, margin: 1.5, smart: false, classes: 'rare', classReserve: 60, powers: null, pionSpare: 120, pionSpareThreat: 120, pionAfter: 8 },
-  normal: { interval: 4, maxLevel: 3, margin: 1, smart: true, classes: 'mix', classReserve: 15, powers: { sonnerie: 6, neige: 5, gouter: 4 }, pionSpare: 30, pionSpareThreat: 0, pionAfter: 5 },
-  difficile: { interval: 2, maxLevel: 3, margin: 1, smart: true, classes: 'mix', classReserve: 10, powers: { sonnerie: 5, neige: 4, gouter: 3 }, pionSpare: 10, pionSpareThreat: 0, pionAfter: 4 },
+  facile: { interval: 9, maxLevel: 2, margin: 1.5, smart: false, classes: 'rare', classReserve: 60, powers: null, pionSpare: 120, pionSpareThreat: 120, pionAfter: 8, randomPick: 1, powerUse: 0, powerAim: 0 },
+  // Normal (v5.2) : achats retardés et parfois au hasard, pouvoirs plus rares et moins bien visés.
+  normal: { interval: 6, maxLevel: 3, margin: 1.4, smart: true, classes: 'mix', classReserve: 25, powers: { sonnerie: 7, neige: 6, gouter: 5 }, pionSpare: 60, pionSpareThreat: 20, pionAfter: 6, randomPick: 0.4, powerUse: 0.5, powerAim: 1.8 },
+  difficile: { interval: 4, maxLevel: 3, margin: 1, smart: true, classes: 'mix', classReserve: 15, powers: { sonnerie: 6, neige: 5, gouter: 4 }, pionSpare: 30, pionSpareThreat: 0, pionAfter: 5, randomPick: 0, powerUse: 1, powerAim: 0 },
+  expert: { interval: 2, maxLevel: 3, margin: 1, smart: true, classes: 'mix', classReserve: 10, powers: { sonnerie: 5, neige: 4, gouter: 3 }, pionSpare: 10, pionSpareThreat: 0, pionAfter: 4, randomPick: 0, powerUse: 1, powerAim: 0 },
 };
 
 /** Élèves qu'un camp produira dans la classe choisie avant la prochaine réflexion (répartition entre camps). */
@@ -109,7 +118,8 @@ export class EconomyAi {
     if (this.buyPionIfUseful(camps)) return;
     // Épargne pour un pion : un camp bien amélioré mérite d'être gardé ; plus d'achat d'amélioration en attendant.
     const saving = this.allowPion && camps.some((c) => !c.pionBought) && totalTeamUpgrades(w, this.team) >= this.profile.pionAfter && !camps.some((c) => c.pionBought);
-    const pick = saving || !this.allowUpgrades ? null : this.profile.smart ? this.bestPurchase(camps) : this.randomPurchase();
+    const randomly = !this.profile.smart || (this.profile.randomPick > 0 && this.rng.next() < this.profile.randomPick);
+    const pick = saving || !this.allowUpgrades ? null : randomly ? this.randomPurchase() : this.bestPurchase(camps);
     if (pick) {
       const cost = purchaseCost(w, this.team, pick);
       if (cost !== null && meritsOf(w, this.team) >= cost * this.profile.margin) buy(w, this.team, pick);
@@ -174,6 +184,14 @@ export class EconomyAi {
       if (powerCooldown(w, this.team, id) > 0 || meritsOf(w, this.team) < POWERS[id].cost) continue;
       const spot = bestPowerSpot(w, this.team, id);
       if (!spot || spot.score < th[id]) continue;
+      // Normal : l'occasion est parfois manquée, et la visée est approximative.
+      if (this.profile.powerUse < 1 && this.rng.next() >= this.profile.powerUse) continue;
+      if (this.profile.powerAim > 0) {
+        const a = this.rng.next() * Math.PI * 2;
+        const r = this.profile.powerAim * Math.sqrt(this.rng.next());
+        spot.x = Math.max(0.5, Math.min(w.map.w - 0.5, spot.x + Math.cos(a) * r));
+        spot.y = Math.max(0.5, Math.min(w.map.h - 0.5, spot.y + Math.sin(a) * r));
+      }
       // Sonnerie : seulement si des élèves de l'IA sont là pour en profiter.
       if (id === 'sonnerie') {
         let own = 0;

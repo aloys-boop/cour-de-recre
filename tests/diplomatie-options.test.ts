@@ -32,7 +32,7 @@ afterEach(() => Object.assign(EXTRAS, SAVED));
 function setup(rules: GameRules = { gifts: true, sos: true, tribute: true }) {
   const w = new World(ARENA, 4, 7);
   w.rules = normalizeRules(rules);
-  const dip = new Diplomacy(w, 'normal', [1, 2, 3], 7);
+  const dip = new Diplomacy(w, 'difficile', [1, 2, 3], 7);
   const ex = new DiplomacyExtras(w, dip, 0, 7);
   return { w, dip, ex };
 }
@@ -161,7 +161,7 @@ describe('appel à l’aide', () => {
   it('les alliés envoient une partie de leurs élèves libres, les gardent au camp ~25 s, puis repartent', () => {
     const { w, ex } = setup({ sos: true });
     w.setAllied(0, 1, true);
-    const ai = new TeamAi(w, 1, 'normal');
+    const ai = new TeamAi(w, 1, 'difficile');
     spawnMany(w, 1, 10, 11, 11);
     spawnMany(w, 0, 2, 0.8, 0.8);
     // Un ennemi rôde près du camp du joueur, loin des renforts.

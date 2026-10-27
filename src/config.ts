@@ -133,11 +133,25 @@ export interface AiProfile {
   damage: number; // multiplicateur de dégâts des élèves IA
 }
 
+/**
+ * Quatre niveaux. Difficile et Expert sont les anciens Normal et Difficile (avant la v5.2) ;
+ * Normal, plus doux, est réglé pour qu'un joueur moyen gagne environ une partie sur deux
+ * à 4 équipes (voir README, « joueur témoin »).
+ */
 export const AI_PROFILES: Record<Difficulty, AiProfile> = {
   facile: { reaction: 2.6, groupMin: 5, keepHome: 0.5, aggression: 0.3, rallyRadius: 1.6, damage: 0.75 },
-  normal: { reaction: 1.5, groupMin: 4, keepHome: 0.35, aggression: 0.6, rallyRadius: 1.4, damage: 1 },
-  difficile: { reaction: 0.8, groupMin: 3, keepHome: 0.2, aggression: 0.9, rallyRadius: 1.2, damage: 1.15 },
+  normal: { reaction: 1.9, groupMin: 6, keepHome: 0.45, aggression: 0.5, rallyRadius: 1.5, damage: 0.9 },
+  difficile: { reaction: 1.5, groupMin: 4, keepHome: 0.35, aggression: 0.6, rallyRadius: 1.4, damage: 1 },
+  expert: { reaction: 0.8, groupMin: 3, keepHome: 0.2, aggression: 0.9, rallyRadius: 1.2, damage: 1.15 },
 };
+
+/** Ordre et libellés des niveaux de difficulté (menu). */
+export const DIFFICULTIES: ReadonlyArray<{ id: Difficulty; label: string }> = [
+  { id: 'facile', label: 'Facile' },
+  { id: 'normal', label: 'Normal' },
+  { id: 'difficile', label: 'Difficile' },
+  { id: 'expert', label: 'Expert' },
+];
 
 export const STORAGE_KEY = 'cour-de-recre.v2';
 
@@ -172,6 +186,7 @@ export const DIPLOMACY = {
 /** Trahisons selon la difficulté : seuil de puissance de l'allié et probabilité de passer à l'acte. */
 export const BETRAYAL: Record<Difficulty, { strongerRatio: number; chance: number; endgameChance: number }> = {
   facile: { strongerRatio: 2.2, chance: 0.12, endgameChance: 0.15 },
-  normal: { strongerRatio: 1.8, chance: 0.3, endgameChance: 0.35 },
-  difficile: { strongerRatio: 1.45, chance: 0.6, endgameChance: 0.7 },
+  normal: { strongerRatio: 2, chance: 0.2, endgameChance: 0.25 },
+  difficile: { strongerRatio: 1.8, chance: 0.3, endgameChance: 0.35 },
+  expert: { strongerRatio: 1.45, chance: 0.6, endgameChance: 0.7 },
 };

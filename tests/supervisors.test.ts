@@ -368,7 +368,7 @@ describe('option « Surveillants » : IA et brouillard', () => {
         park(a, 12.6, 2.6); // sur la case bonus
         park(b, 1.5, 14.5);
       }
-      const ai = new TeamAi(w, 1, 'normal');
+      const ai = new TeamAi(w, 1, 'difficile');
       tick(w, 4, () => void ai.update(1 / 60));
       return w.units.filter((u) => u.team === 1 && u.alive && Math.hypot(u.x - 12.6, u.y - 2.6) < 2).length;
     };
@@ -379,7 +379,7 @@ describe('option « Surveillants » : IA et brouillard', () => {
     const { w, s } = arena();
     park(s, 8, 4.5);
     for (let i = 0; i < AI_SUPERVISOR_GROUP + 1; i++) w.spawnUnit(1, 7 + (i % 3) * 0.5, 8.5 + Math.floor(i / 3) * 0.5, false);
-    const ai = new TeamAi(w, 1, 'normal');
+    const ai = new TeamAi(w, 1, 'difficile');
     let attacking = 0;
     tick(w, 6, () => {
       ai.update(1 / 60);

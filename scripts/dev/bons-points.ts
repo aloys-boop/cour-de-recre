@@ -27,7 +27,7 @@ if (process.env.GAINS) Object.assign(MERITS, JSON.parse(process.env.GAINS));
 // MIX='{"costaud":0.35,...}' : mélange de classes visé par les IA (voir CLASS_MIX).
 if (process.env.MIX) Object.assign(CLASS_MIX, JSON.parse(process.env.MIX));
 
-const diff = (process.argv[2] as Difficulty) ?? 'normal';
+const diff = (process.argv[2] as Difficulty) ?? 'difficile';
 const mode = process.argv[3] ?? 'revenus';
 const seeds = (process.argv[4] ?? '3,11,17').split(',').map(Number);
 const step = 1 / 60;

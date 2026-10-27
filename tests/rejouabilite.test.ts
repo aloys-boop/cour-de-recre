@@ -203,7 +203,8 @@ describe('sauvegarde', () => {
     expect(p.wins).toEqual(old.wins);
     expect(p.muted).toBe(true);
     expect(p.lastTeam).toBe(2);
-    expect(p.lastDifficulty).toBe('difficile');
+    // Ancienne échelle à 3 niveaux : l'ancien Difficile est devenu Expert.
+    expect(p.lastDifficulty).toBe('expert');
     expect(p.medals ?? {}).toEqual({});
   });
 

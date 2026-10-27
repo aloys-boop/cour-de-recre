@@ -59,7 +59,7 @@ describe('mode Roi de la cour : partie complète (rendu compris)', () => {
       document.getElementById('game') as HTMLCanvasElement,
       document.getElementById('minimap') as HTMLCanvasElement,
       sfx,
-      { map, mapIndex: -1, playerColor: 1, difficulty: 'normal', seed: 321, rules: { mode: 'roi' } },
+      { map, mapIndex: -1, playerColor: 1, difficulty: 'difficile', seed: 321, rules: { mode: 'roi' } },
       {
         onEnd: (r) => (ended = r),
         onPauseChange: () => undefined,
@@ -103,7 +103,7 @@ describe('mode Roi de la cour : partie complète (rendu compris)', () => {
       document.getElementById('game') as HTMLCanvasElement,
       document.getElementById('minimap') as HTMLCanvasElement,
       sfx,
-      { map, mapIndex: -1, playerColor: 1, difficulty: 'normal', seed: 321 },
+      { map, mapIndex: -1, playerColor: 1, difficulty: 'difficile', seed: 321 },
       { onEnd: () => undefined, onPauseChange: () => undefined, onHud: () => undefined },
     );
     game.stop();

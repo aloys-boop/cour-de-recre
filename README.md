@@ -58,7 +58,16 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
 - **Roi de la cour** (mode d'escarmouche). Un trône doré de 2 × 2 cellules, marqué d'une couronne, occupe le centre de la cour (les cases bonus et obstacles qui le touchaient sont retirés, de façon symétrique et reproductible). Il ne donne ni bonus ni élèves : il se capture comme un camp, et son propriétaire accumule du temps de règne tant que des ennemis ne le contestent pas. Le règne est compté par équipe et ne se transmet pas ; la première équipe à **2 minutes cumulées** gagne, avec ses alliés encore en vie (comme une alliance qui tient tous les camps) : « Roi de la cour ! ». Les autres victoires restent possibles. Un cadre sous les bonus affiche ton règne, celui du meneur et du tenant du trône ; annonces « Les Verts prennent le trône ! », « Plus que 20 s pour les Jaunes ! » ; l'écran de fin donne le temps de règne de chaque équipe. Les IA visent le trône en priorité (d'autant plus que son tenant approche des 2 minutes) et y laissent une garnison quand elles le tiennent.
 - **Code de carte.** Chaque partie a un code de 6 caractères (sans 0, 1, I ni O), affiché dans le menu pause et sur l'écran de fin avec un bouton « Copier ». Saisi dans le menu, il redonne exactement la même disposition (niveau ou réglages d'escarmouche compris, de 2 à 8 équipes). Les codes des versions précédentes restent valides et redonnent la même carte.
 - **Médailles.** Chaque niveau de campagne propose trois médailles : victoire, victoire sans perdre son camp, victoire en moins de 3 minutes de jeu. Elles sont sauvegardées et affichées sous forme de pastilles dans la liste des cartes.
-- **Difficulté.** Facile, Normal ou Difficile : les IA réagissent plus vite, attaquent avec de plus petits groupes, gardent moins de défenseurs et frappent plus fort.
+- **Difficulté.** Quatre niveaux : Facile, Normal, Difficile, Expert. Plus c'est dur, plus les IA réagissent vite, attaquent avec de petits groupes, gardent peu de défenseurs, frappent fort et dépensent bien leurs bons points :
+
+  | Niveau | Réaction | Groupe d'attaque | Défenseurs gardés | Dégâts IA | Bons points |
+  | --- | --- | --- | --- | --- | --- |
+  | Facile | 2,6 s | 5 | 50 % | ×0,75 | achats lents, au hasard, pas de pouvoir |
+  | Normal | 1,9 s | 6 | 45 % | ×0,9 | achats retardés (toutes les 6 s, avec 40 % de marge), choix au hasard 4 fois sur 10, pouvoirs une occasion sur deux, visés à ±1,8 case |
+  | Difficile | 1,5 s | 4 | 35 % | ×1 | achats raisonnés toutes les 4 s |
+  | Expert | 0,8 s | 3 | 20 % | ×1,15 | achats raisonnés toutes les 2 s |
+
+  Normal est réglé pour qu'un joueur moyen gagne environ une partie sur deux à 4 équipes (voir « Équilibrage »). Difficile et Expert sont les anciens Normal et Difficile (avant la v5.2) : une ancienne sauvegarde réglée sur « Normal » s'ouvre en Difficile, « Difficile » en Expert.
 - **Option « Camps fantômes » (escarmouche).** La cour compte en plus 1 à 3 camps sans propriétaire (selon sa taille), gris pâle à liseré pointillé avec un petit fantôme, placés vers le centre à égale distance des équipes (symétriques quand la carte l’est). Ils se capturent comme un camp (lentement) ; pris, ils produisent des élèves comme un camp normal et peuvent être repris. Ils comptent comme des camps pour la victoire : une équipe qui ne tient plus qu’un camp fantôme reste en vie, et « tenir tous les camps » les inclut. Même code de carte et même option : même disposition.
 
 ## Bons points et améliorations de camp
@@ -90,7 +99,8 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
   La Défense se voit sur le camp : un fanion gris planté sur son bord avant, avec une étoile dorée par niveau. **Un camp capturé perd son pion, sa Défense et son ralliement**, mais profite aussitôt des améliorations globales de son nouveau propriétaire (production, PV et dégâts de ses élèves).
 - **Les IA aussi**, avec le même système. Elles gagnent des bons points comme toi et les dépensent selon la difficulté :
   - Facile : toutes les 9 s, une amélioration globale au hasard (niveau 2 au plus), parfois le déblocage des classes ; ni ralliement, ni pouvoir ;
-  - Normal (toutes les 4 s) et Difficile (toutes les 2 s) : achat raisonné. Les améliorations globales d'abord (Production tant que l'équipe est loin du plafond, puis Entraînement et Uniformes), le déblocage des classes dès que l'armée compte 10 élèves ; la Défense et le pion vont aux camps menacés (ennemis à moins de 4 cases ou jauge de capture adverse), et l'IA met de côté pour le pion de son camp principal quand elle a 5 niveaux globaux (4 en Difficile) ;
+  - Normal (toutes les 6 s) : comme Difficile, mais en attendant d'avoir 40 % de plus que le prix, avec un achat au hasard 4 fois sur 10, des pouvoirs plus rares (une occasion sur deux, seuils plus hauts) et visés à côté ;
+  - Difficile (toutes les 4 s) et Expert (toutes les 2 s) : achat raisonné. Les améliorations globales d'abord (Production tant que l'équipe est loin du plafond, puis Entraînement et Uniformes), le déblocage des classes dès que l'armée compte 10 élèves ; la Défense et le pion vont aux camps menacés (ennemis à moins de 4 cases ou jauge de capture adverse), et l'IA met de côté pour le pion de son camp principal quand elle a 5 niveaux globaux (6 en Normal, 4 en Expert) ;
   - chaque camp produit un type d'élève différent quand c'est possible (le camp le plus menacé choisit d'abord, souvent des costauds ; les autres prennent la classe suivante la plus en retard) ;
   - chaque camp envoie ses nouveaux élèves vers son front : la case de l'IA attaquée la plus proche, sinon un point en direction de sa cible d'attaque, à 6 cases au plus du camp.
 
@@ -107,7 +117,7 @@ Dans le panneau d'un camp, la rubrique « Ce camp produit » choisit la classe d
 
 Le sprinteur compte pour 4 élèves dans la jauge de capture : seul sur une case, il la prend deux fois plus vite (la vitesse de capture suit la racine du nombre d'élèves, plafonnée à 2). Les infirmiers soignent aussi les alliés.
 
-Les IA mélangent les classes dès que leur camp est débloqué et qu'il leur reste une réserve de bons points (15 en Normal, 10 en Difficile) : elles visent environ 60 % de costauds (plus quand le camp est menacé), des sprinteurs tant qu'il reste des cases libres, et un infirmier par tranche de 8 élèves (3 au plus) ; à chaque réflexion, chaque camp produit la classe la plus en retard sur sa part visée, en évitant celle qu'un autre camp produit déjà. En Facile, l'IA ne produit qu'un costaud de temps en temps, quand elle est riche.
+Les IA mélangent les classes dès que leur camp est débloqué et qu'il leur reste une réserve de bons points (25 en Normal, 15 en Difficile, 10 en Expert) : elles visent environ 60 % de costauds (plus quand le camp est menacé), des sprinteurs tant qu'il reste des cases libres, et un infirmier par tranche de 8 élèves (3 au plus) ; à chaque réflexion, chaque camp produit la classe la plus en retard sur sa part visée, en évitant celle qu'un autre camp produit déjà. En Facile, l'IA ne produit qu'un costaud de temps en temps, quand elle est riche.
 
 ## Pouvoirs de récré et pion
 
@@ -124,8 +134,8 @@ Les IA mélangent les classes dès que leur camp est débloqué et qu'il leur re
   | Boules de neige | 35 ★ | 50 s | 1,8 case | 30 dégâts à chaque ennemi de la zone (les KO rapportent leurs bons points) |
   | Goûter | 25 ★ | 45 s | 2,4 cases | rend 45 PV à chacun de tes élèves (et ceux de tes alliés) dans la zone |
 
-  Les IA les utilisent aussi, sauf en Facile : à chaque réflexion, elles cherchent le point qui touche le plus d'élèves et lancent un pouvoir à partir de 6 ennemis touchés pour la sonnerie (seulement si au moins 3 de leurs élèves sont là pour en profiter), 5 pour la neige, 4 élèves blessés pour le goûter (5, 4 et 3 en Difficile). Une annonce prévient quand une équipe adverse lance un pouvoir à portée de vue.
-- **Pion.** Dans le panneau d'un camp, rubrique « Pion » : un surveillant aux couleurs de ton équipe, **120 ★, une fois par camp**. Il a 400 PV, recule à peine sous les coups, frappe environ trois fois plus fort qu'un élève, reste près du camp et attaque tout ennemi qui entre à moins de 3,2 cases du camp, sans le poursuivre à plus de 4,5 cases. Mis KO, il revient **60 s** plus tard ; mettre un pion adverse KO rapporte 20 ★. Il ne compte pas dans l'effectif ni dans le plafond de 30 élèves, ne se sélectionne pas et ne capture rien. Un camp capturé perd son pion. Les IA Normal et Difficile mettent de côté pour un pion dès qu'un de leurs camps est bien amélioré (5 niveaux, 4 en Difficile) ou l'achètent pour un camp menacé.
+  Les IA les utilisent aussi, sauf en Facile : à chaque réflexion, elles cherchent le point qui touche le plus d'élèves et lancent un pouvoir à partir de 6 ennemis touchés pour la sonnerie (seulement si au moins 3 de leurs élèves sont là pour en profiter), 5 pour la neige, 4 élèves blessés pour le goûter en Difficile (7, 6 et 5 en Normal, une occasion sur deux et visée approximative ; 5, 4 et 3 en Expert). Une annonce prévient quand une équipe adverse lance un pouvoir à portée de vue.
+- **Pion.** Dans le panneau d'un camp, rubrique « Pion » : un surveillant aux couleurs de ton équipe, **120 ★, une fois par camp**. Il a 400 PV, recule à peine sous les coups, frappe environ trois fois plus fort qu'un élève, reste près du camp et attaque tout ennemi qui entre à moins de 3,2 cases du camp, sans le poursuivre à plus de 4,5 cases. Mis KO, il revient **60 s** plus tard ; mettre un pion adverse KO rapporte 20 ★. Il ne compte pas dans l'effectif ni dans le plafond de 30 élèves, ne se sélectionne pas et ne capture rien. Un camp capturé perd son pion. Les IA Normal, Difficile et Expert mettent de côté pour un pion dès qu'un de leurs camps est bien amélioré (6 niveaux en Normal, 5 en Difficile, 4 en Expert) ou l'achètent pour un camp menacé.
 
 ## Alliances
 
@@ -133,7 +143,7 @@ Les IA mélangent les classes dès que leur camp est débloqué et qu'il leur re
 - **Entre alliés.** Pas de combat (ni engagement automatique, ni ordre d'attaque possible, ni dégâts : toucher un allié vaut un déplacement), on se traverse sans se bloquer, et on ne se conteste pas les cases. Si seuls des alliés sont sur une case, la capture avance pour celle qui capturait déjà, sinon pour la plus nombreuse ; un allié ne prend jamais la case d'un allié (il y efface plutôt la jauge d'un ennemi). Les camps et les cœurs ne soignent que leur propriétaire.
 - **Repères.** La puce d'un allié porte une poignée de main et un liseré bleu clair (en pointillés clignotants quand une rupture est annoncée) ; ses élèves ont un petit losange bleu à côté de leur barre de vie ; sur la mini-carte, ses camps ont un liseré bleu.
 - **Rompre.** Une rupture est annoncée 5 s à l'avance (« Les Verts vont rompre l'alliance dans 5 s ! »), pour l'IA comme pour toi. Une même paire d'équipes ne peut pas changer d'alliance plus d'une fois toutes les 30 s.
-- **Ce que pense l'IA.** Chaque IA estime la puissance de chaque équipe (vie et dégâts de ses élèves, camps, cases) et garde une attitude envers chacune (rancune quand on lui met des élèves KO, méfiance pendant 2 minutes envers qui l'a trahie). Elle accepte une alliance face à une menace commune (une équipe au moins 1,5 fois plus forte que les deux), ou si le proposeur n'est pas plus fort qu'elle et qu'elle ne lui en veut pas ; jamais si l'alliance réunirait toutes les équipes restantes (ce serait la fin de la partie). Les IA s'allient aussi entre elles face à une menace, et parfois sans raison. Elles rompent quand leur allié devient trop fort ou quand l'ennemi commun est presque éliminé, plus souvent en Difficile. Une IA ne cible pas les cases de ses alliés et peut venir défendre une case alliée qu'un ennemi est en train de prendre.
+- **Ce que pense l'IA.** Chaque IA estime la puissance de chaque équipe (vie et dégâts de ses élèves, camps, cases) et garde une attitude envers chacune (rancune quand on lui met des élèves KO, méfiance pendant 2 minutes envers qui l'a trahie). Elle accepte une alliance face à une menace commune (une équipe au moins 1,5 fois plus forte que les deux), ou si le proposeur n'est pas plus fort qu'elle et qu'elle ne lui en veut pas ; jamais si l'alliance réunirait toutes les équipes restantes (ce serait la fin de la partie). Les IA s'allient aussi entre elles face à une menace, et parfois sans raison. Elles rompent quand leur allié devient trop fort ou quand l'ennemi commun est presque éliminé, d'autant plus souvent que la difficulté est élevée. Une IA ne cible pas les cases de ses alliés et peut venir défendre une case alliée qu'un ennemi est en train de prendre.
 
 ## Options et modes d’escarmouche
 
@@ -153,7 +163,7 @@ Le code de carte reproduit la disposition, pas les options : choisis-les à nouv
 
 ### Couleurs (budget de 12 points)
 
-La répartition des points est fixe ; seule la valeur d'un point dans chaque caractéristique a été réglée, par simulation IA contre IA en difficulté égale (`npx tsx scripts/dev/equilibre.ts equipes=4 parties=4000`) : à chaque partie, carte (niveaux de campagne et escarmouches de toutes tailles), couleurs (4 parmi les 8) et positions de départ sont tirées au hasard. Objectif : chaque couleur entre 22 % et 28 % de victoires à 4 équipes. Une partie sans vainqueur au bout de 8 minutes (1 sur 4 000) revient à l'équipe en tête. Taux de victoire avec les valeurs retenues (toutes les IA en difficulté Normal, devenue Difficile en v5.2) :
+La répartition des points est fixe ; seule la valeur d'un point dans chaque caractéristique a été réglée, par simulation IA contre IA en difficulté égale (`npx tsx scripts/dev/equilibre.ts equipes=4 parties=4000`, difficulté Difficile par défaut) : à chaque partie, carte (niveaux de campagne et escarmouches de toutes tailles), couleurs (4 parmi les 8) et positions de départ sont tirées au hasard. Objectif : chaque couleur entre 22 % et 28 % de victoires à 4 équipes. Une partie sans vainqueur au bout de 8 minutes (1 sur 4 000) revient à l'équipe en tête. Taux de victoire avec les valeurs retenues (toutes les IA en difficulté Normal, devenue Difficile en v5.2) :
 
 | Mode | Noir | Vert | Jaune | Violet | Rouge | Bleu | Orange | Rose |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -165,9 +175,22 @@ Avec ~2 000 parties par couleur, l'écart dû au hasard est d'environ ±2 points
 
 Valeurs essayées en chemin (4 équipes, 2 000 parties) : avec 0,15 de plus par point partout (vitesse 0,08), le Bleu et le Rose (beaucoup de vie, lents) gagnaient 34–35 % et le Jaune 17 % ; il a fallu réduire la valeur d'un point de vie et presque doubler celle d'un point de vitesse.
 
+### Difficulté Normal : le « joueur témoin »
+
+Faute de joueur humain, un « joueur témoin » simule un joueur moyen : une IA réglée comme l'ancien Normal (aujourd'hui Difficile, dégâts ×1 comme le joueur), mais avec la lenteur d'un humain sur téléphone (une décision toutes les 3 s en moyenne au lieu de 1,5 s) et sans gestion fine : ni pouvoirs, ni pion, ni ralliements, ni classes par camp ; il achète seulement des améliorations. Il affronte 3 IA de même difficulté, à 4 équipes, couleurs et positions tirées au hasard (`npx tsx scripts/dev/equilibre.ts temoin=1 diff=normal parties=4000`). Objectif : 45 à 55 % de victoires en Normal.
+
+| Adversaires (3 IA) | Parties | Victoires du témoin |
+| --- | --- | --- |
+| Facile | 1 000 | 81,9 % |
+| **Normal** (retenu) | 4 000 | **50,2 %** (± 1,5) |
+| Difficile (ancien Normal) | 1 000 | 10,7 % |
+| Expert (ancien Difficile) | 1 000 | 4,6 % |
+
+Réglages essayés pour Normal (2 000 parties chacun, dégâts ×0,9, 45 % de défenseurs, dépenses moins optimales) : réaction 2,1 s et groupes de 5 → 44,0 % (1 000 parties) ; 2,3 s et 5 → 46,1 % ; 2,6 s et 5 → 48,6 % ; 2,3 s et 6 → 56,2 % ; 2,0 s et 6 → 52,9 % ; retenu : **1,9 s et groupes de 6** → 50,2 % sur 4 000 parties.
+
 ### Ancien réglage (multiplicateurs libres, avant la version 5)
 
-Les profils ont été réglés par simulation IA contre IA (`npx tsx scripts/dev/balance.ts normal 4mix` et `… normal 8`), en faisant tourner les couleurs sur toutes les positions. Taux de victoire rapporté à la moyenne, difficulté Normal :
+Les profils ont été réglés par simulation IA contre IA (`npx tsx scripts/dev/balance.ts normal 4mix` et `… normal 8`), en faisant tourner les couleurs sur toutes les positions. Taux de victoire rapporté à la moyenne, difficulté Normal (aujourd'hui Difficile) :
 
 | Mode | Noir | Vert | Jaune | Violet | Rouge | Bleu | Orange | Rose |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -176,7 +199,7 @@ Les profils ont été réglés par simulation IA contre IA (`npx tsx scripts/dev
 
 ### Bons points
 
-Réglés par simulation IA contre IA (`npx tsx scripts/dev/bons-points.ts normal revenus` et `… normal eco`, cartes à 4 équipes, difficulté Normal) :
+Réglés par simulation IA contre IA (`npx tsx scripts/dev/bons-points.ts normal revenus` et `… normal eco`, cartes à 4 équipes, difficulté Normal de l'époque, aujourd'hui Difficile) :
 
 - une équipe gagne environ 120 bons points par minute de jeu (42 % par les captures, 30 % par les KO, 28 % par les cases tenues) : un premier niveau s'achète au bout de 15 à 30 s, un camp entièrement amélioré (440 bons points) demande plusieurs minutes ;
 - classes (`PROD2=1 npx tsx scripts/dev/bons-points.ts normal classes`, camps débloqués d'emblée, 160 parties) : les équipes qui mélangent les classes gagnent 55 % des parties contre celles qui ne produisent que des élèves ; ne produire que des costauds : 60 %, que des sprinteurs : 50 %, jusqu'à 3 infirmiers : 54 % (avec un rayon de soin de 2,2 cases ; 50 % à 1,6). Les classes rapportent un avantage net mais modeste : leurs bons points ne vont pas dans les améliorations ;
@@ -194,13 +217,13 @@ Réglés par simulation IA contre IA (`npx tsx scripts/dev/bons-points.ts normal
 | … à 30 / 60 / 110 et 60 / 120 / 200 (120 parties) | 60 % et 60 % (bruit de ± 5 points) |
 | Ralliements des IA vers leurs fronts (`ralliement`), à 3 / 5 / 6 / 8 cases du camp au plus | 54 % / 63 % / 67 % (retenu) / 65 % |
 | Classes mélangées par camp, déblocage d'emblée (`PROD2=1 … classes`) | 57 % (costauds seuls : 63 %) ; avec un déblocage à 60 ★, les IA ne produisaient que 2 % d'élèves spéciaux, 10 % à 40 ★ (retenu) |
-| Toutes dépenses comprises (`eco`) | 68 % en Normal, 75 % en Difficile |
+| Toutes dépenses comprises (`eco`) | 68 % en Normal, 75 % en Difficile (aujourd’hui Difficile et Expert) |
 
 Une amélioration globale (50 ★ le premier niveau) coûte 2,5 fois une Défense de camp (20 ★) : elle profite à toute l'équipe et à tous ses camps, présents et futurs. Les simulations ne départagent pas nettement les coûts globaux (les bons points économisés partent en pouvoirs, classes et pions, qui rapportent aussi) ; 50 / 100 / 170 laisse le premier niveau à environ 30 s de jeu et un niveau 3 à plusieurs minutes.
 
 ### Performances à 240 élèves
 
-`npx tsx scripts/dev/perf240.ts` mesure le pas de simulation (1/60 s) à 8 équipes × 30 élèves, dans trois situations : une partie IA Difficile + diplomatie maintenue près du plafond, une mêlée générale de 240 élèves au centre, et des rafales d'ordres (les 240 élèves changent de destination toutes les 0,5 s). Le budget d'une image à 60 i/s est de 16,7 ms ; on vise un pas sous 4 ms sur iPhone, soit environ 2 ms sur un ordinateur de bureau (Safari mobile est 2 à 3 fois plus lent que Node).
+`npx tsx scripts/dev/perf240.ts` mesure le pas de simulation (1/60 s) à 8 équipes × 30 élèves, dans trois situations : une partie IA Expert (ancien Difficile) + diplomatie maintenue près du plafond, une mêlée générale de 240 élèves au centre, et des rafales d'ordres (les 240 élèves changent de destination toutes les 0,5 s). Le budget d'une image à 60 i/s est de 16,7 ms ; on vise un pas sous 4 ms sur iPhone, soit environ 2 ms sur un ordinateur de bureau (Safari mobile est 2 à 3 fois plus lent que Node).
 
 | Sur ordinateur de bureau | Moyenne | 99e centile | Pire pas |
 | --- | --- | --- | --- |
@@ -285,6 +308,7 @@ Le dépôt contient un workflow GitHub Actions (`.github/workflows/deploy.yml`) 
 | `v4.6` | IA (améliorations globales, Défense et pion des camps menacés, types par camp, ralliements vers les fronts) et équilibrage |
 | `v4-avant-equilibrage` | état avant le rééquilibrage (point de retour) |
 | `v5.1` | équipes à budget fixe de 12 points, valeur d'un point réglée par simulation |
+| `v5.2` | 4 niveaux de difficulté (nouveau Normal plus doux, Difficile et Expert = anciens Normal et Difficile), sauvegardes converties |
 
 ## Architecture
 
@@ -314,7 +338,7 @@ src/
     merits.ts          bons points : gains, solde, dépenses
     upgrades.ts        améliorations globales (Production, Uniformes, Entraînement, classes) et Défense par camp
     camps.ts           camps d'une équipe : ordre, numéro, nom
-    ai-economy.ts      dépenses de bons points des IA selon la difficulté (améliorations, classes)
+    ai-economy.ts      dépenses de bons points des IA selon la difficulté (améliorations, classes, pouvoirs)
     classes.ts         classes d'élèves : Costaud, Sprinteur, Infirmier
     powers.ts          pouvoirs de récré : Sonnerie, Boules de neige, Goûter
     brawls.ts          bagarres : détection, force de chaque équipe, tendance
