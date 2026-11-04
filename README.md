@@ -7,7 +7,7 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
 ## Tutoriel et « Comment jouer »
 
 - **Tutoriel.** Proposé automatiquement au premier lancement (« Faire le tutoriel » ou « Plus tard »), puis rejouable à tout moment : il est en tête de l'onglet « Campagne » du menu. Petite cour de 11 × 11 contre les Verts, IA passive (ses élèves restent chez eux et ne sont pas produits) jusqu'à la dernière étape, où elle se réveille en Facile avec des coups adoucis. Douze étapes guidées par une bulle de texte et une main animée qui montre où toucher ; chacune n'avance que sur l'action réelle du joueur : sélectionner un élève, sélection rectangle, déplacer, capturer une case, attaquer (deux Verts approchent), poser un point de ralliement, bouger la caméra (glisser, pincer ou mini-carte), gagner des bons points en prenant une case, améliorer l'équipe, lire l'aide d'un pouvoir (appui long sur le Goûter), le lancer par glisser-déposer (ou l'ancien mode), gagner la partie en prenant le camp vert. Le directeur complète au besoin les bons points pour essayer l'amélioration et le pouvoir. Le bouton « Passer » reste toujours visible et ramène au menu. Le tutoriel ne fait pas partie de la liste des niveaux : les codes de carte et la progression de la campagne sont inchangés.
-- **Comment jouer.** Les règles en onze rubriques courtes (but, sélection, déplacement et attaque, cases et camps, bons points, améliorations, classes, pouvoirs, pion, caméra, alliances), depuis le bouton « Comment jouer » du menu et du menu pause.
+- **Comment jouer.** Les règles en treize rubriques courtes (but, sélection, déplacement et attaque, cases et camps, bons points, améliorations, classes, pouvoirs, pion, caméra, ralliement, les IA, alliances), depuis le bouton « Comment jouer » du menu et du menu pause.
 
 ## Règles du jeu
 
@@ -63,9 +63,18 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
   | Niveau | Réaction | Groupe d'attaque | Défenseurs gardés | Dégâts IA | Bons points |
   | --- | --- | --- | --- | --- | --- |
   | Facile | 2,6 s | 5 | 50 % | ×0,75 | achats lents, au hasard, pas de pouvoir |
-  | Normal | 1,9 s | 6 | 45 % | ×0,9 | achats retardés (toutes les 6 s, avec 40 % de marge), choix au hasard 4 fois sur 10, pouvoirs une occasion sur deux, visés à ±1,8 case |
+  | Normal | 1,9 s | 5 | 45 % | ×0,9 | achats retardés (toutes les 6 s, avec 40 % de marge), choix au hasard 4 fois sur 10, pouvoirs une occasion sur deux, visés à ±1,8 case |
   | Difficile | 1,5 s | 4 | 35 % | ×1 | achats raisonnés toutes les 4 s |
   | Expert | 0,8 s | 3 | 20 % | ×1,15 | achats raisonnés toutes les 2 s |
+
+  **Attention limitée (v5.4).** Comme un joueur sur téléphone, une IA ne peut pas être partout à la fois. Elle dispose d'un budget d'ordres (un ordre = un groupe envoyé quelque part), qui se recharge au fil des secondes ; elle ne secourt qu'un nombre limité de cases menacées à chaque réflexion (le camp d'abord, puis la case la plus près d'être prise) ; et chaque case attaquée n'est remarquée qu'après un délai qui lui est propre. Le menu affiche ces chiffres sous les boutons de difficulté. Attaquer sur deux fronts à la fois paie donc enfin :
+
+  | Niveau | Ordres par minute | Cases secourues à la fois | Délai pour remarquer une attaque |
+  | --- | --- | --- | --- |
+  | Facile | 10 | 1 | 2,5 s |
+  | Normal | 18 | 1 | 1,6 s |
+  | Difficile | 28 | 2 | 1 s |
+  | Expert | 40 | 3 | 0,5 s |
 
   Normal est réglé pour qu'un joueur moyen gagne environ une partie sur deux à 4 équipes (voir « Équilibrage »). Difficile et Expert sont les anciens Normal et Difficile (avant la v5.2) : une ancienne sauvegarde réglée sur « Normal » s'ouvre en Difficile, « Difficile » en Expert.
 - **Option « Camps fantômes » (escarmouche).** La cour compte en plus 1 à 3 camps sans propriétaire (selon sa taille), gris pâle à liseré pointillé avec un petit fantôme, placés vers le centre à égale distance des équipes (symétriques quand la carte l’est). Ils se capturent comme un camp (lentement) ; pris, ils produisent des élèves comme un camp normal et peuvent être repris. Ils comptent comme des camps pour la victoire : une équipe qui ne tient plus qu’un camp fantôme reste en vie, et « tenir tous les camps » les inclut. Même code de carte et même option : même disposition.
@@ -187,6 +196,19 @@ Faute de joueur humain, un « joueur témoin » simule un joueur moyen : une IA 
 | Expert (ancien Difficile) | 1 000 | 4,6 % |
 
 Réglages essayés pour Normal (2 000 parties chacun, dégâts ×0,9, 45 % de défenseurs, dépenses moins optimales) : réaction 2,1 s et groupes de 5 → 44,0 % (1 000 parties) ; 2,3 s et 5 → 46,1 % ; 2,6 s et 5 → 48,6 % ; 2,3 s et 6 → 56,2 % ; 2,0 s et 6 → 52,9 % ; retenu : **1,9 s et groupes de 6** → 50,2 % sur 4 000 parties.
+
+### Attention limitée des IA (v5.4)
+
+Depuis la v5.4, le témoin a lui aussi l'attention d'un humain sur téléphone : 20 ordres par minute au plus, une seule case secourue à la fois, 2 s pour remarquer une attaque (`HUMAN_ATTENTION`). Le script affiche les ordres par minute réellement donnés (`avant=1` rend l'attention illimitée à tout le monde, comme avant). Mesures à 4 équipes, témoin contre 3 IA :
+
+| Adversaires | Ordres par minute des IA (avant → après) | Témoin humain contre l'ancienne IA | Témoin humain contre la nouvelle IA |
+| --- | --- | --- | --- |
+| Facile | 18,5 → 8,4 | | 96,5 % (600 parties) |
+| **Normal** | 23,3 → 14,5 | 51,0 % (800 parties) | **54,3 %** (800 parties, ± 3,5) |
+| Difficile | 31,9 → 22,1 | | 13,3 % (600 parties) |
+| Expert | 50,7 → 31,1 | | 5,0 % (400 parties) |
+
+Le témoin donne environ 18 ordres par minute. L'attention limitée seule faisait passer le témoin de 51 % à 65,5 % en Normal ; pour revenir près d'une partie sur deux, les groupes d'attaque de Normal passent de 6 à 5 élèves (essais à 400 parties : budget de 24 ordres → 58,3 % ; réaction 1,7 s → 62,3 % ; 38 % de défenseurs → 57,8 % ; groupes de 5 → 52,8 %, retenu). L'IA garde donc sa force de frappe, mais elle n'est plus partout : à 4 IA Normal entre elles (1 200 parties), chaque couleur gagne entre 20,0 % (Orange) et 28,0 % (Vert, Rouge).
 
 ### Ancien réglage (multiplicateurs libres, avant la version 5)
 
@@ -310,6 +332,8 @@ Le dépôt contient un workflow GitHub Actions (`.github/workflows/deploy.yml`) 
 | `v5.1` | équipes à budget fixe de 12 points, valeur d'un point réglée par simulation |
 | `v5.2` | 4 niveaux de difficulté (nouveau Normal plus doux, Difficile et Expert = anciens Normal et Difficile), sauvegardes converties |
 | `v5.3` | escarmouche : 4 à 30 cases bonus, symboles personnalisables un par un, codes de carte longs |
+| `avant-2026-11-04` | état avant la v5.4 (point de retour) |
+| `v5.4` | IA à attention limitée : ordres par minute, cases secourues à la fois et délai de réaction selon la difficulté |
 
 ## Architecture
 

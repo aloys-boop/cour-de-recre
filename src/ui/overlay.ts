@@ -203,5 +203,6 @@ export const HOW_TO: ReadonlyArray<[string, string]> = [
   ['Pion', 'Dans le panneau du camp : un surveillant à tes couleurs garde le camp et frappe les intrus. Il revient 60 s après un KO.'],
   ['Caméra', 'Glisse un doigt pour bouger la vue, pince pour zoomer, touche la mini-carte pour y aller.'],
   ['Ralliement', 'Chaque camp a son drapeau, où vont ses nouveaux élèves. Glisse depuis un camp jusqu’au point voulu, ou utilise « Ralliement » dans son panneau. Appui long sur le sol : camp le plus proche.'],
+  ['Les IA', 'Comme toi, les équipes de l’ordinateur ont une attention limitée : un nombre d’ordres par minute selon la difficulté, et une ou deux cases secourues à la fois (le menu donne les chiffres). Attaque sur deux fronts pour les déborder.'],
   ['Alliances', 'Touche la puce d’une équipe, en haut, pour lui proposer une alliance… ou la rompre.'],
 ];

@@ -1,4 +1,5 @@
 import { DIFFICULTIES, STAT_POINTS_MAX, SUIT_BONUS, TEAM_COLORS, TEAM_NAMES, TEAM_PROFILES } from '../config';
+import { describeAttention } from '../core/ai';
 import { LEVELS } from '../core/maps';
 import { decodeMapCode, describeSpec, normalizeCode, type MapCode } from '../core/mapcode';
 import { DEFAULT_RULES, type GameRules } from '../core/rules';
@@ -114,6 +115,8 @@ export class Menu {
     diffSec.append(el('h2', '', 'Difficulté des IA'));
     const diffRow = el('div', 'diff-row');
     const diffBtns: HTMLButtonElement[] = [];
+    // Attention des IA pour la difficulté choisie (saison 1 : l'IA n'est plus partout à la fois).
+    const diffHint = el('p', 'diff-hint', describeAttention(this.state.difficulty));
     DIFFS.forEach((d) => {
       const b = document.createElement('button');
       b.className = 'diff-btn' + (this.state.difficulty === d.id ? ' active' : '');
@@ -121,11 +124,12 @@ export class Menu {
       b.addEventListener('click', () => {
         this.state.difficulty = d.id;
         diffBtns.forEach((x, j) => x.classList.toggle('active', DIFFS[j].id === d.id));
+        diffHint.textContent = describeAttention(d.id);
       });
       diffBtns.push(b);
       diffRow.append(b);
     });
-    diffSec.append(diffRow);
+    diffSec.append(diffRow, diffHint);
 
     const left = el('div');
     left.style.display = 'grid';

@@ -1,4 +1,4 @@
-import { AI_PROFILES, type AiProfile } from '../config';
+import { AI_ATTENTION, AI_PROFILES, type AiAttention, type AiProfile } from '../config';
 import { EconomyAi } from './ai-economy';
 import { goldenAiBonus, goldenRetarget } from './events';
 import { pointVisible, unitVisible } from './fog';
@@ -29,6 +29,8 @@ export const TAG_LOANED = 4;
  *  - regroupe les élèves libres avant de lancer une attaque ;
  *  - renvoie des défenseurs sur ses cases menacées ;
  *  - ne cible ni ne craint ses alliés, et peut aider à défendre une case alliée proche.
+ * Son attention est limitée comme celle d'un humain (voir AI_ATTENTION) : un budget d'ordres
+ * par minute, un nombre de cases secourues à la fois, et un délai avant de remarquer chaque attaque.
  */
 export class TeamAi {
   readonly profile: AiProfile;
@@ -37,6 +39,14 @@ export class TeamAi {
   private timer: number;
   private target: Tile | null = null;
   private targetSince = 0;
+  /** Attention (budget d'ordres, fronts, délai de réaction). */
+  readonly attention: AiAttention;
+  /** Ordres encore disponibles (se recharge à `ordersPerMin` par minute, jusqu'à `burst`). */
+  private tokens: number;
+  /** Nombre total d'ordres donnés depuis le début de la partie (mesures). */
+  ordersGiven = 0;
+  /** Instant où chaque case possédée a été vue menacée pour la première fois (délai propre à chaque case). */
+  private threatSince = new Map<Tile, number>();
 
   constructor(
     readonly world: World,
@@ -44,8 +54,12 @@ export class TeamAi {
     difficulty: Difficulty,
     /** Réglages remplacés (outils d'équilibrage, « joueur témoin »). */
     override?: Partial<AiProfile>,
+    /** Attention remplacée (joueur témoin, mesures sans limite). */
+    attention?: Partial<AiAttention>,
   ) {
     this.profile = override ? { ...AI_PROFILES[difficulty], ...override } : AI_PROFILES[difficulty];
+    this.attention = attention ? { ...AI_ATTENTION[difficulty], ...attention } : AI_ATTENTION[difficulty];
+    this.tokens = this.attention.burst;
     this.economy = new EconomyAi(world, team, difficulty);
     this.economy.targetOf = () => this.target;
     // Décalage initial pour que les IA ne jouent pas toutes au même instant.
@@ -56,8 +70,23 @@ export class TeamAi {
     return planSupervisorFight(this, strikers, target);
   }
 
+  /** Ordres disponibles maintenant (arrondi inférieur). */
+  get ordersAvailable(): number {
+    return Math.floor(this.tokens);
+  }
+
+  /** Consomme un ordre du budget ; faux si l'IA n'a plus d'attention disponible. */
+  private spend(): boolean {
+    if (this.tokens < 1) return false;
+    this.tokens -= 1;
+    this.ordersGiven++;
+    return true;
+  }
+
   update(dt: number): void {
     this.economy.update(dt);
+    const a = this.attention;
+    this.tokens = Math.min(a.burst, this.tokens + (dt * a.ordersPerMin) / 60);
     this.timer -= dt;
     if (this.timer > 0) return;
     const p = this.profile;
@@ -82,22 +111,39 @@ export class TeamAi {
     };
 
     // --- Défense des cases menacées ---------------------------------------
+    // Chaque case a son propre délai de réaction : une attaque n'est « vue » qu'au bout de
+    // `threatDelay` secondes. Seules les `fronts` plus urgentes sont secourues à chaque réflexion.
+    const urgent: Array<{ t: Tile; need: number; prio: number }> = [];
     for (const t of owned) {
       const threat = enemiesNear(t.cx, t.cy, 2.6);
       const capturing = t.capTeam !== NO_TEAM && !w.isFriend(t.capTeam, this.team);
-      if (threat === 0 && !capturing) continue;
+      if (threat === 0 && !capturing) {
+        this.threatSince.delete(t);
+        continue;
+      }
+      const since = this.threatSince.get(t);
+      if (since === undefined) this.threatSince.set(t, w.time);
+      if (w.time - (since ?? w.time) < this.attention.threatDelay) continue;
       const defendersNear = mine.filter((u) => Math.hypot(u.x - t.cx, u.y - t.cy) < 2.2).length;
       // Un camp menacé est défendu en priorité et plus largement.
       const need = Math.ceil(threat * (t.isCamp ? 1.6 : 1.2) + (capturing ? (t.isCamp ? 4 : 2) : 0) + kingDefenseExtra(w, t, threat, capturing)) - defendersNear;
       if (need <= 0) continue;
+      urgent.push({ t, need, prio: (t.isCamp ? 100 : 0) + (capturing ? 10 + t.cap * 10 : 0) + need });
+    }
+    for (const t of [...this.threatSince.keys()]) if (t.owner !== this.team) this.threatSince.delete(t);
+    urgent.sort((a, b) => b.prio - a.prio);
+    let fronts = 0;
+    for (const { t, need } of urgent) {
+      if (fronts >= this.attention.fronts) break;
       const candidates = mine
         .filter((u) => u.aiTag !== TAG_DEFEND && u.state !== 'attacking')
         .sort((a, b) => dist(a, t) - dist(b, t))
         .slice(0, need);
-      if (candidates.length) {
-        w.orderMove(candidates, { x: t.cx, y: t.cy }, true);
-        for (const u of candidates) u.aiTag = TAG_DEFEND;
-      }
+      if (candidates.length === 0) continue;
+      if (!this.spend()) break;
+      fronts++;
+      w.orderMove(candidates, { x: t.cx, y: t.cy }, true);
+      for (const u of candidates) u.aiTag = TAG_DEFEND;
     }
 
     // --- Aide à un allié : une case alliée qu'un ennemi est en train de prendre ---
@@ -106,7 +152,7 @@ export class TeamAi {
       if (t.capTeam === NO_TEAM || w.isFriend(t.capTeam, this.team) || t.cap < 0.15) continue;
       const near = mine.filter((u) => u.aiTag === TAG_FREE && dist(u, t) < 5).sort((a, b) => dist(a, t) - dist(b, t));
       const helpers = near.slice(0, Math.min(3, Math.floor(near.length / 2)));
-      if (helpers.length) {
+      if (helpers.length && this.spend()) {
         w.orderMove(helpers, { x: t.cx, y: t.cy }, true);
         for (const u of helpers) u.aiTag = TAG_DEFEND;
       }
@@ -122,7 +168,7 @@ export class TeamAi {
         .filter((u) => u.aiTag !== TAG_DEFEND && u.state !== 'attacking' && !t.contains(u.x, u.y))
         .sort((a, b) => dist(a, t) - dist(b, t))
         .slice(0, Math.max(0, garrison.size - onIt.length));
-      if (more.length) {
+      if (more.length && this.spend()) {
         w.orderMove(more, { x: t.cx, y: t.cy }, true);
         for (const u of more) u.aiTag = TAG_DEFEND;
       }
@@ -181,7 +227,12 @@ export class TeamAi {
     const target = this.target;
     if (!target) return;
 
-    if (this.fightSupervisor(strikers, target)) return;
+    // Plus d'attention disponible : les ordres offensifs attendront la prochaine réflexion.
+    if (this.tokens < 1) return;
+    if (this.fightSupervisor(strikers, target)) {
+      this.spend();
+      return;
+    }
 
     const enemyAtTarget = enemiesNear(target.cx, target.cy, 2.5);
     const needed = Math.max(this.profile.groupMin, Math.ceil(enemyAtTarget * 1.3) + 1);
@@ -192,6 +243,7 @@ export class TeamAi {
 
     if (grouped.length + onTheWay >= needed || strikers.length >= needed * 2) {
       const squad = strikers.slice(0, Math.max(needed, Math.ceil(strikers.length * 0.8)));
+      if (!this.spend()) return;
       w.orderMove(squad, { x: target.cx, y: target.cy }, true);
       for (const u of squad) u.aiTag = TAG_ATTACK;
     } else {
@@ -200,13 +252,22 @@ export class TeamAi {
         x: centroid.x + (target.cx - centroid.x) * 0.25,
         y: centroid.y + (target.cy - centroid.y) * 0.25,
       };
-      const toRally = strikers.filter((u) => d2(u, rally) > this.profile.rallyRadius ** 2);
-      if (toRally.length) {
+      // Un élève déjà en route vers le regroupement n'a pas besoin d'un nouvel ordre.
+      const toRally = strikers.filter((u) => d2(u, rally) > this.profile.rallyRadius ** 2 && !(u.aiTag === TAG_RALLY && u.order.kind === 'move'));
+      if (toRally.length && this.spend()) {
         w.orderMove(toRally, rally, true);
         for (const u of toRally) u.aiTag = TAG_RALLY;
       }
     }
   }
+}
+
+/** Attention d'une difficulté en une phrase (menu) : ordres par minute, cases secourues, délai. */
+export function describeAttention(d: Difficulty): string {
+  const a = AI_ATTENTION[d];
+  const fronts = a.fronts === 1 ? 'une case secourue à la fois' : `${a.fronts} cases secourues à la fois`;
+  const delay = String(a.threatDelay).replace('.', ',');
+  return `IA : environ ${a.ordersPerMin} ordres par minute, ${fronts}, ${delay} s pour remarquer une attaque.`;
 }
 
 export interface SupervisorPlanHost {

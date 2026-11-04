@@ -136,14 +136,42 @@ export interface AiProfile {
 /**
  * Quatre niveaux. Difficile et Expert sont les anciens Normal et Difficile (avant la v5.2) ;
  * Normal, plus doux, est réglé pour qu'un joueur moyen gagne environ une partie sur deux
- * à 4 équipes (voir README, « joueur témoin »).
+ * à 4 équipes (voir README, « joueur témoin ») ; groupes de 5 depuis la v5.4 (attention limitée).
  */
 export const AI_PROFILES: Record<Difficulty, AiProfile> = {
   facile: { reaction: 2.6, groupMin: 5, keepHome: 0.5, aggression: 0.3, rallyRadius: 1.6, damage: 0.75 },
-  normal: { reaction: 1.9, groupMin: 6, keepHome: 0.45, aggression: 0.5, rallyRadius: 1.5, damage: 0.9 },
+  normal: { reaction: 1.9, groupMin: 5, keepHome: 0.45, aggression: 0.5, rallyRadius: 1.5, damage: 0.9 },
   difficile: { reaction: 1.5, groupMin: 4, keepHome: 0.35, aggression: 0.6, rallyRadius: 1.4, damage: 1 },
   expert: { reaction: 0.8, groupMin: 3, keepHome: 0.2, aggression: 0.9, rallyRadius: 1.2, damage: 1.15 },
 };
+
+/**
+ * Attention de l'IA (saison 1, « moins de micro ») : comme un humain sur téléphone, une IA ne peut
+ * pas être partout à la fois.
+ *  - `ordersPerMin` : budget d'ordres par minute (un ordre = un groupe envoyé quelque part) ;
+ *  - `burst` : ordres qu'elle peut enchaîner d'un coup après une pause (réserve du budget) ;
+ *  - `fronts` : cases menacées qu'elle peut secourir à chaque réflexion (les autres attendent) ;
+ *  - `threatDelay` : secondes avant de remarquer qu'une case est attaquée (délai propre à chaque case).
+ */
+export interface AiAttention {
+  ordersPerMin: number;
+  burst: number;
+  fronts: number;
+  threatDelay: number;
+}
+
+export const AI_ATTENTION: Record<Difficulty, AiAttention> = {
+  facile: { ordersPerMin: 10, burst: 2, fronts: 1, threatDelay: 2.5 },
+  normal: { ordersPerMin: 18, burst: 3, fronts: 1, threatDelay: 1.6 },
+  difficile: { ordersPerMin: 28, burst: 3, fronts: 2, threatDelay: 1 },
+  expert: { ordersPerMin: 40, burst: 4, fronts: 3, threatDelay: 0.5 },
+};
+
+/** Attention d'un joueur humain moyen sur téléphone (sert au « joueur témoin » des simulations). */
+export const HUMAN_ATTENTION: AiAttention = { ordersPerMin: 20, burst: 3, fronts: 1, threatDelay: 2 };
+
+/** Sans limite : l'IA d'avant la v5.4 (mesures « avant / après »). */
+export const UNLIMITED_ATTENTION: AiAttention = { ordersPerMin: Infinity, burst: Infinity, fronts: Infinity, threatDelay: 0 };
 
 /** Ordre et libellés des niveaux de difficulté (menu). */
 export const DIFFICULTIES: ReadonlyArray<{ id: Difficulty; label: string }> = [

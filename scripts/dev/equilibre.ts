@@ -11,6 +11,9 @@
 //     temoin=1         « joueur témoin » contre des IA de la difficulté `diff` (voir plus bas)
 //     reaction=3       secondes entre deux décisions du témoin
 //     ia='{"reaction":2.1}'  réglages remplacés des IA adverses (AiProfile partiel)
+//     attention='{"ordersPerMin":18}'  attention remplacée des IA adverses (AiAttention partielle)
+//     avant=1          IA et témoin sans limite d'attention (comportement d'avant la v5.4)
+// Affiche aussi les ordres par minute moyens des IA et du témoin.
 // Une partie sans vainqueur au temps limite est attribuée à l'équipe en tête (élèves + cases + camps).
 //
 // Joueur témoin : faute de joueur humain, une IA réglée comme l'ancien Normal (aujourd'hui
@@ -19,7 +22,7 @@
 // ralliements, ni pion, ni classes par camp ; il achète seulement des améliorations.
 // Sa position et sa couleur sont tirées au hasard. Les IA adverses ont leurs dégâts de partie.
 import { fork } from 'node:child_process';
-import { STAT_POINT_VALUES, TEAM_NAMES, type AiProfile, type TeamStat } from '../../src/config';
+import { HUMAN_ATTENTION, STAT_POINT_VALUES, TEAM_NAMES, UNLIMITED_ATTENTION, type AiAttention, type AiProfile, type TeamStat } from '../../src/config';
 import { TeamAi } from '../../src/core/ai';
 import { generateMap, LEVELS, type LevelDef } from '../../src/core/maps';
 import { Rng } from '../../src/core/rng';
@@ -42,6 +45,9 @@ const workers = Number(args.processus ?? 4);
 const temoin = args.temoin === '1';
 const reaction = Number(args.reaction ?? 3);
 const aiOverride = args.ia ? (JSON.parse(args.ia) as Partial<AiProfile>) : undefined;
+const avant = args.avant === '1';
+const aiAttention: Partial<AiAttention> | undefined = avant ? UNLIMITED_ATTENTION : args.attention ? (JSON.parse(args.attention) as Partial<AiAttention>) : undefined;
+const temoinAttention: AiAttention = avant ? UNLIMITED_ATTENTION : HUMAN_ATTENTION;
 if (args.valeurs) Object.assign(STAT_POINT_VALUES, JSON.parse(args.valeurs) as Partial<Record<TeamStat, number[]>>);
 
 const NC = TEAM_NAMES.length;
@@ -64,6 +70,11 @@ interface Result {
   time: number;
   /** Mode témoin : victoires du témoin. */
   temoinWins: number;
+  /** Ordres donnés et minutes jouées, IA adverses puis témoin. */
+  aiOrders: number;
+  aiMinutes: number;
+  temoinOrders: number;
+  temoinMinutes: number;
 }
 
 function score(w: World, t: number): number {
@@ -71,7 +82,19 @@ function score(w: World, t: number): number {
   return s.units + 2 * s.tiles + 6 * s.camps;
 }
 
-function playGame(index: number): { colors: number[]; winners: number[]; finished: boolean; time: number; temoinWon: number } {
+interface Game {
+  colors: number[];
+  winners: number[];
+  finished: boolean;
+  time: number;
+  temoinWon: number;
+  aiOrders: number;
+  aiMinutes: number;
+  temoinOrders: number;
+  temoinMinutes: number;
+}
+
+function playGame(index: number): Game {
   const rng = new Rng(seed0 * 1_000_003 + index * 7919);
   const levels = levelsFor(teams);
   const level = levels[Math.floor(rng.next() * levels.length)];
@@ -87,11 +110,11 @@ function playGame(index: number): { colors: number[]; winners: number[]; finishe
   const slot = Math.floor(rng.next() * teams); // position du témoin
   const ais = colors.map((_, t) => {
     if (!temoin || t !== slot) {
-      const ai = new TeamAi(world, t, diff, aiOverride);
+      const ai = new TeamAi(world, t, diff, aiOverride, aiAttention);
       if (temoin) world.damageScale[t] = ai.profile.damage;
       return ai;
     }
-    const ai = new TeamAi(world, t, 'difficile', { reaction });
+    const ai = new TeamAi(world, t, 'difficile', { reaction }, temoinAttention);
     world.damageScale[t] = 1;
     ai.economy.allowPowers = false;
     ai.economy.allowRallies = false;
@@ -107,15 +130,30 @@ function playGame(index: number): { colors: number[]; winners: number[]; finishe
     world.drainEvents();
     t += step;
   }
+  // Ordres par minute : chaque équipe compte sur la durée de la partie.
+  let aiOrders = 0;
+  let aiMinutes = 0;
+  let temoinOrders = 0;
+  let temoinMinutes = 0;
+  ais.forEach((a, k) => {
+    if (temoin && k === slot) {
+      temoinOrders += a.ordersGiven;
+      temoinMinutes += t / 60;
+    } else {
+      aiOrders += a.ordersGiven;
+      aiMinutes += t / 60;
+    }
+  });
+  const m = { aiOrders, aiMinutes, temoinOrders, temoinMinutes };
   const v = world.victors();
-  if (v.length) return { colors, winners: v.map((w) => colors[w]), finished: true, time: t, temoinWon: temoin && v.includes(slot) ? 1 / v.length : 0 };
+  if (v.length) return { colors, winners: v.map((w) => colors[w]), finished: true, time: t, temoinWon: temoin && v.includes(slot) ? 1 / v.length : 0, ...m };
   let best = 0;
   for (let k = 1; k < teams; k++) if (score(world, k) > score(world, best)) best = k;
-  return { colors, winners: [colors[best]], finished: false, time: t, temoinWon: temoin && best === slot ? 1 : 0 };
+  return { colors, winners: [colors[best]], finished: false, time: t, temoinWon: temoin && best === slot ? 1 : 0, ...m };
 }
 
 function runRange(from: number, to: number): Result {
-  const r: Result = { wins: new Array(NC).fill(0), games: new Array(NC).fill(0), unfinished: 0, time: 0, temoinWins: 0 };
+  const r: Result = { wins: new Array(NC).fill(0), games: new Array(NC).fill(0), unfinished: 0, time: 0, temoinWins: 0, aiOrders: 0, aiMinutes: 0, temoinOrders: 0, temoinMinutes: 0 };
   for (let i = from; i < to; i++) {
     const g = playGame(i);
     for (const c of g.colors) r.games[c]++;
@@ -123,6 +161,10 @@ function runRange(from: number, to: number): Result {
     if (!g.finished) r.unfinished++;
     r.time += g.time;
     r.temoinWins += g.temoinWon;
+    r.aiOrders += g.aiOrders;
+    r.aiMinutes += g.aiMinutes;
+    r.temoinOrders += g.temoinOrders;
+    r.temoinMinutes += g.temoinMinutes;
   }
   return r;
 }
@@ -144,7 +186,7 @@ if (args.tranche) {
       });
     }),
   );
-  const total: Result = { wins: new Array(NC).fill(0), games: new Array(NC).fill(0), unfinished: 0, time: 0, temoinWins: 0 };
+  const total: Result = { wins: new Array(NC).fill(0), games: new Array(NC).fill(0), unfinished: 0, time: 0, temoinWins: 0, aiOrders: 0, aiMinutes: 0, temoinOrders: 0, temoinMinutes: 0 };
   for (const p of parts) {
     for (let c = 0; c < NC; c++) {
       total.wins[c] += p.wins[c];
@@ -153,11 +195,16 @@ if (args.tranche) {
     total.unfinished += p.unfinished;
     total.time += p.time;
     total.temoinWins += p.temoinWins;
+    total.aiOrders += p.aiOrders;
+    total.aiMinutes += p.aiMinutes;
+    total.temoinOrders += p.temoinOrders;
+    total.temoinMinutes += p.temoinMinutes;
   }
   console.log(
     `${teams} équipes, ${nGames} parties, difficulté ${diff} : ${total.unfinished} au temps limite, ` +
       `durée moyenne ${(total.time / nGames).toFixed(0)} s, calcul ${((Date.now() - t0) / 1000).toFixed(0)} s`,
   );
+  console.log(`ordres par minute : IA ${(total.aiOrders / Math.max(1e-9, total.aiMinutes)).toFixed(1)}` + (temoin ? `, témoin ${(total.temoinOrders / Math.max(1e-9, total.temoinMinutes)).toFixed(1)}` : ''));
   if (temoin) {
     const r = total.temoinWins / nGames;
     const se = Math.sqrt((r * (1 - r)) / nGames);
