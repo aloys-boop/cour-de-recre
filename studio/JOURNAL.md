@@ -21,7 +21,7 @@ Une entrée par session, la plus récente en haut : date, version, ce qui a ét�
 **Reste à faire, inquiétudes**
 - Le témoin est une IA : il ne profite pas des failles de l'attention adverse (attaquer deux fronts à la fois). Le vrai gain pour Aloys se verra en jeu ; j'ajoute le point 1.1 bis (témoin qui harcèle deux fronts) pour le mesurer, après les garnisons si les retours le demandent.
 - Jaune et Orange (rapides) un peu faibles en Normal (20 à 21 %) : à surveiller, pas touché ce soir.
-- Le push git en ligne de commande est refusé (403) dans cet environnement : livraison via l'API GitHub. Les tags `avant-2026-11-04` et `v5.4` n'ont pas pu être poussés (voir plus bas si résolu).
+- Le dépôt refuse les tags (403 sur `git push` d'un tag) ; comme pour les versions précédentes, les points de retour sont des branches : `avant-2026-11-04` (état avant la session) et `v5.4`. Les sessions suivantes doivent faire pareil.
 - Prochaine session : 1.2 Garnisons.
 
 ## 03/11/2026 : ouverture du studio

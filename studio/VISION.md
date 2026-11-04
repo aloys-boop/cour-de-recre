@@ -36,3 +36,4 @@ Un jeu de stratégie en temps réel de poche, où l'on gagne par les **décision
 - La logique de jeu vit dans `src/core/`, sans navigateur, couverte par des tests.
 - Les sauvegardes et les codes de carte existants restent toujours compatibles.
 - Chaque session : un tag git de retour avant de modifier, tests et build verts avant de pousser, déploiement vérifié après.
+- Le dépôt refuse les tags git : les « tags » de retour et de version (`avant-AAAA-MM-JJ`, `vX.Y`) sont poussés comme des branches du même nom.
