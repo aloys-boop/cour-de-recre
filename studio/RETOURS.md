@@ -20,6 +20,13 @@ Pistes relevées dans le code (à vérifier) :
 
 Pour chaque point : test(s), mise à jour de « Comment jouer » si une règle change, et une ligne dans l'e-mail du jour.
 
+Complément d'Aloys (05/11, 22 h 20) : « Fais tes suggestions en même temps. C'est des bonnes idées. » La session de cette nuit fait donc AUSSI ce qui était prévu dans la feuille de route, en plusieurs livraisons successives, chacune testée, poussée et déployée avant de passer à la suivante :
+- v5.6 : les cinq demandes ci-dessus ;
+- v5.7 : 1.4 Alertes (case attaquée, case perdue, camp en danger, tap pour y aller) ;
+- v5.8 : 1.3 Renforts automatiques ;
+- puis 1.1 bis (témoin plus humain), qui sert aussi à vérifier le nouveau réglage de difficulté.
+Si le temps manque, ce qui reste passe en tête de la session suivante. Un seul e-mail du journal en fin de session, qui récapitule toutes les versions livrées.
+
 ## 03/11/2026
 
 > « Une des grosses difficultés du jeu actuellement c'est la micro et le contrôle des cases. Pour une IA, facile d'être partout à la fois. Pour un humain c'est plus compliqué… »
