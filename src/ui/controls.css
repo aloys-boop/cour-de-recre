@@ -16,6 +16,11 @@
   pointer-events: none;
 }
 
+.ctl-row {
+  display: flex;
+  gap: 6px;
+}
+
 .ctl-btn {
   pointer-events: auto;
   position: relative;
@@ -104,9 +109,39 @@
   opacity: 0.45;
 }
 
+.ctl-guard.off {
+  opacity: 0.45;
+}
+
+/* « Garder » armé : on attend le tap sur une case. */
+.ctl-guard.armed {
+  background: var(--accent);
+  border-color: #fff;
+  color: var(--ink);
+  animation: ctl-armed 0.9s ease-in-out infinite alternate;
+}
+
+.ctl-guard.armed svg path:first-child {
+  fill: var(--ink);
+}
+
+.ctl-guard.armed svg path:last-child {
+  fill: var(--accent);
+}
+
+@keyframes ctl-armed {
+  from {
+    box-shadow: 0 0 0 0 rgba(242, 194, 46, 0.8);
+  }
+  to {
+    box-shadow: 0 0 0 7px rgba(242, 194, 46, 0);
+  }
+}
+
 /* Écrans très bas (paysage compact) : boutons au minimum tactile de 44 px. */
 @media (max-height: 360px) {
-  .hud-controls {
+  .hud-controls,
+  .ctl-row {
     gap: 4px;
   }
   .ctl-btn {

@@ -12,6 +12,8 @@
 //     reaction=3       secondes entre deux décisions du témoin
 //     ia='{"reaction":2.1}'  réglages remplacés des IA adverses (AiProfile partiel)
 //     attention='{"ordersPerMin":18}'  attention remplacée des IA adverses (AiAttention partielle)
+//     garde=2          le témoin laisse ce nombre de gardes (ordre « Garder ») sur chaque case bonus prise
+//     part=0.25       part maximale de l'armée du témoin laissée en garnison
 //     avant=1          IA et témoin sans limite d'attention (comportement d'avant la v5.4)
 // Affiche aussi les ordres par minute moyens des IA et du témoin.
 // Une partie sans vainqueur au temps limite est attribuée à l'équipe en tête (élèves + cases + camps).
@@ -46,6 +48,8 @@ const temoin = args.temoin === '1';
 const reaction = Number(args.reaction ?? 3);
 const aiOverride = args.ia ? (JSON.parse(args.ia) as Partial<AiProfile>) : undefined;
 const avant = args.avant === '1';
+const garde = Number(args.garde ?? 0);
+const part = Number(args.part ?? 0.25);
 const aiAttention: Partial<AiAttention> | undefined = avant ? UNLIMITED_ATTENTION : args.attention ? (JSON.parse(args.attention) as Partial<AiAttention>) : undefined;
 const temoinAttention: AiAttention = avant ? UNLIMITED_ATTENTION : HUMAN_ATTENTION;
 if (args.valeurs) Object.assign(STAT_POINT_VALUES, JSON.parse(args.valeurs) as Partial<Record<TeamStat, number[]>>);
@@ -120,6 +124,8 @@ function playGame(index: number): Game {
     ai.economy.allowRallies = false;
     ai.economy.allowPion = false;
     ai.economy.forceClass = 'aucune';
+    ai.garrisonSize = garde;
+    ai.garrisonShare = part;
     return ai;
   });
   const step = 1 / 60;

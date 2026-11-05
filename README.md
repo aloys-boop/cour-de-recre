@@ -6,8 +6,8 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
 
 ## Tutoriel et « Comment jouer »
 
-- **Tutoriel.** Proposé automatiquement au premier lancement (« Faire le tutoriel » ou « Plus tard »), puis rejouable à tout moment : il est en tête de l'onglet « Campagne » du menu. Petite cour de 11 × 11 contre les Verts, IA passive (ses élèves restent chez eux et ne sont pas produits) jusqu'à la dernière étape, où elle se réveille en Facile avec des coups adoucis. Douze étapes guidées par une bulle de texte et une main animée qui montre où toucher ; chacune n'avance que sur l'action réelle du joueur : sélectionner un élève, sélection rectangle, déplacer, capturer une case, attaquer (deux Verts approchent), poser un point de ralliement, bouger la caméra (glisser, pincer ou mini-carte), gagner des bons points en prenant une case, améliorer l'équipe, lire l'aide d'un pouvoir (appui long sur le Goûter), le lancer par glisser-déposer (ou l'ancien mode), gagner la partie en prenant le camp vert. Le directeur complète au besoin les bons points pour essayer l'amélioration et le pouvoir. Le bouton « Passer » reste toujours visible et ramène au menu. Le tutoriel ne fait pas partie de la liste des niveaux : les codes de carte et la progression de la campagne sont inchangés.
-- **Comment jouer.** Les règles en treize rubriques courtes (but, sélection, déplacement et attaque, cases et camps, bons points, améliorations, classes, pouvoirs, pion, caméra, ralliement, les IA, alliances), depuis le bouton « Comment jouer » du menu et du menu pause.
+- **Tutoriel.** Proposé automatiquement au premier lancement (« Faire le tutoriel » ou « Plus tard »), puis rejouable à tout moment : il est en tête de l'onglet « Campagne » du menu. Petite cour de 11 × 11 contre les Verts, IA passive (ses élèves restent chez eux et ne sont pas produits) jusqu'à la dernière étape, où elle se réveille en Facile avec des coups adoucis. Treize étapes guidées par une bulle de texte et une main animée qui montre où toucher ; chacune n'avance que sur l'action réelle du joueur : sélectionner un élève, sélection rectangle, déplacer, capturer une case, attaquer (deux Verts approchent), poser un point de ralliement, bouger la caméra (glisser, pincer ou mini-carte), gagner des bons points en prenant une case, la confier à une garnison (bouton « Garder »), améliorer l'équipe, lire l'aide d'un pouvoir (appui long sur le Goûter), le lancer par glisser-déposer (ou l'ancien mode), gagner la partie en prenant le camp vert. Le directeur complète au besoin les bons points pour essayer l'amélioration et le pouvoir. Le bouton « Passer » reste toujours visible et ramène au menu. Le tutoriel ne fait pas partie de la liste des niveaux : les codes de carte et la progression de la campagne sont inchangés.
+- **Comment jouer.** Les règles en quatorze rubriques courtes (but, sélection, déplacement et attaque, cases et camps, bons points, améliorations, classes, garnisons, pouvoirs, pion, caméra, ralliement, les IA, alliances), depuis le bouton « Comment jouer » du menu et du menu pause.
 
 ## Règles du jeu
 
@@ -45,6 +45,13 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
 - **Barre de bagarre.** Le jeu repère les bagarres (élèves d'équipes ennemies au contact, regroupés de proche en proche, recalculé 4 fois par seconde). Au-dessus de chacune, une petite barre partagée en segments aux couleurs des équipes impliquées, proportionnels à leur force dans la bagarre : somme des PV restants × dégâts (profil, cases ♠, améliorations, classe, bonus de surveillant compris). Un petit chevron blanc, au-dessus du segment de l'équipe qui gagne du terrain (sa part a monté d'au moins 3 points sur les 3 dernières secondes), montre la tendance. La barre se place au-dessus des têtes et disparaît en fondu à la fin de la bagarre ; elle n'est pas affichée pour une bagarre cachée par le brouillard. Une bagarre de ton équipe hors de l'écran apparaît en haut de l'écran sous forme de mini-barre avec une flèche dans sa direction (3 au plus) : touche-la pour que la caméra glisse jusqu'à elle.
 - **Combat.** Les élèves se battent à coups de poing au corps à corps. Un élève inoccupé engage de lui-même les ennemis qui s'approchent. À zéro point de vie, il s'assoit, KO, puis disparaît.
 - **Repli.** Un ordre de déplacement est un rappel : les élèves cessent le combat et courent sans riposter jusqu'à destination (ils peuvent se faire frapper en fuyant). Arrivés, ils se défendent à nouveau. Pour attaquer, touche un ennemi. Le bouton **Fuir / Charger** (en haut à droite) change ce comportement : en mode Charger, les élèves se battent contre tout ce qu'ils croisent en chemin (marqueur orange).
+- **Garnisons (v5.5).** Le bouton **Garder** (à gauche, à côté de « Camp ») confie une case à la sélection. Si tes élèves se tiennent déjà sur une case bonus, un camp ou le trône, ils la gardent aussitôt ; sinon le bouton s'allume en jaune et le prochain tap sur une case la leur confie (retoucher le bouton annule, un tap à côté des cases aussi). Les gardes courent sur la case en se battant en chemin, puis :
+  - restent dans la zone de capture et reviennent s'y placer dès qu'ils sont libres ;
+  - engagent d'eux-mêmes tout ennemi qui entre dans le **cercle défendu** (2,6 cases autour de la case, plus loin que la portée d'un élève inoccupé) ;
+  - ne se laissent pas attirer loin : un ennemi qui s'enfuit à plus de 3,8 cases de la case est lâché, et le garde revient ;
+  - **reprennent la case** si elle tombe, en y retournant.
+
+  Un écusson à ta couleur, contre le coin droit de la case, compte ses gardes vivants ; le cercle défendu (pointillés blancs) s'affiche quand des gardes sont sélectionnés, et pour toutes tes garnisons pendant que « Garder » est allumé. Tout nouvel ordre (déplacement, attaque, « Camp ») libère les élèves qui le reçoivent. Les pions ne gardent pas ; un infirmier de garde soigne sans aller au contact. Son « garde à vous » (deux talons qui claquent) confirme l'ordre. Les IA ne posent pas de garnison en partie.
 - **Point de ralliement (par camp).** Chaque camp a son propre drapeau ; les nouveaux élèves de ce camp s'y rendent dès leur naissance. Trois façons de le poser :
   - dans le panneau du camp, rubrique « Ralliement » : « Placer » (ou « Déplacer »), puis touche la carte ; « Supprimer » retire le drapeau, et les nouveaux élèves restent alors au camp ;
   - raccourci : glisse le doigt depuis le camp jusqu'à un point de la carte (une flèche à ta couleur suit le doigt) ;
@@ -210,6 +217,22 @@ Depuis la v5.4, le témoin a lui aussi l'attention d'un humain sur téléphone :
 
 Le témoin donne environ 18 ordres par minute. L'attention limitée seule faisait passer le témoin de 51 % à 65,5 % en Normal ; pour revenir près d'une partie sur deux, les groupes d'attaque de Normal passent de 6 à 5 élèves (essais à 400 parties : budget de 24 ordres → 58,3 % ; réaction 1,7 s → 62,3 % ; 38 % de défenseurs → 57,8 % ; groupes de 5 → 52,8 %, retenu). L'IA garde donc sa force de frappe, mais elle n'est plus partout : à 4 IA Normal entre elles (1 200 parties), chaque couleur gagne entre 20,0 % (Orange) et 28,0 % (Vert, Rouge).
 
+### Garnisons (v5.5)
+
+Les IA ne posent pas de garnison : l'équilibre de Normal est inchangé (témoin à 53,8 %, 1 600 parties, contre 54,3 % en v5.4). Pour mesurer l'outil, `equilibre.ts` accepte `garde=N` (le témoin laisse N gardes sur chaque case bonus prise) et `part=0,25` (part maximale de son armée en garnison). Témoin en Normal, 4 équipes :
+
+| Garnisons du témoin | Victoires du témoin |
+| --- | --- |
+| aucune | 53,8 % (1 600 parties) |
+| 1 garde par case, 15 % de l'armée au plus | 46,5 % (600) |
+| 2 gardes par case, 15 % de l'armée au plus | 47,0 % (600) |
+| 2 gardes par case, 25 % au plus | 36,8 % (600) |
+| 1 garde par case, sans limite | 26,1 % (1 600) |
+
+Une garnison n'est pas gratuite : chaque garde manque aux groupes d'attaque, et un témoin qui défend déjà ses cases à la main (20 ordres par minute) ne gagne rien à figer ses élèves. L'outil sert le joueur qui ne peut pas surveiller toutes ses cases ; le vrai gain sera mesuré avec un témoin qui, comme un humain, ne secourt plus ses cases lui-même (point 1.1 bis de la feuille de route).
+
+Performances : `perf240` sans changement (partie 0,180 ms par pas contre 0,188, mêlée 0,102 contre 0,095, ordres 0,147 contre 0,169) ; 240 élèves tous en garnison sur 48 cases et en mêlée : 0,275 ms par pas.
+
 ### Ancien réglage (multiplicateurs libres, avant la version 5)
 
 Les profils ont été réglés par simulation IA contre IA (`npx tsx scripts/dev/balance.ts normal 4mix` et `… normal 8`), en faisant tourner les couleurs sur toutes les positions. Taux de victoire rapporté à la moyenne, difficulté Normal (aujourd'hui Difficile) :
@@ -276,6 +299,7 @@ Les pointes dépassaient le budget d'une image sur iPhone ; elles venaient des r
 | Glisser depuis un élève sélectionné | Flèche d'ordre : déplacement au relâchement, attaque si on relâche sur un ennemi |
 | Boutons « 1 », « 2 », « 3 » | Appui long : mémoriser la sélection ; tap : la rappeler ; second tap rapide : centrer la vue dessus |
 | Bouton « Camp » | Repli de la sélection (sans combat) sur ton camp le plus proche, pour se soigner |
+| Bouton « Garder » | La sélection garde la case où elle se tient ; ailleurs, le bouton s'allume et le prochain tap sur une case la lui confie (voir « Garnisons ») |
 | Tap sur un de tes camps (sans sélection) ou sur la pastille « ★ » | Panneau d'amélioration du camp |
 | Boutons ronds en bas (cloche, boule de neige, gâteau) | Appui long : aide ; glisser jusqu'à la carte : lancer ; tap : armer, puis viser et toucher la zone |
 | Tap sur la puce d'une équipe (en haut) | Panneau « Diplomatie » : proposer ou rompre une alliance |
@@ -307,6 +331,8 @@ npm run icons      # régénère les icônes PWA (Python 3 + Pillow)
 
 Pour tester sur un iPhone pendant le développement, lance `npm run dev` et ouvre l'adresse `http://<ip-de-ton-ordinateur>:5173` dans Safari. L'audio démarre à la première interaction, comme l'exige iOS.
 
+Contrôles visuels automatisés (Playwright) : ajouter `?banc` à l'adresse expose la partie en cours dans `window.__partie()` (caméra, monde, sélection), pour cadrer et photographier une nouveauté sans dépendre du hasard de la carte.
+
 ## Déploiement
 
 Le dépôt contient un workflow GitHub Actions (`.github/workflows/deploy.yml`) qui teste, construit et publie `dist/` sur GitHub Pages à chaque push sur `main`. Dans les réglages du dépôt, « Pages » doit être configuré sur la source **GitHub Actions**. Les chemins du build sont relatifs, le jeu fonctionne donc sous n'importe quel préfixe d'URL.
@@ -334,6 +360,8 @@ Le dépôt contient un workflow GitHub Actions (`.github/workflows/deploy.yml`) 
 | `v5.3` | escarmouche : 4 à 30 cases bonus, symboles personnalisables un par un, codes de carte longs |
 | `avant-2026-11-04` | état avant la v5.4 (point de retour) |
 | `v5.4` | IA à attention limitée : ordres par minute, cases secourues à la fois et délai de réaction selon la difficulté |
+| `avant-2026-11-05` | état avant la v5.5 (point de retour) |
+| `v5.5` | garnisons : bouton « Garder », cercle défendu, reprise automatique, écusson du nombre de gardes |
 
 ## Architecture
 
@@ -359,6 +387,7 @@ src/
     mapcode.ts         code de carte partageable (type de partie + graine, base 32)
     challenges.ts      médailles de campagne
     ghosts.ts          option « Camps fantômes » : placement, carte d’une partie, intérêt des IA
+    garrison.ts        garnisons : ordre « Garder », cercle défendu, laisse, reprise de la case
     save.ts            progression (localStorage)
     merits.ts          bons points : gains, solde, dépenses
     upgrades.ts        améliorations globales (Production, Uniformes, Entraînement, classes) et Défense par camp

@@ -17,7 +17,8 @@ export type SfxName =
   | 'deny'
   | 'bell'
   | 'snow'
-  | 'snack';
+  | 'snack'
+  | 'guard';
 
 /** Timbre des coups par couleur d'uniforme : hauteur et coupure du filtre. */
 const TEAM_PITCH = [1, 1.14, 1.3, 0.84];
@@ -122,6 +123,13 @@ export class Sfx {
         break;
       case 'snack':
         [659, 784, 988].forEach((f, i) => this.tone(t + i * 0.09, f, f, 0.14, 'sine', 0.3));
+        break;
+      case 'guard':
+        // « Garde à vous ! » : deux talons qui claquent, puis une note tenue.
+        this.noise(t, 0.04, 1200, 0.4);
+        this.noise(t + 0.09, 0.04, 1200, 0.4);
+        this.tone(t + 0.14, 392, 392, 0.16, 'triangle', 0.28);
+        this.tone(t + 0.14, 587, 587, 0.16, 'triangle', 0.16);
         break;
       case 'defeat':
         [440, 415, 392, 330].forEach((f, i) => this.tone(t + i * 0.22, f, f * 0.9, 0.3, 'sawtooth', 0.3));

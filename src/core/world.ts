@@ -27,6 +27,7 @@ import { freshTeamUpgrades, teamDmgMul, teamHpMul, teamProdMul, type TeamUpgrade
 import { PION, updatePions } from './pion';
 import { PowerState, type PowerEvent } from './powers';
 import { BrawlState, updateBrawls } from './brawls';
+import { updateGarrisons } from './garrison';
 import { CLASSES, aggroRange, applyClass, pacifist, takeSpawnClass, updateHealers, type UnitClass } from './classes';
 
 export type WorldEvent =
@@ -313,6 +314,7 @@ export class World {
       const r = n === 1 ? 0 : spread * Math.sqrt((i + 1) / n);
       const goal = this.grid.clampPos({ x: target.x + Math.cos(a) * r, y: target.y + Math.sin(a) * r }, 0.3);
       u.order = { kind: 'move', target: goal, engage };
+      u.guard = null; // un nouvel ordre libère le garde (garrison.ts le remet pour ses retours)
       u.engagedId = -1;
       u.supId = 0;
       u.pendingHit = 0;
@@ -327,6 +329,7 @@ export class World {
     for (const u of units) {
       if (!u.alive || this.isFriend(u.team, target.team)) continue;
       u.order = { kind: 'attack', target: target.pos, unitId: targetId };
+      u.guard = null;
       u.engagedId = targetId;
       u.supId = 0;
       this.computePath(u, target.pos);
@@ -340,6 +343,7 @@ export class World {
     for (const u of units) {
       if (!u.alive) continue;
       u.order = { kind: 'attack', target: { x: s.x, y: s.y }, supId: s.id };
+      u.guard = null;
       u.engagedId = -1;
       u.supId = s.id;
       u.pendingHit = 0;
@@ -398,6 +402,7 @@ export class World {
     this.flushPathQueue();
     this.rebuildHash();
     updatePions(this);
+    updateGarrisons(this);
     for (const u of this.units) this.updateUnit(u, dt);
     updateHealers(this, dt);
     this.separate();

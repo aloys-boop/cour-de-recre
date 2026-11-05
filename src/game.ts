@@ -35,6 +35,7 @@ import { drawPowerAim, PowerEffects } from './render/powers';
 import { BrawlBars } from './render/brawls';
 import type { Vec2 } from './core/types';
 import { TutorialState, type TutorialEvent } from './core/tutorial';
+import { assignGuards, canGuard, guardCounts } from './core/garrison';
 
 export type GameResult = 'victoire' | 'defaite';
 
@@ -69,6 +70,8 @@ export interface GameHooks {
   onTutorial?(ev: TutorialEvent): void;
   /** Appelé après chaque image dessinée (bulle et main du tutoriel). */
   onFrame?(): void;
+  /** Petite aide en bas de l'écran (ordre « Garder »…). */
+  onHint?(text: string): void;
 }
 
 /** Actions du joueur observées par le tutoriel. */
@@ -83,7 +86,8 @@ export type PlayerAction =
   | { kind: 'power'; id: string }
   | { kind: 'powerHelp'; id: string }
   | { kind: 'class'; id: string }
-  | { kind: 'pion' };
+  | { kind: 'pion' }
+  | { kind: 'guard'; count: number };
 
 const STEP = 1 / 60;
 /** Glisser d'un pouvoir : bande (px) près des bords où la caméra défile, et vitesse maximale (px/s). */
@@ -135,6 +139,8 @@ export class Game {
   private endTimer = 0;
   /** Mode des ordres de déplacement du joueur : false = fuir (repli), true = charger. */
   charge = false;
+  /** Ordre « Garder » armé : le prochain tap sur une case la confie à la sélection. */
+  guardArmed = false;
   /** Défis : le camp de départ du joueur a-t-il été pris au moins une fois ? */
   homeCampLost = false;
   private homeCamp?: Tile;
@@ -369,6 +375,7 @@ export class Game {
       const u = w.unitById(id);
       if (!u || !u.alive) this.selected.delete(id);
     }
+    if (this.guardArmed && this.selected.size === 0) this.guardArmed = false;
     this.hudTimer += dt;
     if (this.hudTimer > 0.25) {
       this.hudTimer = 0;
@@ -402,6 +409,8 @@ export class Game {
       playerTeam: this.playerTeam,
       time: this.time,
       rallyLines: this.rallyDrag || this.placingRally ? 'all' : this.panelCamp ? [this.panelCamp] : [],
+      guards: guardCounts(this.world, this.playerTeam),
+      guardZones: this.guardZones(),
     });
     if (this.flash) drawTileFlash(ctx, this.cam, this.flash);
     if (this.armedPower && this.powerAim) drawPowerAim(ctx, this.cam, this.world, this.armedPower, this.powerAim, this.playerTeam, this.time, false);
@@ -471,6 +480,7 @@ export class Game {
       if (camp.owner === this.playerTeam) this.placeRally(camp, sx, sy);
       return;
     }
+    if (this.guardArmed) return this.guardAt(sx, sy);
     const pk = this.pick(sx, sy);
     // Sans sélection, un tap sur un de ses camps ouvre son panneau d'amélioration, sauf si le doigt
     // est vraiment sur un élève (silhouette touchée) : il est alors sélectionné.
@@ -527,6 +537,67 @@ export class Game {
     this.markers.push({ x: target.x, y: target.y, t: 0, kind: this.charge ? 'charge' : 'move', team: this.opts.playerColor });
     this.sfx.play('order');
     this.act({ kind: 'move', count: units.length });
+  }
+
+  // ---------------------------------------------------------------- garnisons
+
+  /**
+   * Bouton « Garder » : si la sélection se tient déjà sur une case (ou tout près), elle la garde
+   * aussitôt ; sinon l'ordre est armé et le prochain tap sur une case la lui confie. Retoucher
+   * le bouton pendant que l'ordre est armé l'annule.
+   */
+  guard(): 'garde' | 'arme' | 'desarme' | 'vide' {
+    if (this.paused || this.over) return 'vide';
+    if (this.guardArmed) {
+      this.guardArmed = false;
+      return 'desarme';
+    }
+    const units = this.selectedUnits().filter((u) => !u.pion);
+    const c = centroid(units.map((u) => u.pos));
+    if (!c) return 'vide';
+    const here = this.world.tiles.find((t) => canGuard(t) && t.contains(c.x, c.y, t.half + 0.45));
+    if (here) {
+      this.guardTile(units, here);
+      return 'garde';
+    }
+    this.guardArmed = true;
+    this.sfx.play('select');
+    return 'arme';
+  }
+
+  /** Tap pendant que « Garder » est armé : la case visée (aimantée) est confiée à la sélection. */
+  private guardAt(sx: number, sy: number): void {
+    this.guardArmed = false;
+    const tile = this.aimTile(sx, sy) as Tile | null;
+    const units = this.selectedUnits().filter((u) => !u.pion);
+    if (!tile || !canGuard(tile) || units.length === 0) {
+      this.sfx.play('deny');
+      this.hooks.onHint?.('Pas de case ici : ordre « Garder » annulé. Touche une case bonus, un camp ou le trône.');
+      return;
+    }
+    this.guardTile(units, tile);
+  }
+
+  private guardTile(units: Unit[], tile: Tile): void {
+    const n = assignGuards(this.world, units, tile);
+    if (n === 0) return;
+    this.flash = { tile, t: 0 };
+    this.markers.push({ x: tile.cx, y: tile.cy, t: 0, kind: 'capture', team: this.opts.playerColor });
+    this.sfx.play('guard');
+    const total = guardCounts(this.world, this.playerTeam).get(tile) ?? n;
+    this.hooks.onHint?.(`${total} garde${total > 1 ? 's' : ''} sur cette case : ils la défendent et la reprennent si elle tombe.`);
+    this.act({ kind: 'guard', count: n });
+  }
+
+  /** Zones défendues à montrer : cases gardées par la sélection, ou toutes pendant que « Garder » est armé. */
+  private guardZones(): Tile[] {
+    const out = new Set<Tile>();
+    for (const id of this.selected) {
+      const g = this.world.unitById(id)?.guard;
+      if (g) out.add(g);
+    }
+    if (this.guardArmed) for (const t of guardCounts(this.world, this.playerTeam).keys()) out.add(t);
+    return [...out];
   }
 
   /** Camp du joueur sous un point de l'écran, ou null. */
@@ -752,6 +823,7 @@ export class Game {
 
   clearSelection(): void {
     this.selected.clear();
+    this.guardArmed = false;
     this.hooks.onHud(this.world, 0);
   }
 

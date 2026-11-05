@@ -4,6 +4,7 @@ import { goldenAiBonus, goldenRetarget } from './events';
 import { pointVisible, unitVisible } from './fog';
 import { nearestSupervisor, supervisorsNear, type Supervisor } from './supervisors';
 import { ghostAiBonus } from './ghosts';
+import { assignGuards, guardCounts } from './garrison';
 import { kingAiScore, kingDefenseExtra, kingGarrison, kingRetarget } from './king';
 import type { Tile } from './tile';
 import { NO_TEAM, type Difficulty } from './types';
@@ -47,6 +48,13 @@ export class TeamAi {
   ordersGiven = 0;
   /** Instant où chaque case possédée a été vue menacée pour la première fois (délai propre à chaque case). */
   private threatSince = new Map<Tile, number>();
+  /**
+   * Garnisons (outils de mesure, « joueur témoin » stratège) : nombre de gardes laissés sur
+   * chaque case bonus prise, un ordre par case. 0 (par défaut) : l'IA ne pose pas de garnison.
+   */
+  garrisonSize = 0;
+  /** Part maximale de l'armée laissée en garnison (avec garrisonSize). */
+  garrisonShare = 0.25;
 
   constructor(
     readonly world: World,
@@ -96,7 +104,8 @@ export class TeamAi {
 
   private think(): void {
     const w = this.world;
-    const mine = w.units.filter((u) => u.team === this.team && u.alive && !u.pion && u.aiTag !== TAG_LOANED);
+    // Les élèves de garde (ordre « Garder », voir garrison.ts) vivent leur vie : l'IA ne les commande pas.
+    const mine = w.units.filter((u) => u.team === this.team && u.alive && !u.pion && u.aiTag !== TAG_LOANED && !u.guard);
     if (mine.length === 0) return;
     for (const u of mine) if (u.order.kind === 'none' && u.aiTag !== TAG_RALLY) u.aiTag = TAG_FREE;
 
@@ -171,6 +180,26 @@ export class TeamAi {
       if (more.length && this.spend()) {
         w.orderMove(more, { x: t.cx, y: t.cy }, true);
         for (const u of more) u.aiTag = TAG_DEFEND;
+      }
+    }
+
+    // --- Garnisons (témoin stratège) : une case bonus prise sans garde en reçoit -------
+    if (this.garrisonSize > 0 && this.tokens >= 1) {
+      const counts = guardCounts(w, this.team);
+      let guarded = 0;
+      for (const n of counts.values()) guarded += n;
+      const room = Math.floor(this.garrisonShare * (mine.length + guarded)) - guarded;
+      for (const t of room > 0 ? owned : []) {
+        if (t.kind !== 'bonus' || (counts.get(t) ?? 0) >= this.garrisonSize) continue;
+        const near = mine
+          .filter((u) => u.aiTag !== TAG_DEFEND && u.state !== 'attacking' && dist(u, t) < 3)
+          .sort((a, b) => dist(a, t) - dist(b, t))
+          .slice(0, Math.min(room, this.garrisonSize - (counts.get(t) ?? 0)));
+        if (near.length === 0 || mine.length - near.length < this.profile.groupMin) continue;
+        if (!this.spend()) break;
+        assignGuards(w, near, t);
+        for (const u of near) mine.splice(mine.indexOf(u), 1);
+        break;
       }
     }
 

@@ -20,7 +20,7 @@ describe('tutoriel : logique', () => {
     expect(TUTORIAL_MAP.w).toBeLessThanOrEqual(12);
     expect(LEVELS.map((l) => l.id)).not.toContain('tutoriel');
     expect(decodeMapCode('222222')).toEqual({ spec: { kind: 'campagne', level: 0 }, seed: 0 });
-    expect(TUTORIAL_STEPS.map((s) => s.id)).toEqual(['select', 'box', 'move', 'capture', 'attack', 'rally', 'camera', 'merits', 'upgrade', 'powerHelp', 'power', 'win']);
+    expect(TUTORIAL_STEPS.map((s) => s.id)).toEqual(['select', 'box', 'move', 'capture', 'attack', 'rally', 'camera', 'merits', 'guard', 'upgrade', 'powerHelp', 'power', 'win']);
     for (const s of TUTORIAL_STEPS) expect(s.text.length).toBeLessThanOrEqual(90);
   });
 
@@ -79,6 +79,8 @@ describe('tutoriel : logique', () => {
       { x: club.cx, y: club.cy },
     );
     tick(w, 12, t);
+    expect(t.step.id).toBe('guard');
+    t.onAction({ kind: 'guard', count: 3 });
     expect(t.step.id).toBe('upgrade');
     expect(meritsOf(w, 0)).toBeGreaterThanOrEqual(30);
     t.onAction({ kind: 'upgrade' });

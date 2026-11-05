@@ -55,7 +55,7 @@ function pointer(type: string, x: number, y: number, id = 1): void {
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 describe('tutoriel dans l’application', () => {
-  it('premier lancement, 12 étapes au doigt, victoire, « Comment jouer » et « Passer »', async () => {
+  it('premier lancement, 13 étapes au doigt, victoire, « Comment jouer » et « Passer »', async () => {
     let seed = 777;
     Math.random = () => {
       seed = (seed + 0x6d2b79f5) >>> 0;
@@ -79,7 +79,7 @@ describe('tutoriel dans l’application', () => {
     const bubble = document.querySelector('.tuto-bubble')!;
     const text = () => bubble.querySelector('.tuto-text')!.textContent;
     const stepId = () => game.tutorial!.step.id;
-    expect(bubble.querySelector('.tuto-count')!.textContent).toBe('Étape 1 / 12');
+    expect(bubble.querySelector('.tuto-count')!.textContent).toBe('Étape 1 / 13');
     expect(document.getElementById('btn-tuto-skip')!.textContent).toBe('Passer');
 
     let now = performance.now();
@@ -107,7 +107,7 @@ describe('tutoriel dans l’application', () => {
     tap(p.x, p.y - 20);
     expect(stepId()).toBe('box');
     advance(0.1);
-    expect(bubble.querySelector('.tuto-count')!.textContent).toBe('Étape 2 / 12');
+    expect(bubble.querySelector('.tuto-count')!.textContent).toBe('Étape 2 / 13');
 
     // 2. Sélection rectangle : appui long, puis glisser.
     (document.getElementById('btn-cancel') as HTMLButtonElement).click();
@@ -166,7 +166,13 @@ describe('tutoriel dans l’application', () => {
       tap(k.x, k.y);
       advance(12, () => stepId() !== 'merits');
     }
+    expect(stepId()).toBe('guard');
+
+    // 8 bis. « Garder » : les élèves posés sur la case la gardent aussitôt (sinon, on touche la case).
+    (document.getElementById('btn-guard') as HTMLButtonElement).click();
+    if (stepId() === 'guard') tap(k.x, k.y);
     expect(stepId()).toBe('upgrade');
+    expect(game.world.units.some((u) => u.team === 0 && u.guard === club)).toBe(true);
 
     // 9. Sans sélection, toucher son camp puis améliorer la Production.
     (document.getElementById('btn-cancel') as HTMLButtonElement).click();

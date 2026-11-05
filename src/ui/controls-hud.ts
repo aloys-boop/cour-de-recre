@@ -9,12 +9,14 @@ export const GROUP_HOLD_MS = 400;
  * Colonne de boutons tactiles à gauche de l'écran :
  *  - « 1 », « 2 », « 3 » : appui long = enregistrer la sélection, tap = rappeler le groupe,
  *    second tap rapide = centrer la caméra dessus ; le bouton affiche le nombre d'élèves vivants ;
- *  - « Camp » : repli de la sélection sur le camp le plus proche, pour se soigner.
+ *  - « Camp » : repli de la sélection sur le camp le plus proche, pour se soigner ;
+ *  - « Garder » : la sélection garde une case (celle où elle se tient, sinon la prochaine touchée).
  */
 export class ControlsHud {
   readonly el: HTMLElement;
   private groupBtns: HTMLButtonElement[] = [];
   private campBtn: HTMLButtonElement;
+  private guardBtn: HTMLButtonElement;
   private taps = new DoubleTap(380, Infinity);
   private timer = 0;
 
@@ -37,7 +39,19 @@ export class ControlsHud {
     this.campBtn.setAttribute('aria-label', 'Renvoyer la sélection au camp pour se soigner');
     this.campBtn.innerHTML = `${campIcon()}<span class="ctl-label">Camp</span>`;
     this.campBtn.addEventListener('click', () => this.camp());
-    this.el.appendChild(this.campBtn);
+    // « Camp » et « Garder » côte à côte : la colonne garde sa hauteur (entre les bonus et « Tout sélectionner »).
+    const row = document.createElement('div');
+    row.className = 'ctl-row';
+    row.appendChild(this.campBtn);
+    this.el.appendChild(row);
+    this.guardBtn = document.createElement('button');
+    this.guardBtn.type = 'button';
+    this.guardBtn.id = 'btn-guard';
+    this.guardBtn.className = 'ctl-btn ctl-camp ctl-guard';
+    this.guardBtn.setAttribute('aria-label', 'Garder une case avec la sélection');
+    this.guardBtn.innerHTML = `${guardIcon()}<span class="ctl-label">Garder</span>`;
+    this.guardBtn.addEventListener('click', () => this.guard());
+    row.appendChild(this.guardBtn);
     this.root.appendChild(this.el);
     this.refresh();
     this.timer = window.setInterval(() => {
@@ -56,6 +70,8 @@ export class ControlsHud {
       b.classList.toggle('empty', n === 0);
     });
     this.campBtn.classList.toggle('off', !game || game.selected.size === 0);
+    this.guardBtn.classList.toggle('off', !game || game.selected.size === 0);
+    this.guardBtn.classList.toggle('armed', !!game && game.guardArmed);
   }
 
   destroy(): void {
@@ -105,6 +121,18 @@ export class ControlsHud {
     else if (r === 'sans-camp') this.hint('Tu n’as plus de camp pour te soigner.');
   }
 
+  /** « Garder » : garde immédiate de la case où se tient la sélection, ou ordre armé (tap sur une case). */
+  guard(): void {
+    const game = this.getGame();
+    if (!game) return;
+    const r = game.guard();
+    if (r === 'vide' && !game.paused && !game.over) this.hint('Sélectionne des élèves, puis « Garder » pour leur confier une case.');
+    else if (r === 'arme') this.hint('Touche la case à garder : case bonus, camp ou trône.');
+    else if (r === 'desarme') this.hint('Ordre « Garder » annulé.');
+    if (r === 'garde') navigator.vibrate?.(20);
+    this.refresh();
+  }
+
   // ---------------------------------------------------------------- boutons
 
   private makeGroupButton(i: number): HTMLButtonElement {
@@ -149,4 +177,8 @@ export class ControlsHud {
 
 function campIcon(): string {
   return '<svg width="22" height="18" viewBox="0 0 22 18" aria-hidden="true"><path d="M11 2L2 16h18z" fill="#fff"/><path d="M11 8l-3.5 8h7z" fill="#2b2b33"/><path d="M11 2V0.5M11 0.5h4l-1 1.2 1 1.2h-4" stroke="#ff6a4a" stroke-width="1.4" fill="#ff6a4a"/></svg>';
+}
+
+function guardIcon(): string {
+  return '<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5c3 1.4 5.6 1.8 8 1.6v6.4c0 4.4-3.3 7.6-8 9-4.7-1.4-8-4.6-8-9V3.1c2.4.2 5-.2 8-1.6z" fill="#fff"/><path d="M10 4.2c2 .9 3.8 1.2 5.4 1.1v4.2c0 3-2.2 5.2-5.4 6.2z" fill="#2b2b33"/></svg>';
 }

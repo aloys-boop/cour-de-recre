@@ -4,6 +4,7 @@ import { NO_TEAM, type Vec2 } from '../core/types';
 import type { Unit } from '../core/unit';
 import type { World } from '../core/world';
 import type { Camera } from './camera';
+import { drawGuardBadge, drawGuardZone } from './garrison';
 import { drawGoldenTile, drawStarvingBar } from './golden';
 import { drawGhostCamp } from './ghost';
 import { drawThroneTile } from './king';
@@ -81,6 +82,10 @@ export class Renderer {
       time: number;
       /** Camps dont on montre la ligne de ralliement (« all » : tous). */
       rallyLines?: Tile[] | 'all';
+      /** Garnisons du joueur : nombre de gardes par case (écusson). */
+      guards?: Map<Tile, number>;
+      /** Cases dont on montre la zone défendue (gardes sélectionnés, ordre « Garder » armé). */
+      guardZones?: Tile[];
     },
   ): void {
     const ctx = this.ctx;
@@ -91,6 +96,8 @@ export class Renderer {
     ctx.fillRect(0, 0, cam.viewW, cam.viewH);
     this.drawFloor(world, cam);
     for (const t of world.tiles) this.drawTile(world, t, cam, opts.time);
+    const myColor = world.teamColors[opts.playerTeam];
+    if (opts.guardZones) for (const t of opts.guardZones) drawGuardZone(ctx, cam, t, myColor, opts.time);
     this.drawMarkers(opts.markers, cam, 'floor');
     this.drawUnitsAndObstacles(world, cam, opts.selected, opts.playerTeam);
     // Drapeaux de ralliement par-dessus les élèves : ceux qui s'y rassemblent ne les cachent pas.
@@ -98,6 +105,7 @@ export class Renderer {
     drawRallies(ctx, world, cam, opts.playerTeam, opts.time, (c) => lines === 'all' || (!!lines && lines.includes(c)));
     drawFog(ctx, world, cam, opts.playerTeam, this.makeCanvas);
     for (const t of world.tiles) if (t.isCamp && t.owner !== NO_TEAM) this.drawCampBadge(world, t, cam);
+    if (opts.guards) for (const [t, n] of opts.guards) drawGuardBadge(ctx, cam, t, n, myColor);
     this.drawMarkers(opts.markers, cam, 'air');
     if (opts.box) this.drawBox(opts.box);
     ctx.restore();

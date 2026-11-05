@@ -2,6 +2,28 @@
 
 Une entrée par session, la plus récente en haut : date, version, ce qui a été fait, ce qui a été mesuré, ce qui reste ou ce qui inquiète.
 
+## 05/11/2026 : session de développement, v5.5 (garnisons)
+
+**Fait**
+- Point 1.2 de la feuille de route (pris avant 1.1 bis, comme prévu hier : c'est l'outil qu'il faut au joueur, et 1.1 bis sert justement à mesurer son effet). Aucun retour d'Aloys depuis le 04/11.
+- Nouveau module `src/core/garrison.ts` : ordre « Garder » (`assignGuards`), champ `guard` sur l'élève. Les gardes restent dans la zone de capture, engagent tout ennemi entré dans le cercle défendu (2,6 cases), lâchent un ennemi au-delà de la laisse (3,8 cases), reviennent et reprennent la case perdue. Tout nouvel ordre libère le garde ; les pions ne gardent pas ; l'IA ne commande pas un élève de garde.
+- Interface : bouton « Garder » (bouclier) à côté de « Camp », en ligne pour ne pas allonger la colonne. Garde immédiate si la sélection est sur une case, sinon bouton allumé en jaune et tap sur la case. Écusson numéroté au coin droit de chaque case gardée, cercle défendu en pointillés quand les gardes sont sélectionnés, son « garde à vous », vibration.
+- Tutoriel : 13e étape « Garder » juste après la prise de la seconde case. « Comment jouer » : rubrique « Garnisons ». README à jour.
+- `equilibre.ts` : options `garde=` et `part=` (garnisons du témoin, via `TeamAi.garrisonSize` et `garrisonShare`, nuls par défaut).
+- `?banc` dans l'adresse expose la partie (`window.__partie()`) pour les captures Playwright.
+- 11 nouveaux tests (garnisons, textes) ; tutoriels mis à jour. 334 tests verts.
+
+**Mesuré**
+- Normal, 4 équipes, témoin sans garnison : 53,8 % (1 600 parties) : équilibre inchangé, les IA ne posent pas de garnison.
+- Témoin qui garnit naïvement : 1 garde par case sans limite 26,1 % ; 2 gardes et 25 % de l'armée 36,8 % ; 15 % de l'armée 46,5 à 47 %. Les garnisons coûtent de la masse d'attaque, et ce témoin secourt déjà ses cases à la main.
+- `perf240` sans régression (partie 0,180 ms par pas contre 0,188 avant) ; 240 élèves en garnison et en mêlée : 0,275 ms par pas.
+
+**Reste à faire, inquiétudes**
+- Le gain réel des garnisons pour un humain n'est pas encore chiffré : il faut le témoin « humain » de 1.1 bis (qui ne secourt plus ses cases lui-même). Prochaine session : 1.1 bis, puis réglage du rayon et de la laisse.
+- Le cercle défendu (2,6 cases) peut chevaucher une case voisine : deux garnisons proches se prêtent main-forte, ce qui me va, mais à surveiller.
+- Les IA pourraient un jour garder le trône ou leur camp de cette façon (elles ont déjà leur propre garnison du trône) : pas avant d'avoir mesuré.
+- Points de retour : branches `avant-2026-11-05` et `v5.5` (le dépôt refuse les tags).
+
 ## 04/11/2026 : session de développement, v5.4 (IA à attention limitée)
 
 **Fait**

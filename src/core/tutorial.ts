@@ -70,6 +70,7 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
   { id: 'rally', text: 'Touche « Annuler », puis appui long sur le sol : les nouveaux élèves iront au drapeau.', target: { kind: 'button', selector: '#btn-cancel' } },
   { id: 'camera', text: 'Glisse un doigt pour bouger la vue, pince pour zoomer, ou touche la mini-carte.', target: { kind: 'button', selector: '#minimap' } },
   { id: 'merits', text: 'Chaque case prise rapporte des bons points ★. Prends une autre case !', target: { kind: 'tile', which: 'free' } },
+  { id: 'guard', text: 'Tes élèves sont sur la case : touche « Garder », ils la défendront seuls.', target: { kind: 'button', selector: '#btn-guard' } },
   { id: 'upgrade', text: 'Sans sélection, touche ton camp (ou la pastille ★) et améliore-le.', target: { kind: 'button', selector: '#merit-pill' } },
   { id: 'powerHelp', text: 'Garde le doigt posé sur le gâteau (Goûter) : son aide s’affiche.', target: { kind: 'button', selector: '#btn-power-gouter' } },
   { id: 'power', text: 'Glisse le gâteau jusqu’à tes élèves et lâche : c’est l’heure du goûter !', target: { kind: 'button', selector: '#btn-power-gouter' } },
@@ -123,6 +124,7 @@ export class TutorialState {
       (id === 'attack' && a.kind === 'attack') ||
       (id === 'rally' && a.kind === 'rally') ||
       (id === 'camera' && a.kind === 'camera') ||
+      (id === 'guard' && a.kind === 'guard') ||
       (id === 'upgrade' && a.kind === 'upgrade') ||
       (id === 'powerHelp' && a.kind === 'powerHelp') ||
       (id === 'power' && a.kind === 'power');

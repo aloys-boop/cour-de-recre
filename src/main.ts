@@ -140,6 +140,11 @@ function skipTutorial(): void {
 
 let tipTimer = 0;
 
+// Banc d'essai des contrôles visuels (Playwright) : « ?banc » dans l'adresse expose la partie en cours.
+if (typeof location !== 'undefined' && new URLSearchParams(location.search).has('banc')) {
+  (window as unknown as { __partie: () => Game | null }).__partie = () => game;
+}
+
 function launch(opts: GameOptions, code: MapCode | null): void {
   const codeText = code ? encodeMapCode(code) : '';
   const campaign = code?.spec.kind === 'campagne';
@@ -164,6 +169,7 @@ function launch(opts: GameOptions, code: MapCode | null): void {
       campPanel.refresh();
     },
     onAnnounce: (text) => hud.showHint(text, 2600),
+    onHint: (text) => hud.showHint(text, 2800),
     onPauseChange: (paused) => {
       if (paused) {
         const showPause = (): void =>

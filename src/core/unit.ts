@@ -57,6 +57,10 @@ export class Unit {
   /** Pion (surveillant d'équipe, voir pion.ts) et son camp. */
   pion = false;
   home: Tile | null = null;
+  /** Garnison (ordre « Garder », voir garrison.ts) : case gardée, ou null. */
+  guard: Tile | null = null;
+  /** Instant de la dernière recherche d'intrus dans la zone gardée. */
+  guardScan = 0;
   hpMul = 1;
   dmgMul = 1;
   speedMul = 1;
