@@ -2,6 +2,23 @@
 
 Une entrée par session, la plus récente en haut : date, version, ce qui a été fait, ce qui a été mesuré, ce qui reste ou ce qui inquiète.
 
+## 06/11/2026 : même session, seconde livraison, v5.7 (alertes)
+
+**Fait**
+- Point 1.4 de la feuille de route, comme Aloys l'a validé pour cette nuit, après la v5.6 poussée et déployée.
+- `src/core/alerts.ts` : `AlertWatcher` examine les cases du joueur toutes les 0,25 s. Menace = ennemi (pas un allié) à moins de 2,6 cases ou jauge ennemie qui monte, pendant plus de 2 s ; camp menacé = alerte « camp » ; case passée à l'ennemi = « perdue ». Une case n'est signalée qu'une fois par attaque (12 s de calme pour réarmer), 6 s au moins entre deux alertes, regroupement (« 3 cases attaquées », « Ton camp est attaqué, et 2 autres cases ! ») en pointant la plus urgente ; l'autre famille (pertes ou menaces) attend l'alerte suivante.
+- Interface : bandeau en haut au centre sous les mini-barres de bagarre (jaune, rouge pulsant pour le camp, bordeaux pour une perte), icône, bouton « Y aller » ; toucher le bandeau fait glisser la caméra sur la case avec un marqueur. Son « ding-dong » discret, vibration pour le camp et les pertes. Pas d'alerte dans le tutoriel. Le bandeau disparaît à la pause, à la fin et au menu.
+- « Comment jouer » : rubrique « Alertes ». README à jour. Nouvel outil `scripts/dev/alertes.ts` (fréquence des alertes en parties IA contre IA).
+- 7 nouveaux tests (`alertes.test.ts`, `alertes-app.test.ts` : bandeau puis tap dans l'application) ; 352 tests verts.
+
+**Mesuré**
+- Fréquence (20 parties Normal à 4 équipes, l'équipe 0 jouée par une IA) : premier réglage (1,2 s, 4 s, 8 s) 4,6 alertes par minute, écart médian 6,3 s, trop bavard ; retenu (2 s, 6 s, 12 s) 3,6 par minute (camp 0,3, pertes 1,3, attaques 2,0), écart médian 8,3 s.
+- Coût : 0,025 ms par examen à 240 élèves et 38 cases, un examen toutes les 0,25 s : négligeable.
+
+**Reste à faire, inquiétudes**
+- 3,6 alertes par minute reste vivant ; une IA perd plus de cases qu'un joueur attentif. À juger en vrai par Aloys ; piste : ne plus signaler les cases ♦ et ♣ secondaires, ou une option « alertes discrètes ».
+- Prochaine session : 1.3 Renforts automatiques (v5.8), puis 1.1 bis.
+
 ## 06/11/2026 : session de développement, v5.6 (demandes d'Aloys)
 
 **Fait**
@@ -23,7 +40,7 @@ Une entrée par session, la plus récente en haut : date, version, ce qui a ét�
 - Normal à 42,6 % est un peu sous la cible de 45 % : Aloys dira si c'est le bon « chouïa ». Revenir à 40 % de défenseurs ou à des dégâts ×0,93 si c'est trop.
 - Mode Équipes : un joueur éliminé perd tout de suite, même si ses coéquipiers peuvent gagner (ajouté à la feuille de route). Les options ne sont pas dans le code de carte, le mode Équipes non plus (comme les autres options).
 - Les simulations `equilibre.ts` ne jouent pas la diplomatie : l'effet des ruptures plus rares n'est pas chiffré.
-- Suite prévue cette nuit si le temps le permet : 1.4 Alertes (v5.7), puis 1.3 Renforts (v5.8), puis 1.1 bis.
+- Suite : 1.4 Alertes livrée dans la foulée (v5.7, entrée ci-dessus) ; 1.3 Renforts et 1.1 bis à la prochaine session.
 
 ## 05/11/2026 : session de développement, v5.5 (garnisons)
 

@@ -33,7 +33,7 @@ Si le temps manque, ce qui reste passe en tête de la session suivante. Un seul 
 3. Tap, flèche d'ordre et ralliement hors de la cour : ramenés au bord ou au coin le plus proche (`Grid.orderPoint`).
 4. Escarmouche, « Équipes fixes » : Libre, Par 2, Par 3, Par 4 (tailles impossibles grisées), coéquipiers aux camps voisins, alliances verrouillées, victoire partagée.
 5. Préavis de rupture 30 s, compte à rebours rouge sous la puce, rappel à 10 s ; trahison de fin de partie 4 % (Facile) et 8 % (Normal) par réflexion au lieu de 15 et 25 %.
-Les livraisons suivantes prévues (v5.7 alertes, v5.8 renforts, 1.1 bis) passent en tête de la feuille de route pour la prochaine session.
+Seconde livraison de la nuit : v5.7 (1.4 Alertes). 1.3 Renforts (v5.8) et 1.1 bis passent en tête de la session suivante.
 
 ## 03/11/2026
 

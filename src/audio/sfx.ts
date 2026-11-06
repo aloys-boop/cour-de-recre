@@ -3,6 +3,7 @@
  * Le contexte est créé/relancé à la première interaction (exigence d'iOS).
  */
 export type SfxName =
+  | 'alert'
   | 'punch'
   | 'hit'
   | 'ko'
@@ -130,6 +131,11 @@ export class Sfx {
         this.noise(t + 0.09, 0.04, 1200, 0.4);
         this.tone(t + 0.14, 392, 392, 0.16, 'triangle', 0.28);
         this.tone(t + 0.14, 587, 587, 0.16, 'triangle', 0.16);
+        break;
+      case 'alert':
+        // Alerte discrète : « ding-dong » de cloche de cour, doux et court.
+        this.tone(t, 880, 880, 0.16, 'sine', 0.22);
+        this.tone(t + 0.15, 659, 659, 0.24, 'sine', 0.2);
         break;
       case 'defeat':
         [440, 415, 392, 330].forEach((f, i) => this.tone(t + i * 0.22, f, f * 0.9, 0.3, 'sawtooth', 0.3));

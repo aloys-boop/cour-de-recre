@@ -22,6 +22,7 @@ import { PionSection } from './ui/pion-section';
 import { RallySection } from './ui/rally-section';
 import { PowersHud } from './ui/powers-hud';
 import { TutorialUi } from './ui/tutorial-ui';
+import { AlertBanner } from './ui/alert-banner';
 import { BrawlHud } from './ui/brawl-hud';
 import { TUTORIAL_MAP } from './core/tutorial';
 
@@ -89,6 +90,7 @@ campPanel.addSection(new RallySection((text, ms) => hud.showHint(text, ms)));
 const powersHud = new PowersHud(hudRoot, () => game, (text, ms) => hud.showHint(text, ms));
 const tutorialUi = new TutorialUi(hudRoot, () => skipTutorial());
 const brawlHud = new BrawlHud(hudRoot, () => game);
+const alertBanner = new AlertBanner(hudRoot, (a) => game?.goToAlert(a));
 
 const menu = new Menu(menuRoot, progress, {
   onPlay: (state) => startGame(state),
@@ -170,9 +172,11 @@ function launch(opts: GameOptions, code: MapCode | null): void {
     },
     onAnnounce: (text) => hud.showHint(text, 2600),
     onHint: (text) => hud.showHint(text, 2800),
+    onAlert: (a) => alertBanner.show(a),
     onPauseChange: (paused) => {
       if (paused) {
         hud.closeDiplomacy(); // le panneau ne doit pas recouvrir la pause
+        alertBanner.hide();
 
         const showPause = (): void =>
           overlay.pause(
@@ -189,6 +193,7 @@ function launch(opts: GameOptions, code: MapCode | null): void {
       } else overlay.hide();
     },
     onEnd: (result, o) => {
+      alertBanner.hide();
       const win = result === 'victoire';
       const surrendered = result === 'abandon';
       const extras: HTMLElement[] = [];
@@ -270,6 +275,7 @@ function launch(opts: GameOptions, code: MapCode | null): void {
 }
 
 function backToMenu(): void {
+  alertBanner.hide();
   campPanel.close();
   tutorialUi.hide();
   game?.destroy();

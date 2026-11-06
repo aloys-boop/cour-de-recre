@@ -1134,3 +1134,75 @@ button {
     grid-template-columns: 1fr;
   }
 }
+
+/* ------------------------------------------------------------ Alertes (v5.7) */
+
+/* Bandeau en haut au centre, sous les mini-barres de bagarre ; touche-le pour y aller. */
+#hud .alert-banner {
+  position: absolute;
+  left: 50%;
+  top: calc(106px + var(--sat));
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  max-width: calc(100% - 300px - var(--sal) - var(--sar));
+  padding: 0 6px 0 12px;
+  border-radius: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  color: #2a1a00;
+  background: #ffcf3f;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
+  pointer-events: auto;
+  animation: alert-in 0.28s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+#hud .alert-banner.hidden {
+  display: none;
+}
+
+#hud .alert-banner[data-kind='camp'] {
+  color: #fff;
+  background: #e2462a;
+  animation: alert-in 0.28s cubic-bezier(0.2, 1.4, 0.4, 1), alert-pulse 0.7s ease-in-out 0.3s 3 alternate;
+}
+
+#hud .alert-banner[data-kind='perdue'] {
+  color: #fff;
+  background: #7a1f2a;
+}
+
+.alert-banner .ab-icon {
+  line-height: 0;
+}
+
+.alert-banner .ab-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.alert-banner .ab-go {
+  padding: 4px 8px;
+  border-radius: 9px;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.22);
+  white-space: nowrap;
+}
+
+@keyframes alert-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -14px) scale(0.9);
+  }
+}
+
+@keyframes alert-pulse {
+  to {
+    box-shadow: 0 0 0 6px rgba(226, 70, 42, 0.35), 0 3px 10px rgba(0, 0, 0, 0.45);
+  }
+}

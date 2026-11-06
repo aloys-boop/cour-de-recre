@@ -9,6 +9,7 @@ import { World } from './core/world';
 import { rhythmAnnouncement } from './core/events';
 import { isKingMode, kingAnnouncement, withThrone } from './core/king';
 import { teamGroups } from './core/teams';
+import { AlertWatcher, type Alert } from './core/alerts';
 import { Diplomacy, diploMessage, type BreakResult, type DiploView, type ProposeResult } from './core/diplomacy';
 import { MAX_TEAMS, TEAM_COLORS } from './config';
 import { DiplomacyExtras } from './core/diplomacy-extras';
@@ -72,6 +73,8 @@ export interface GameHooks {
   onTutorial?(ev: TutorialEvent): void;
   /** Appelé après chaque image dessinée (bulle et main du tutoriel). */
   onFrame?(): void;
+  /** Alerte à afficher (bandeau en haut) : case attaquée, perdue, camp en danger. */
+  onAlert?(alert: Alert): void;
   /** Petite aide en bas de l'écran (ordre « Garder »…). */
   onHint?(text: string): void;
 }
@@ -109,6 +112,10 @@ export class Game {
   readonly extras: DiplomacyExtras;
   /** Équipes victorieuses à la fin de la partie (plusieurs : victoire d'une alliance). */
   victors: number[] = [];
+  /** Alertes du joueur (case attaquée, perdue, camp en danger) ; aucune pendant le tutoriel. */
+  readonly alerts: AlertWatcher | null;
+  /** Dernière alerte affichée (le bandeau y emmène la caméra). */
+  lastAlert: Alert | null = null;
   /** Mode « Équipes » : groupe de chaque équipe, ou null (partie libre). */
   readonly teamGroups: number[] | null;
   private importantUntil = 0;
@@ -178,6 +185,7 @@ export class Game {
       this.teamGroups,
     );
     this.extras = new DiplomacyExtras(this.world, this.diplomacy, this.playerTeam, seed);
+    this.alerts = opts.tutorial ? null : new AlertWatcher(this.world, this.playerTeam);
     if (opts.tutorial) {
       this.tutorial = new TutorialState(this.world, this.playerTeam);
       // Adversaire ménagé : il frappe moins fort.
@@ -288,6 +296,15 @@ export class Game {
     return true;
   }
 
+  /** Bandeau d'alerte touché : la caméra glisse jusqu'à la case. */
+  goToAlert(a: Alert | null = this.lastAlert): void {
+    if (!a || this.over) return;
+    this.cam.glideTo(a.x, a.y);
+    this.markers.push({ x: a.x, y: a.y, t: 0, kind: 'attack', team: this.opts.playerColor });
+    this.sfx.play('select');
+    this.act({ kind: 'camera', how: 'minimap' });
+  }
+
   setPaused(p: boolean): void {
     if (this.over) return;
     if (this.paused === p) return;
@@ -391,6 +408,14 @@ export class Game {
       for (const ev of this.tutorial.drainEvents()) this.hooks.onTutorial?.(ev);
     }
     for (const m of this.extras.drainMessages()) this.announce(m.text, m.important);
+    // Alertes : bandeau, son discret et petite vibration.
+    const alert = this.alerts?.update(dt);
+    if (alert) {
+      this.lastAlert = alert;
+      this.sfx.play('alert');
+      if (alert.kind !== 'attaque') navigator.vibrate?.(alert.kind === 'camp' ? [30, 60, 30] : 25);
+      this.hooks.onAlert?.(alert);
+    }
     // Nettoyage de la sélection.
     for (const id of this.selected) {
       const u = w.unitById(id);
