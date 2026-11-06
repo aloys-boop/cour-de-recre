@@ -1,4 +1,5 @@
 import { GAME_MODES, RULE_TOGGLES, type GameRules } from '../core/rules';
+import { TEAM_SIZES, teamSizeFits, teamsLabel } from '../core/teams';
 import {
   COUR_SIZES,
   SKIRMISH_TEAMS_MAX,
@@ -33,6 +34,8 @@ export function skirmishPanel(settings: SkirmishSettings): HTMLElement {
   const refresh = () => {
     Object.assign(settings, clampSkirmish(settings));
     const l = skirmishLevel(settings);
+    // Le panneau des règles (mode Équipes) dépend du nombre d'équipes.
+    box.dispatchEvent(new CustomEvent('skirmish-change', { bubbles: true }));
     summary.textContent = `Cour de ${l.w}×${l.h}, jusqu’à ${l.unitCap} élèves par équipe. Les victoires ne comptent pas pour la campagne.`;
   };
 
@@ -210,9 +213,10 @@ function stepBtn(text: string, aria: string): HTMLButtonElement {
  * Mode et options de l'escarmouche (toutes désactivées par défaut). `rules` est modifié sur place.
  * Les entrées viennent de GAME_MODES et RULE_TOGGLES (src/core/rules.ts).
  */
-export function rulesPanel(rules: GameRules): HTMLElement {
+export function rulesPanel(rules: GameRules, getTeams: () => number = () => 4): HTMLElement {
   const box = document.createElement('div');
   box.className = 'skirmish rules-panel';
+  box.append(...teamModeRows(rules, getTeams));
   if (GAME_MODES.length > 1) {
     const modes = GAME_MODES.map((m, i) => ({ v: i, label: m.label }));
     const desc = document.createElement('div');
@@ -250,4 +254,36 @@ export function rulesPanel(rules: GameRules): HTMLElement {
     }
   }
   return box;
+}
+
+/**
+ * Mode « Équipes » : Libre, ou équipes fixes de 2, 3 ou 4 camps. Les tailles qui ne partagent
+ * pas le nombre d'équipes en groupes égaux sont grisées ; la ligne d'aide dit ce qui sera joué.
+ */
+function teamModeRows(rules: GameRules, getTeams: () => number): HTMLElement[] {
+  const options = [{ v: 0, label: 'Libre' }, ...TEAM_SIZES.map((k) => ({ v: k, label: `Par ${k}` }))];
+  const row = optionRow('Équipes fixes', options, () => rules.teamSize ?? 0, (v) => {
+    rules.teamSize = v || undefined;
+    sync();
+  });
+  row.classList.add('team-mode');
+  const desc = document.createElement('div');
+  desc.className = 'skirmish-summary team-mode-desc';
+  const btns = Array.from(row.querySelectorAll<HTMLButtonElement>('.opt-btn'));
+  const sync = (): void => {
+    const n = getTeams();
+    btns.forEach((b, i) => {
+      const k = options[i].v;
+      b.disabled = k > 0 && !teamSizeFits(n, k);
+      b.classList.toggle('active', (rules.teamSize ?? 0) === k);
+    });
+    const k = rules.teamSize ?? 0;
+    const label = k ? teamsLabel(n, k) : null;
+    if (!k) desc.textContent = 'Libre : les alliances se font et se défont pendant la partie.';
+    else if (!label) desc.textContent = `Impossible avec ${n} équipes : la partie sera libre. Choisis 4, 6 ou 8 équipes.`;
+    else desc.textContent = `${label} : tes coéquipiers IA ont les camps voisins du tien, alliance verrouillée, victoire partagée.`;
+  };
+  document.addEventListener('skirmish-change', sync);
+  sync();
+  return [row, desc];
 }

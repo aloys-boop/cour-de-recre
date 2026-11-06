@@ -17,12 +17,21 @@ export class Overlay {
     this.root.classList.remove('hidden');
   }
 
-  pause(onResume: () => void, onQuit: () => void, extras: HTMLElement[] = [], onHowTo?: () => void): void {
+  pause(onResume: () => void, onQuit: () => void, extras: HTMLElement[] = [], onHowTo?: () => void, onSurrender?: () => void): void {
     const card = this.card('Pause', 'La partie est en pause.');
     const buttons = [this.btn('Reprendre', onResume)];
     if (onHowTo) buttons.push(this.btn('Comment jouer', onHowTo, 'btn-secondary btn-howto'));
+    if (onSurrender) buttons.push(this.btn('Abandonner', () => this.confirmSurrender(onSurrender, () => this.pause(onResume, onQuit, extras, onHowTo, onSurrender)), 'btn-secondary btn-surrender'));
     buttons.push(this.btn('Quitter', onQuit, 'btn-danger'));
     card.append(this.row(buttons), ...extras);
+    this.show(card);
+  }
+
+  /** Confirmation dans la page (pas de confirm()) avant d'abandonner la partie. */
+  confirmSurrender(onYes: () => void, onNo: () => void): void {
+    const card = this.card('Abandonner la partie ?', 'La partie compte comme une défaite, mais tu verras quand même ses statistiques.');
+    card.classList.add('surrender');
+    card.append(this.row([this.btn('Non, je continue', onNo), this.btn('Oui, j’abandonne', onYes, 'btn-danger btn-surrender-yes')]));
     this.show(card);
   }
 
@@ -71,6 +80,8 @@ export class Overlay {
       /** Titre de victoire (hors alliance) et texte de défaite propres au mode de jeu. */
       winTitle?: string;
       loseText?: string;
+      /** Titre de défaite (par défaut « Défaite… » ; « Abandon » après un abandon). */
+      loseTitle?: string;
       extras?: HTMLElement[];
       /** Couleurs des équipes d'une alliance victorieuse (victoire partagée). */
       alliance?: number[];
@@ -80,7 +91,7 @@ export class Overlay {
     const names = alliance ? listFr(alliance.map((c) => teamPlural(c))) : '';
     const winText = win && opts.winText ? opts.winText : win ? `La cour « ${mapName} » est à toi.${opts.nextAvailable ? ' Une nouvelle carte est débloquée.' : ' Tu as terminé toutes les cartes !'}` : opts.loseText ?? 'Tes élèves ont été mis KO et tes cases reprises.';
     const card = this.card(
-      win ? (alliance ? 'Victoire de l’alliance !' : opts.winTitle ?? 'Victoire !') : 'Défaite…',
+      win ? (alliance ? 'Victoire de l’alliance !' : opts.winTitle ?? 'Victoire !') : opts.loseTitle ?? 'Défaite…',
       alliance ? (win ? `${names.charAt(0).toUpperCase()}${names.slice(1)} gagnent ensemble. ${winText}` : `L’alliance ${listFr(alliance.map((c) => `des ${TEAM_PLURALS[c] ?? '?'}`))} l’emporte.`) : winText,
     );
     card.classList.add(win ? 'win' : 'lose');
@@ -194,7 +205,7 @@ function listFr(items: string[]): string {
 export const HOW_TO: ReadonlyArray<[string, string]> = [
   ['Le but', 'Prends les cases et les camps des autres équipes. Tu gagnes quand tu es le dernier à avoir des élèves ou un camp, ou quand tu tiens tous les camps.'],
   ['Sélectionner', 'Touche un élève : lui et ses voisins sont choisis. Appui long puis glisse : rectangle de sélection. Double-tap : tous tes élèves à l’écran.'],
-  ['Déplacer et attaquer', 'Touche le sol : tes élèves y courent sans se battre (mode Fuir). Touche un ennemi pour l’attaquer. La barre au-dessus d’une bagarre montre qui est le plus fort ; en haut, touche une mini-barre pour aller voir une bagarre hors de l’écran.'],
+  ['Déplacer et attaquer', 'Touche le sol : tes élèves y courent sans se battre (mode Fuir) ; touché hors de la cour, l’ordre va au bord le plus proche. Touche un ennemi pour l’attaquer. La barre au-dessus d’une bagarre montre qui est le plus fort ; en haut, touche une mini-barre pour aller voir une bagarre hors de l’écran.'],
   ['Cases et camps', 'Reste sur une case blanche pour la capturer : ♥ vie, ♠ dégâts, ♣ production, ♦ vitesse. Ton camp produit des élèves, 30 au plus.'],
   ['Bons points ★', '+2 par ennemi mis KO, +10 par case prise, +25 par camp pris, +1 toutes les 10 s par case tenue.'],
   ['Améliorations', 'Sans sélection, touche ton camp (ou la pastille ★). « Toute l’équipe » : Production, Uniformes, Entraînement, classes, pour tous tes camps. « Ce camp » : Défense, pion, élèves produits, ralliement. ‹ › : camp suivant.'],
@@ -205,5 +216,7 @@ export const HOW_TO: ReadonlyArray<[string, string]> = [
   ['Caméra', 'Glisse un doigt pour bouger la vue, pince pour zoomer, touche la mini-carte pour y aller.'],
   ['Ralliement', 'Chaque camp a son drapeau, où vont ses nouveaux élèves. Glisse depuis un camp jusqu’au point voulu, ou utilise « Ralliement » dans son panneau. Appui long sur le sol : camp le plus proche.'],
   ['Les IA', 'Comme toi, les équipes de l’ordinateur ont une attention limitée : un nombre d’ordres par minute selon la difficulté, et une ou deux cases secourues à la fois (le menu donne les chiffres). Attaque sur deux fronts pour les déborder.'],
-  ['Alliances', 'Touche la puce d’une équipe, en haut, pour lui proposer une alliance… ou la rompre.'],
+  ['Alliances', 'Touche la puce d’une équipe, en haut, pour lui proposer une alliance… ou la rompre. Une rupture est annoncée 30\u00a0s à l’avance\u00a0: le compte à rebours s’affiche sous la puce, et un rappel tombe 10\u00a0s avant.'],
+  ['Mode Équipes', 'En escarmouche, « Équipes fixes » forme des équipes dès le départ (2 contre 2, 3 contre 3, 2 contre 2 contre 2…). Tes coéquipiers IA ont les camps voisins du tien ; l’alliance tient toute la partie et vous gagnez ensemble.'],
+  ['Abandonner', 'Dans la pause, « Abandonner » termine la partie en défaite, mais affiche quand même ses statistiques.'],
 ];

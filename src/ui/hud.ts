@@ -92,7 +92,10 @@ export class Hud {
       chip.classList.toggle('me', t === playerTeam);
       chip.classList.toggle('dead', !s.alive);
       chip.classList.toggle('ally', ally);
-      chip.classList.toggle('breaking', ally && view?.breakingIn != null);
+      const breaking = ally && view?.breakingIn != null;
+      chip.classList.toggle('breaking', breaking);
+      // Compte à rebours de la rupture annoncée, bien visible sur la puce (v5.6).
+      setText(chip.querySelector('.chip-timer')!, breaking ? `${Math.ceil(view!.breakingIn!)} s` : '');
       chip.classList.toggle('open', t === this.panelTeam);
       // Brouillard de guerre : on ne connaît pas l'effectif des équipes non alliées.
       const hidden = !!world.rules.fog && t !== playerTeam && !ally;
@@ -132,7 +135,8 @@ export class Hud {
         `<span class="dot" style="background:${TEAM_COLORS[c].ui}"></span>` +
         `<span class="chip-name">${TEAM_NAMES[c]}</span>` +
         `<span class="chip-count"></span><span class="chip-camps"></span>` +
-        `<span class="chip-ally" aria-hidden="true">${handshakeIcon()}</span>`;
+        `<span class="chip-ally" aria-hidden="true">${handshakeIcon()}</span>` +
+        `<span class="chip-timer" aria-hidden="true"></span>`;
       b.addEventListener('click', () => this.toggleDiplomacy(t));
       this.chips.appendChild(b);
       this.chipEls.push(b);
@@ -196,7 +200,7 @@ export class Hud {
     const c = world.teamColors[team];
     const dot = this.panel.querySelector<HTMLElement>('.dot')!;
     dot.style.background = TEAM_COLORS[c].ui;
-    setText(this.panel.querySelector('.diplo-title')!, `Diplomatie\u00a0: ${teamPlural(c)}`);
+    setText(this.panel.querySelector('.diplo-title')!, `${v.locked && v.allied ? 'Coéquipiers' : 'Diplomatie'}\u00a0: ${teamPlural(c)}`);
     const status = this.panel.querySelector('.diplo-status')!;
     const action = this.panel.querySelector<HTMLButtonElement>('.diplo-action')!;
     const wait = Math.ceil(v.cooldown);
@@ -207,6 +211,12 @@ export class Hud {
       return;
     }
     action.classList.remove('hidden');
+    if (v.locked) {
+      // Mode « Équipes » : pas de diplomatie, les équipes sont fixées pour toute la partie.
+      setText(status, v.allied ? 'Coéquipiers pour toute la partie : vous gagnez ensemble.' : 'Équipe adverse : en mode Équipes, pas d’alliance possible.');
+      action.classList.add('hidden');
+      return;
+    }
     if (v.allied && v.breakingIn !== null) {
       setText(status, `Alliés, mais l’alliance sera rompue dans ${Math.ceil(v.breakingIn)}\u00a0s.`);
       setText(action, 'Rupture annoncée');

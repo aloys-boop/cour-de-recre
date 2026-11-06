@@ -23,9 +23,15 @@ export interface GameRules {
   fog?: boolean;
   /** Camps fantômes : camps sans propriétaire au départ, à conquérir. */
   ghostCamps?: boolean;
+  /**
+   * Mode « Équipes » (v5.6) : taille des équipes fixes (2, 3 ou 4 camps par équipe), alliances
+   * verrouillées toute la partie. Absent ou 0 : partie libre. Ignoré si le nombre d'équipes ne se
+   * partage pas en groupes égaux (voir teams.ts).
+   */
+  teamSize?: number;
 }
 
-export type RuleFlag = Exclude<keyof GameRules, 'mode'>;
+export type RuleFlag = Exclude<keyof GameRules, 'mode' | 'teamSize'>;
 
 export interface RuleToggle {
   key: RuleFlag;

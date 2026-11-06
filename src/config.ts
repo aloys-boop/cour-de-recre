@@ -140,9 +140,11 @@ export interface AiProfile {
  */
 export const AI_PROFILES: Record<Difficulty, AiProfile> = {
   facile: { reaction: 2.6, groupMin: 5, keepHome: 0.5, aggression: 0.3, rallyRadius: 1.6, damage: 0.75 },
-  normal: { reaction: 1.9, groupMin: 5, keepHome: 0.45, aggression: 0.5, rallyRadius: 1.5, damage: 0.9 },
-  difficile: { reaction: 1.5, groupMin: 4, keepHome: 0.35, aggression: 0.6, rallyRadius: 1.4, damage: 1 },
-  expert: { reaction: 0.8, groupMin: 3, keepHome: 0.2, aggression: 0.9, rallyRadius: 1.2, damage: 1.15 },
+  // v5.6 (« un chouïa plus dur », Aloys) : Normal dégâts ×0,95 et 42 % de défenseurs (au lieu de ×0,9 et 45 %) ;
+  // Difficile et Expert gagnent 5 % de dégâts pour garder l'échelle.
+  normal: { reaction: 1.9, groupMin: 5, keepHome: 0.42, aggression: 0.5, rallyRadius: 1.5, damage: 0.95 },
+  difficile: { reaction: 1.5, groupMin: 4, keepHome: 0.35, aggression: 0.6, rallyRadius: 1.4, damage: 1.05 },
+  expert: { reaction: 0.8, groupMin: 3, keepHome: 0.2, aggression: 0.9, rallyRadius: 1.2, damage: 1.2 },
 };
 
 /**
@@ -202,7 +204,7 @@ export const RHYTHM = {
  */
 export const DIPLOMACY = {
   pairCooldown: 30,
-  breakNotice: 5,
+  breakNotice: 30, // v5.6 (demande d'Aloys) : 30 s de préavis, compte à rebours sur la puce de l'équipe
   betrayalMemory: 120,
   thinkInterval: 7, // secondes entre deux réflexions diplomatiques d'une IA (± 30 %)
   threatRatio: 1.5, // « nettement plus forte » : puissance au moins 1,5 fois celle des deux
@@ -213,8 +215,9 @@ export const DIPLOMACY = {
 
 /** Trahisons selon la difficulté : seuil de puissance de l'allié et probabilité de passer à l'acte. */
 export const BETRAYAL: Record<Difficulty, { strongerRatio: number; chance: number; endgameChance: number }> = {
-  facile: { strongerRatio: 2.2, chance: 0.12, endgameChance: 0.15 },
-  normal: { strongerRatio: 2, chance: 0.2, endgameChance: 0.25 },
-  difficile: { strongerRatio: 1.8, chance: 0.3, endgameChance: 0.35 },
+  // v5.6 : trahison de fin de partie moins systématique en Facile et Normal (elle était quasi certaine en 30 s).
+  facile: { strongerRatio: 2.2, chance: 0.12, endgameChance: 0.04 },
+  normal: { strongerRatio: 2, chance: 0.2, endgameChance: 0.08 },
+  difficile: { strongerRatio: 1.8, chance: 0.3, endgameChance: 0.25 },
   expert: { strongerRatio: 1.45, chance: 0.6, endgameChance: 0.7 },
 };

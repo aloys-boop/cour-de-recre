@@ -727,15 +727,12 @@ export class World {
 
   /**
    * Pose le point de ralliement d'un camp précis de l'équipe (panneau du camp, glisser depuis le camp).
-   * Faux si le camp n'est pas à elle ou si le point est hors de la cour.
+   * Faux si le camp n'est pas à elle. Un point hors de la cour est ramené au bord le plus proche.
    */
   setCampRally(team: number, camp: Tile, p: Vec2): boolean {
     if (!camp.isCamp || camp.owner !== team) return false;
-    if (p.x < 0 || p.y < 0 || p.x >= this.map.w || p.y >= this.map.h) return false;
-    const g = this.grid.walkable(p.x, p.y) ? this.grid.clampPos(p, 0.3) : (() => {
-      const c = this.grid.nearestFree(p.x, p.y);
-      return { x: c.x + 0.5, y: c.y + 0.5 };
-    })();
+    // Hors de la cour : ramené au bord le plus proche (v5.6).
+    const g = this.grid.orderPoint(p);
     this.rallies.set(camp, { team, x: g.x, y: g.y });
     return true;
   }

@@ -203,7 +203,7 @@ describe('diplomatie', () => {
     expect(d.propose(0, 1)).toBe('accepte');
   });
 
-  it('une rupture est annoncée 5 s à l’avance puis prend effet ; délai de 30 s par paire', () => {
+  it('une rupture est annoncée 30 s à l’avance (v5.6) puis prend effet ; délai de 30 s par paire', () => {
     const { w, d } = setup();
     expect(d.propose(0, 1)).toBe('accepte');
     d.drainEvents();
@@ -212,7 +212,7 @@ describe('diplomatie', () => {
     expect(d.requestBreak(1, 0)).toBe('ok');
     const warn = d.drainEvents().find((e) => e.kind === 'warn')!;
     expect(warn).toMatchObject({ kind: 'warn', team: 1, other: 0 });
-    expect(diploMessage(warn, 0, [0, 1, 2])!.text).toBe('Les Verts vont rompre l’alliance dans 5 s !');
+    expect(diploMessage(warn, 0, [0, 1, 2])!.text).toBe('Les Verts vont rompre l’alliance dans 30 s !');
     expect(d.view(0, 1).breakingIn).toBeCloseTo(DIPLOMACY.breakNotice, 3);
     tick(w, DIPLOMACY.breakNotice - 0.2, (dt) => d.update(dt));
     expect(w.isAllied(0, 1)).toBe(true);

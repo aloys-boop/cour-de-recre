@@ -162,7 +162,7 @@ export class Menu {
       });
     };
     campPane.append(el('h2', '', 'Carte (disposition tirée au sort à chaque partie)'));
-    skirPane.append(skirmishPanel(this.state.skirmish), rulesPanel(this.state.rules));
+    skirPane.append(skirmishPanel(this.state.skirmish), rulesPanel(this.state.rules, () => this.state.skirmish.teams));
     const list = el('div', 'map-list');
     const mapBtns: HTMLButtonElement[] = [];
     // Tutoriel, en tête de campagne : toujours disponible, rejouable.

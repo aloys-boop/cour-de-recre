@@ -172,6 +172,8 @@ function launch(opts: GameOptions, code: MapCode | null): void {
     onHint: (text) => hud.showHint(text, 2800),
     onPauseChange: (paused) => {
       if (paused) {
+        hud.closeDiplomacy(); // le panneau ne doit pas recouvrir la pause
+
         const showPause = (): void =>
           overlay.pause(
             () => {
@@ -181,12 +183,14 @@ function launch(opts: GameOptions, code: MapCode | null): void {
             () => backToMenu(),
             code ? [codeBlock(codeText)] : [],
             () => overlay.howTo(showPause),
+            tutorial ? undefined : () => game?.surrender(),
           );
         showPause();
       } else overlay.hide();
     },
     onEnd: (result, o) => {
       const win = result === 'victoire';
+      const surrendered = result === 'abandon';
       const extras: HTMLElement[] = [];
       tutorialUi.hide();
       if (tutorial) {
@@ -236,7 +240,8 @@ function launch(opts: GameOptions, code: MapCode | null): void {
         onMenu: () => backToMenu(),
         winText: campaign ? undefined : king?.winText ?? 'L’escarmouche est à toi !',
         winTitle: king?.winTitle,
-        loseText: king?.loseText,
+        loseText: surrendered ? 'Tu as abandonné la partie. Voici où en était la cour.' : king?.loseText,
+        loseTitle: surrendered ? 'Abandon' : undefined,
         extras,
       });
     },
@@ -256,7 +261,10 @@ function launch(opts: GameOptions, code: MapCode | null): void {
   const g = game;
   if (opts.map.teams >= 3 && !tutorial)
     tipTimer = window.setTimeout(() => {
-      if (game === g && !g.over && !g.paused) hud.showHint('Touche la puce d’une équipe, en haut, pour lui proposer une alliance.', 3600);
+      if (game !== g || g.over || g.paused) return;
+      // Mode « Équipes » : pas de diplomatie, on présente plutôt les coéquipiers.
+      if (g.teamGroups) hud.showHint('Mode Équipes\u00a0: les puces à poignée de main, en haut, sont tes coéquipiers. Vous gagnez ensemble.', 3800);
+      else hud.showHint('Touche la puce d’une équipe, en haut, pour lui proposer une alliance.', 3600);
     }, 4600);
   game.start();
 }

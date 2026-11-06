@@ -8,6 +8,7 @@ import type { Unit } from './core/unit';
 import { World } from './core/world';
 import { rhythmAnnouncement } from './core/events';
 import { isKingMode, kingAnnouncement, withThrone } from './core/king';
+import { teamGroups } from './core/teams';
 import { Diplomacy, diploMessage, type BreakResult, type DiploView, type ProposeResult } from './core/diplomacy';
 import { MAX_TEAMS, TEAM_COLORS } from './config';
 import { DiplomacyExtras } from './core/diplomacy-extras';
@@ -37,7 +38,8 @@ import type { Vec2 } from './core/types';
 import { TutorialState, type TutorialEvent } from './core/tutorial';
 import { assignGuards, canGuard, guardCounts } from './core/garrison';
 
-export type GameResult = 'victoire' | 'defaite';
+/** Résultat d'une partie ; « abandon » : le joueur a abandonné (défaite, statistiques quand même). */
+export type GameResult = 'victoire' | 'defaite' | 'abandon';
 
 /** Ce qu'un doigt peut viser : un élève, ou un surveillant (option « Surveillants »). */
 type Target = Unit | Supervisor;
@@ -107,6 +109,8 @@ export class Game {
   readonly extras: DiplomacyExtras;
   /** Équipes victorieuses à la fin de la partie (plusieurs : victoire d'une alliance). */
   victors: number[] = [];
+  /** Mode « Équipes » : groupe de chaque équipe, ou null (partie libre). */
+  readonly teamGroups: number[] | null;
   private importantUntil = 0;
   private fx = new Effects();
   /** Gains de bons points du joueur (« +10 ★ » qui s'envolent). */
@@ -164,11 +168,14 @@ export class Game {
       this.ais.push(ai);
       this.world.damageScale[t] = ai.profile.damage;
     }
+    // Mode « Équipes » : coéquipiers alliés pour toute la partie (camps voisins).
+    this.teamGroups = !opts.tutorial && rules.teamSize ? teamGroups(this.world.map, rules.teamSize) : null;
     this.diplomacy = new Diplomacy(
       this.world,
       opts.difficulty,
       this.ais.map((a) => a.team),
       seed,
+      this.teamGroups,
     );
     this.extras = new DiplomacyExtras(this.world, this.diplomacy, this.playerTeam, seed);
     if (opts.tutorial) {
@@ -265,6 +272,20 @@ export class Game {
 
   stop(): void {
     cancelAnimationFrame(this.raf);
+  }
+
+  /**
+   * Abandon (menu pause) : la partie se termine aussitôt en défaite et l'écran de fin
+   * affiche quand même les statistiques. Ne débloque rien, ne donne aucune médaille.
+   */
+  surrender(): boolean {
+    if (this.over || this.tutorial) return false;
+    this.over = true;
+    this.paused = false;
+    this.victors = [];
+    this.sfx.play('defeat');
+    this.hooks.onEnd('abandon', this.opts);
+    return true;
   }
 
   setPaused(p: boolean): void {
@@ -529,9 +550,8 @@ export class Game {
       this.orderIntoTile(units, tile, this.charge);
       this.flash = { tile, t: 0 };
     } else {
-      if (g.x < 0 || g.y < 0 || g.x >= this.world.map.w || g.y >= this.world.map.h) return;
-      const c = this.world.grid.nearestFree(g.x, g.y);
-      if (!this.world.grid.walkable(g.x, g.y)) target = { x: c.x + 0.5, y: c.y + 0.5 };
+      // Hors de la cour ou sur un obstacle : ramené au bord, au coin ou à la case libre la plus proche.
+      target = this.world.grid.orderPoint(g);
       this.world.orderMove(units, target, this.charge);
     }
     this.markers.push({ x: target.x, y: target.y, t: 0, kind: this.charge ? 'charge' : 'move', team: this.opts.playerColor });

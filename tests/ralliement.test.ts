@@ -29,11 +29,19 @@ describe('ralliement par camp', () => {
     expect(w.setCampRally(0, a, { x: 6, y: 3 })).toBe(true);
     expect(w.setCampRally(0, b, { x: 4, y: 12 })).toBe(true);
     expect(w.setCampRally(0, w.tiles[1], { x: 8, y: 8 })).toBe(false); // pas son camp
-    expect(w.setCampRally(0, a, { x: -2, y: 3 })).toBe(false); // hors de la cour
     tick(w, 6);
     const near = (p: { x: number; y: number }) => w.units.filter((u) => u.team === 0 && Math.hypot(u.x - p.x, u.y - p.y) < 1.6).length;
     expect(near({ x: 6, y: 3 })).toBeGreaterThanOrEqual(3);
     expect(near({ x: 4, y: 12 })).toBeGreaterThanOrEqual(3);
+  });
+
+  it('un ralliement posé hors de la cour est ramené au bord le plus proche', () => {
+    const w = new World(MAP, 2, 1);
+    const a = w.tiles[0];
+    expect(w.setCampRally(0, a, { x: -2, y: 3 })).toBe(true);
+    const r = w.rallyFor(a)!;
+    expect(r.x).toBeCloseTo(0.3, 5);
+    expect(w.grid.walkable(r.x, r.y)).toBe(true);
   });
 
   it('supprimer le ralliement : les nouveaux élèves restent au camp', () => {

@@ -49,21 +49,22 @@ describe('difficulté : 4 niveaux', () => {
 
   it('Difficile = l’ancien Normal, Expert = l’ancien Difficile, Facile inchangé', () => {
     expect(AI_PROFILES.facile).toEqual({ reaction: 2.6, groupMin: 5, keepHome: 0.5, aggression: 0.3, rallyRadius: 1.6, damage: 0.75 });
-    expect(AI_PROFILES.difficile).toEqual({ reaction: 1.5, groupMin: 4, keepHome: 0.35, aggression: 0.6, rallyRadius: 1.4, damage: 1 });
-    expect(AI_PROFILES.expert).toEqual({ reaction: 0.8, groupMin: 3, keepHome: 0.2, aggression: 0.9, rallyRadius: 1.2, damage: 1.15 });
-    expect(BETRAYAL.difficile).toEqual({ strongerRatio: 1.8, chance: 0.3, endgameChance: 0.35 });
+    // v5.6 : Difficile et Expert frappent 5 % plus fort (échelle décalée avec Normal).
+    expect(AI_PROFILES.difficile).toEqual({ reaction: 1.5, groupMin: 4, keepHome: 0.35, aggression: 0.6, rallyRadius: 1.4, damage: 1.05 });
+    expect(AI_PROFILES.expert).toEqual({ reaction: 0.8, groupMin: 3, keepHome: 0.2, aggression: 0.9, rallyRadius: 1.2, damage: 1.2 });
+    expect(BETRAYAL.difficile).toEqual({ strongerRatio: 1.8, chance: 0.3, endgameChance: 0.25 });
     expect(BETRAYAL.expert).toEqual({ strongerRatio: 1.45, chance: 0.6, endgameChance: 0.7 });
     expect(ECONOMY_PROFILES.difficile).toMatchObject({ interval: 4, margin: 1, smart: true, randomPick: 0, powerUse: 1, powerAim: 0 });
     expect(ECONOMY_PROFILES.expert).toMatchObject({ interval: 2, margin: 1, smart: true, randomPick: 0, powerUse: 1, powerAim: 0 });
   });
 
-  it('nouveau Normal : plus lent, plus gros groupes, plus de défenseurs, dégâts ×0,9, dépenses moins optimales', () => {
+  it('nouveau Normal : plus lent, plus gros groupes, plus de défenseurs, dégâts ×0,95 (v5.6), dépenses moins optimales', () => {
     const n = AI_PROFILES.normal;
     const d = AI_PROFILES.difficile;
     expect(n.reaction).toBeGreaterThan(d.reaction);
     expect(n.groupMin).toBeGreaterThan(d.groupMin);
     expect(n.keepHome).toBeGreaterThan(d.keepHome);
-    expect(n.damage).toBe(0.9);
+    expect(n.damage).toBe(0.95);
     const en = ECONOMY_PROFILES.normal;
     const ed = ECONOMY_PROFILES.difficile;
     expect(en.interval).toBeGreaterThan(ed.interval); // achats retardés

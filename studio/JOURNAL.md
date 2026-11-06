@@ -2,6 +2,29 @@
 
 Une entrée par session, la plus récente en haut : date, version, ce qui a été fait, ce qui a été mesuré, ce qui reste ou ce qui inquiète.
 
+## 06/11/2026 : session de développement, v5.6 (demandes d'Aloys)
+
+**Fait**
+- Pas de nouveau message d'Aloys par e-mail ; ses cinq demandes du 05/11 (transmises par la conversation, à traiter en priorité) font la v5.6, livrée seule d'abord.
+- Difficulté : Normal dégâts ×0,95 et 42 % de défenseurs ; Difficile ×1,05 et Expert ×1,2 pour garder l'échelle (`AI_PROFILES`).
+- Abandon : bouton « Abandonner » dans la pause, confirmation dans la page, `Game.surrender()` (résultat `abandon`), écran de fin « Abandon » avec le tableau de statistiques ; rien de débloqué, pas de médaille, absent du tutoriel.
+- Tap hors de la cour : `Grid.orderPoint` ramène le point au bord ou au coin le plus proche puis à une cellule libre ; utilisé par le tap, la flèche d'ordre (même chemin) et le ralliement (`setCampRally` ne refuse plus un point hors de la cour).
+- Mode Équipes : `src/core/teams.ts` (tailles possibles, libellés, `teamGroups` qui range les camps dans l'ordre du tour de la cour et découpe en tranches de voisins), option « Équipes fixes » dans le menu d'escarmouche (Libre, Par 2, Par 3, Par 4, tailles impossibles grisées, ligne d'aide), `Diplomacy` reçoit les groupes : alliances posées au départ, verrouillées (`'equipes'` pour toute proposition ou rupture), aucune réflexion diplomatique des IA. Panneau « Coéquipiers » sans bouton d'action, conseil de début de partie adapté.
+- Ruptures : `breakNotice` 5 → 30 s, badge rouge de compte à rebours sous la puce, rappel annoncé à 10 s (`soon`) ; trahison de fin de partie 15/25/35 % → 4/8/25 % par réflexion (Facile/Normal/Difficile, Expert inchangé à 70 %).
+- « Comment jouer » : Alliances (30 s), Mode Équipes, Abandonner, tap hors de la cour. README à jour. Pause : le panneau de diplomatie se ferme pour ne pas recouvrir la carte de pause.
+- 11 nouveaux tests (`v56.test.ts`, `v56-app.test.ts` qui joue tout au doigt dans l'application, ralliement hors de la cour) ; 345 tests verts.
+
+**Mesuré**
+- Témoin en Normal : 54,3 % (v5.5) → 42,6 % (± 2,4, 1 600 parties). Essais : dégâts seuls 50,4 %, + réaction 1,7 s 47,6 %, groupes de 4 37,1 %, 40 % de défenseurs 41,9 % (1 600).
+- Facile 96,1 %, Difficile 9,8 %, Expert 2,4 % (800 parties chacun). Couleurs (4 IA Normal, 800 parties) : 20,5 % à 30,3 %.
+- `perf240` : partie 0,191 ms par pas (0,180 hier, même code de simulation : bruit), rendu 1,72 ms par image.
+
+**Reste à faire, inquiétudes**
+- Normal à 42,6 % est un peu sous la cible de 45 % : Aloys dira si c'est le bon « chouïa ». Revenir à 40 % de défenseurs ou à des dégâts ×0,93 si c'est trop.
+- Mode Équipes : un joueur éliminé perd tout de suite, même si ses coéquipiers peuvent gagner (ajouté à la feuille de route). Les options ne sont pas dans le code de carte, le mode Équipes non plus (comme les autres options).
+- Les simulations `equilibre.ts` ne jouent pas la diplomatie : l'effet des ruptures plus rares n'est pas chiffré.
+- Suite prévue cette nuit si le temps le permet : 1.4 Alertes (v5.7), puis 1.3 Renforts (v5.8), puis 1.1 bis.
+
 ## 05/11/2026 : session de développement, v5.5 (garnisons)
 
 **Fait**

@@ -40,6 +40,17 @@ export class Grid {
     };
   }
 
+  /**
+   * Point d'ordre dans la cour : un point hors de la cour est ramené au bord (ou au coin)
+   * le plus proche, puis, s'il tombe sur un obstacle, au centre de la cellule libre la plus proche.
+   */
+  orderPoint(p: Vec2, margin = 0.3): Vec2 {
+    const g = this.clampPos(p, margin);
+    if (this.walkable(g.x, g.y)) return g;
+    const c = this.nearestFree(g.x, g.y);
+    return { x: c.x + 0.5, y: c.y + 0.5 };
+  }
+
   /** Cellule libre la plus proche (recherche en anneaux). */
   nearestFree(x: number, y: number): Vec2 {
     const cx = Math.floor(x);

@@ -11,11 +11,13 @@ export type DiploEvent =
   | { kind: 'reply'; from: number; to: number; accepted: boolean }
   /** `team` rompra son alliance avec `other` à l'heure de jeu `at`. */
   | { kind: 'warn'; team: number; other: number; at: number }
+  /** Plus que 10 s avant la rupture annoncée de `team` avec `other` (rappel). */
+  | { kind: 'soon'; team: number; other: number }
   /** `team` a rompu son alliance avec `other`. */
   | { kind: 'broken'; team: number; other: number };
 
-export type ProposeResult = 'accepte' | 'refuse' | 'trop-tot' | 'deja' | 'invalide';
-export type BreakResult = 'ok' | 'trop-tot' | 'deja' | 'invalide';
+export type ProposeResult = 'accepte' | 'refuse' | 'trop-tot' | 'deja' | 'invalide' | 'equipes';
+export type BreakResult = 'ok' | 'trop-tot' | 'deja' | 'invalide' | 'equipes';
 
 /** État diplomatique d'une paire, vu par le joueur. */
 export interface DiploView {
@@ -25,13 +27,20 @@ export interface DiploView {
   /** Secondes avant de pouvoir changer d'alliance avec cette équipe (0 : possible). */
   cooldown: number;
   alive: boolean;
+  /** Mode « Équipes » : alliances fixées pour toute la partie (ni proposition, ni rupture). */
+  locked: boolean;
 }
 
 interface PendingBreak {
   team: number;
   other: number;
   at: number;
+  /** Rappel des 10 dernières secondes déjà annoncé. */
+  reminded?: boolean;
 }
+
+/** Rappel avant une rupture (secondes restantes). */
+export const BREAK_REMINDER = 10;
 
 const grid = <T>(n: number, v: T): T[][] => Array.from({ length: n }, () => new Array<T>(n).fill(v));
 
@@ -66,6 +75,11 @@ export class Diplomacy {
     /** Équipes dont la diplomatie est jouée par l'ordinateur. */
     readonly aiTeams: readonly number[],
     seed = 1,
+    /**
+     * Mode « Équipes » : groupe de chaque équipe (même numéro = coéquipiers). Les coéquipiers
+     * sont alliés dès le départ et pour toute la partie ; aucune autre alliance n'est possible.
+     */
+    readonly fixedGroups: readonly number[] | null = null,
   ) {
     this.n = world.numTeams;
     this.lastChange = grid(this.n, -Infinity);
@@ -75,6 +89,15 @@ export class Diplomacy {
     this.betrayal = BETRAYAL[difficulty];
     // Première réflexion après une vingtaine de secondes, décalée selon l'équipe.
     this.timers = Array.from({ length: this.n }, (_, t) => DIPLOMACY.firstThink + t * 1.5);
+    if (fixedGroups) {
+      for (let a = 0; a < this.n; a++)
+        for (let b = a + 1; b < this.n; b++) world.setAllied(a, b, fixedGroups[a] !== undefined && fixedGroups[a] === fixedGroups[b]);
+    }
+  }
+
+  /** Mode « Équipes » : les alliances sont figées. */
+  get locked(): boolean {
+    return this.fixedGroups !== null;
   }
 
   private get time(): number {
@@ -110,7 +133,7 @@ export class Diplomacy {
   }
 
   view(a: number, b: number): DiploView {
-    return { allied: this.world.isAllied(a, b), breakingIn: this.breakingIn(a, b), cooldown: this.cooldownLeft(a, b), alive: this.alive(b) };
+    return { allied: this.world.isAllied(a, b), breakingIn: this.breakingIn(a, b), cooldown: this.cooldownLeft(a, b), alive: this.alive(b), locked: this.locked };
   }
 
   /** Une alliance entre a et b réunirait-elle toutes les équipes encore en vie ? */
@@ -158,6 +181,7 @@ export class Diplomacy {
     const w = this.world;
     if (from === to || from < 0 || to < 0 || from >= this.n || to >= this.n) return 'invalide';
     if (!this.aiTeams.includes(to) || !this.alive(from) || !this.alive(to)) return 'invalide';
+    if (this.locked) return 'equipes';
     if (w.isAllied(from, to)) return 'deja';
     if (this.cooldownLeft(from, to) > 0) return 'trop-tot';
     const accepted = this.accepts(to, from);
@@ -173,6 +197,7 @@ export class Diplomacy {
   /** `team` annonce la rupture de son alliance avec `other` ; elle prend effet après le préavis. */
   requestBreak(team: number, other: number): BreakResult {
     if (team === other || team < 0 || other < 0 || team >= this.n || other >= this.n) return 'invalide';
+    if (this.locked) return 'equipes';
     if (!this.world.isAllied(team, other)) return 'invalide';
     if (this.breakingIn(team, other) !== null) return 'deja';
     if (this.cooldownLeft(team, other) > 0) return 'trop-tot';
@@ -208,6 +233,10 @@ export class Diplomacy {
       for (const p of this.pending) {
         if (!w.isAllied(p.team, p.other)) continue;
         if (this.time < p.at) {
+          if (!p.reminded && p.at - this.time <= BREAK_REMINDER && DIPLOMACY.breakNotice > BREAK_REMINDER) {
+            p.reminded = true;
+            this.events.push({ kind: 'soon', team: p.team, other: p.other });
+          }
           keep.push(p);
           continue;
         }
@@ -226,7 +255,8 @@ export class Diplomacy {
       this.tick = 0;
       for (const row of this.attitude) for (let j = 0; j < row.length; j++) row[j] += (0 - row[j]) * k;
     }
-    // Réflexion des IA.
+    // Réflexion des IA (aucune en mode « Équipes » : les alliances sont figées).
+    if (this.locked) return;
     for (const ai of this.aiTeams) {
       this.timers[ai] -= dt;
       if (this.timers[ai] > 0) continue;
@@ -310,6 +340,10 @@ export function diploMessage(ev: DiploEvent, player: number, colors: readonly nu
       if (ev.other === player) return { text: `${cap(name(ev.team))} vont rompre l’alliance dans ${secs}${s}s${s}!`, important: true };
       return { text: `${cap(name(ev.team))} vont rompre l’alliance avec ${name(ev.other)} dans ${secs}${s}s${s}!`, important: false };
     }
+    case 'soon':
+      if (ev.team === player) return { text: `Plus que ${BREAK_REMINDER}${s}s avant ta rupture avec ${name(ev.other)}.`, important: true };
+      if (ev.other === player) return { text: `${cap(name(ev.team))} rompent dans ${BREAK_REMINDER}${s}s${s}: prépare-toi${s}!`, important: true };
+      return null;
     case 'broken':
       if (ev.team === player) return { text: `Alliance rompue avec ${name(ev.other)}.`, important: true };
       if (ev.other === player) return { text: `${cap(name(ev.team))} ont rompu l’alliance${s}!`, important: true };

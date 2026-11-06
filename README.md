@@ -158,8 +158,9 @@ Les IA mélangent les classes dès que leur camp est débloqué et qu'il leur re
 - **Proposer.** Touche la puce d'une équipe, en haut de l'écran : le panneau « Diplomatie » permet de lui proposer une alliance ou de rompre la vôtre. L'IA répond tout de suite (« Les Jaunes acceptent l'alliance. » ou « Les Jaunes refusent. »).
 - **Entre alliés.** Pas de combat (ni engagement automatique, ni ordre d'attaque possible, ni dégâts : toucher un allié vaut un déplacement), on se traverse sans se bloquer, et on ne se conteste pas les cases. Si seuls des alliés sont sur une case, la capture avance pour celle qui capturait déjà, sinon pour la plus nombreuse ; un allié ne prend jamais la case d'un allié (il y efface plutôt la jauge d'un ennemi). Les camps et les cœurs ne soignent que leur propriétaire.
 - **Repères.** La puce d'un allié porte une poignée de main et un liseré bleu clair (en pointillés clignotants quand une rupture est annoncée) ; ses élèves ont un petit losange bleu à côté de leur barre de vie ; sur la mini-carte, ses camps ont un liseré bleu.
-- **Rompre.** Une rupture est annoncée 5 s à l'avance (« Les Verts vont rompre l'alliance dans 5 s ! »), pour l'IA comme pour toi. Une même paire d'équipes ne peut pas changer d'alliance plus d'une fois toutes les 30 s.
-- **Ce que pense l'IA.** Chaque IA estime la puissance de chaque équipe (vie et dégâts de ses élèves, camps, cases) et garde une attitude envers chacune (rancune quand on lui met des élèves KO, méfiance pendant 2 minutes envers qui l'a trahie). Elle accepte une alliance face à une menace commune (une équipe au moins 1,5 fois plus forte que les deux), ou si le proposeur n'est pas plus fort qu'elle et qu'elle ne lui en veut pas ; jamais si l'alliance réunirait toutes les équipes restantes (ce serait la fin de la partie). Les IA s'allient aussi entre elles face à une menace, et parfois sans raison. Elles rompent quand leur allié devient trop fort ou quand l'ennemi commun est presque éliminé, d'autant plus souvent que la difficulté est élevée. Une IA ne cible pas les cases de ses alliés et peut venir défendre une case alliée qu'un ennemi est en train de prendre.
+- **Rompre.** Une rupture est annoncée 30 s à l'avance depuis la v5.6 (« Les Verts vont rompre l'alliance dans 30 s ! »), pour l'IA comme pour toi : un badge rouge sous la puce de l'équipe compte les secondes, et un rappel tombe 10 s avant. Une même paire d'équipes ne peut pas changer d'alliance plus d'une fois toutes les 30 s.
+- **Ce que pense l'IA.** Chaque IA estime la puissance de chaque équipe (vie et dégâts de ses élèves, camps, cases) et garde une attitude envers chacune (rancune quand on lui met des élèves KO, méfiance pendant 2 minutes envers qui l'a trahie). Elle accepte une alliance face à une menace commune (une équipe au moins 1,5 fois plus forte que les deux), ou si le proposeur n'est pas plus fort qu'elle et qu'elle ne lui en veut pas ; jamais si l'alliance réunirait toutes les équipes restantes (ce serait la fin de la partie). Les IA s'allient aussi entre elles face à une menace, et parfois sans raison. Elles rompent quand leur allié devient trop fort ou quand l'ennemi commun est presque éliminé, d'autant plus souvent que la difficulté est élevée. Cette trahison de fin de partie (ennemis restants pesant moins d'un quart de l'IA) a une chance par réflexion (toutes les 7 s environ) de 4 % en Facile, 8 % en Normal, 25 % en Difficile et 70 % en Expert (avant la v5.6 : 15 et 25 % en Facile et Normal, soit une rupture presque sûre en moins de 30 s).
+- **Abandonner.** Dans la pause, « Abandonner » (avec confirmation) termine la partie en défaite et affiche l'écran de fin « Abandon » avec le tableau des statistiques. Un abandon ne débloque rien et ne donne aucune médaille. Une IA ne cible pas les cases de ses alliés et peut venir défendre une case alliée qu'un ennemi est en train de prendre.
 
 ## Options et modes d’escarmouche
 
@@ -171,6 +172,7 @@ Toutes les options sont désactivées par défaut, jamais actives en campagne, e
 - **Surveillants.** Deux à quatre adultes costauds, neutres et hostiles à toutes les équipes (alliances comprises), patrouillent comme des mini-boss : 600 points de vie (10 élèves), un coup de poing de 32 à 40 (environ 4 fois un élève, un peu plus lent) qui touche aussi les élèves collés à la cible (60 % des dégâts à moins de 0,6 case) et les fait reculer nettement. Un coup de sifflet annonce qu’ils attaquent un élève entré dans leur rayon (2,5 cases) ou qui les frappe ; ils le poursuivent jusqu’à 5 cases, puis reviennent patrouiller et se régénèrent lentement hors combat. Tes élèves inoccupés ripostent ; touche un surveillant (ou relâche la flèche dessus) pour l’attaquer. Il faut une dizaine d’élèves pour en venir à bout (4 à 6 se font battre). L’équipe qui porte le dernier coup est annoncée et gagne +25 % de dégâts pendant 30 s (affiché dans la ligne des bonus) ; le surveillant revient 45 s plus tard à un bord de la cour. Les IA les évitent avec de petits groupes et les attaquent à 8 élèves ou plus, ou quand l’un d’eux garde leur cible. Les KO de surveillants sont comptés sur l’écran de fin. Réglage par simulation : `npx tsx scripts/dev/supervisor-balance.ts`.
 - **Brouillard de guerre.** Tu ne vois que les abords de tes élèves, de tes cases et de ceux de tes alliés : chaque case ou camp possédé éclaire toujours 2,5 cases autour de lui, même sans élève dessus. Les zones déjà vues restent grisées avec le dernier propriétaire connu des cases ; les ennemis cachés ne s’affichent pas, ne se ciblent pas et leurs effectifs sont masqués dans les puces. Les IA jouent avec la même contrainte.
 - **Camps fantômes.** Un à trois camps sans propriétaire, placés équitablement : capturés, ils produisent des élèves comme un camp de départ et comptent pour la victoire.
+- **Équipes fixes (v5.6).** « Libre » (par défaut) ou « Par 2 », « Par 3 », « Par 4 » : les équipes sont formées dès le début (4 équipes : 2 contre 2 ; 6 : 3 contre 3 ou 2 contre 2 contre 2 ; 8 : 4 contre 4 ou 2 contre 2 contre 2 contre 2). Les tailles qui ne partagent pas le nombre d'équipes en groupes égaux sont grisées. Les coéquipiers ont des camps voisins (camps rangés dans l'ordre du tour de la cour, découpage qui rapproche le plus les coéquipiers) et sont alliés pour toute la partie : aucune proposition ni rupture, pas de diplomatie avec les autres équipes, victoire partagée par toute l'équipe. Les IA coéquipières défendent tes cases comme celles d'un allié. Si tu es éliminé, la partie est perdue pour toi, même si tes coéquipiers continuent. Se combine avec toutes les options (cadeaux et appel à l'aide entre coéquipiers, tribut avec l'adversaire).
 - **Mode « Roi de la cour ».** Un trône doré 2 × 2 au centre : l’équipe qui le tient cumule du temps de règne (figé s’il est contesté) et gagne, avec ses alliés, à 2 minutes. Les victoires classiques restent valables.
 
 Le code de carte reproduit la disposition, pas les options : choisis-les à nouveau dans le menu.
@@ -193,7 +195,7 @@ Valeurs essayées en chemin (4 équipes, 2 000 parties) : avec 0,15 de plus par 
 
 ### Difficulté Normal : le « joueur témoin »
 
-Faute de joueur humain, un « joueur témoin » simule un joueur moyen : une IA réglée comme l'ancien Normal (aujourd'hui Difficile, dégâts ×1 comme le joueur), mais avec la lenteur d'un humain sur téléphone (une décision toutes les 3 s en moyenne au lieu de 1,5 s) et sans gestion fine : ni pouvoirs, ni pion, ni ralliements, ni classes par camp ; il achète seulement des améliorations. Il affronte 3 IA de même difficulté, à 4 équipes, couleurs et positions tirées au hasard (`npx tsx scripts/dev/equilibre.ts temoin=1 diff=normal parties=4000`). Objectif : 45 à 55 % de victoires en Normal.
+Faute de joueur humain, un « joueur témoin » simule un joueur moyen : une IA réglée comme l'ancien Normal (aujourd'hui Difficile, dégâts ×1 comme le joueur), mais avec la lenteur d'un humain sur téléphone (une décision toutes les 3 s en moyenne au lieu de 1,5 s) et sans gestion fine : ni pouvoirs, ni pion, ni ralliements, ni classes par camp ; il achète seulement des améliorations. Il affronte 3 IA de même difficulté, à 4 équipes, couleurs et positions tirées au hasard (`npx tsx scripts/dev/equilibre.ts temoin=1 diff=normal parties=4000`). Objectif : 45 à 55 % de victoires en Normal (un peu moins de 45 % depuis la v5.6, à la demande d'Aloys : voir plus bas).
 
 | Adversaires (3 IA) | Parties | Victoires du témoin |
 | --- | --- | --- |
@@ -232,6 +234,19 @@ Les IA ne posent pas de garnison : l'équilibre de Normal est inchangé (témoin
 Une garnison n'est pas gratuite : chaque garde manque aux groupes d'attaque, et un témoin qui défend déjà ses cases à la main (20 ordres par minute) ne gagne rien à figer ses élèves. L'outil sert le joueur qui ne peut pas surveiller toutes ses cases ; le vrai gain sera mesuré avec un témoin qui, comme un humain, ne secourt plus ses cases lui-même (point 1.1 bis de la feuille de route).
 
 Performances : `perf240` sans changement (partie 0,180 ms par pas contre 0,188, mêlée 0,102 contre 0,095, ordres 0,147 contre 0,169) ; 240 élèves tous en garnison sur 48 cases et en mêlée : 0,275 ms par pas.
+
+### Normal un peu plus dur (v5.6)
+
+Retour d'Aloys du 05/11 : « un peu trop simple ». Le témoin gagnait 54 % en Normal depuis l'attention limitée ; cible : 45 % environ. Essais à 800 parties (4 équipes, témoin contre 3 IA Normal) : dégâts ×0,95 → 50,4 % ; dégâts ×0,95 et réaction 1,7 s → 47,6 % ; groupes de 4 → 37,1 % (trop) ; dégâts ×0,95 et 40 % de défenseurs → 43,0 % ; budget de 20 ordres et dégâts ×0,95 → 48,6 %. Retenu : **dégâts ×0,95 et 42 % de défenseurs** (au lieu de ×0,9 et 45 %), soit **42,6 %** (± 2,4, 1 600 parties ; 41,9 % avec 40 % de défenseurs). Difficile et Expert frappent 5 % plus fort pour garder l'échelle :
+
+| Adversaires (3 IA) | Témoin v5.5 | Témoin v5.6 |
+| --- | --- | --- |
+| Facile | 96,5 % | 96,1 % (800 parties) |
+| **Normal** | 54,3 % | **42,6 %** (1 600 parties) |
+| Difficile | 13,3 % | 9,8 % (800 parties) |
+| Expert | 5,0 % | 2,4 % (800 parties) |
+
+Couleurs, 4 IA Normal entre elles (800 parties) : de 20,5 % (Jaune) à 30,3 % (Rose), dans le bruit habituel à ce nombre de parties. `perf240` inchangé (partie 0,191 ms par pas).
 
 ### Ancien réglage (multiplicateurs libres, avant la version 5)
 
@@ -287,7 +302,7 @@ Les pointes dépassaient le budget d'une image sur iPhone ; elles venaient des r
 | --- | --- |
 | Tap sur un élève | Sélectionne l'élève le plus proche du doigt (zone tactile généreuse) et ses voisins proches |
 | Appui long puis glisser | Rectangle de sélection |
-| Tap sur le sol | Rappel : déplacement sans combat (marqueur blanc), ou charge en mode Charger (marqueur orange). Près d'une case ou d'un camp, l'ordre est aimanté : la case visée s'entoure d'un liseré blanc et les élèves se répartissent à l'intérieur |
+| Tap sur le sol | Rappel : déplacement sans combat (marqueur blanc), ou charge en mode Charger (marqueur orange). Près d'une case ou d'un camp, l'ordre est aimanté : la case visée s'entoure d'un liseré blanc et les élèves se répartissent à l'intérieur. Hors de la cour, l'ordre est ramené au bord ou au coin le plus proche (v5.6), comme la flèche d'ordre et le point de ralliement |
 | Appui long sans bouger, sans sélection | Point de ralliement du camp le plus proche (drapeau) |
 | Glisser depuis un de tes camps jusqu'à un point | Point de ralliement de ce camp |
 | Tap sur un ennemi | Ordre d'attaque (marqueur rouge) |
@@ -362,6 +377,8 @@ Le dépôt contient un workflow GitHub Actions (`.github/workflows/deploy.yml`) 
 | `v5.4` | IA à attention limitée : ordres par minute, cases secourues à la fois et délai de réaction selon la difficulté |
 | `avant-2026-11-05` | état avant la v5.5 (point de retour) |
 | `v5.5` | garnisons : bouton « Garder », cercle défendu, reprise automatique, écusson du nombre de gardes |
+| `avant-2026-11-06` | état avant la v5.6 (point de retour) |
+| `v5.6` | demandes d'Aloys : Normal un peu plus dur, « Abandonner » avec statistiques, tap hors de la cour ramené au bord, mode Équipes fixes, ruptures annoncées 30 s avec compte à rebours et trahisons de fin de partie plus rares |
 
 ## Architecture
 

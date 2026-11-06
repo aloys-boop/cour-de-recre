@@ -27,6 +27,14 @@ Complément d'Aloys (05/11, 22 h 20) : « Fais tes suggestions en même temps. C
 - puis 1.1 bis (témoin plus humain), qui sert aussi à vérifier le nouveau réglage de difficulté.
 Si le temps manque, ce qui reste passe en tête de la session suivante. Un seul e-mail du journal en fin de session, qui récapitule toutes les versions livrées.
 
+**Ce qui en a été fait (06/11, v5.6) :** les cinq points sont livrés en v5.6.
+1. Normal : dégâts ×0,95 et 42 % de défenseurs ; témoin 54,3 % → 42,6 % (1 600 parties). Difficile et Expert +5 % de dégâts (9,8 % et 2,4 %).
+2. « Abandonner » dans la pause, confirmation dans la page, écran « Abandon » avec les statistiques, rien de débloqué.
+3. Tap, flèche d'ordre et ralliement hors de la cour : ramenés au bord ou au coin le plus proche (`Grid.orderPoint`).
+4. Escarmouche, « Équipes fixes » : Libre, Par 2, Par 3, Par 4 (tailles impossibles grisées), coéquipiers aux camps voisins, alliances verrouillées, victoire partagée.
+5. Préavis de rupture 30 s, compte à rebours rouge sous la puce, rappel à 10 s ; trahison de fin de partie 4 % (Facile) et 8 % (Normal) par réflexion au lieu de 15 et 25 %.
+Les livraisons suivantes prévues (v5.7 alertes, v5.8 renforts, 1.1 bis) passent en tête de la feuille de route pour la prochaine session.
+
 ## 03/11/2026
 
 > « Une des grosses difficultés du jeu actuellement c'est la micro et le contrôle des cases. Pour une IA, facile d'être partout à la fois. Pour un humain c'est plus compliqué… »
