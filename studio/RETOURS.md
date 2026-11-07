@@ -2,6 +2,19 @@
 
 Le plus récent en haut. Chaque session lit ce fichier, recopie ici les nouveaux retours reçus par e-mail (réponses au « journal du jour »), et indique en dessous de chaque retour ce qui en a été fait.
 
+## 07/11/2026 (transmis par la conversation avec Claude, à traiter EN PRIORITÉ la nuit du 07 au 08/11)
+
+> « Suggestion d'amélioration :
+> - afficher le nombre de soldats visibles sur la carte à l'instant T ;
+> - il y a des petites erreurs dans le tuto (attaquer le vert alors que c'est une autre couleur), améliore la production mais le message apparaît sur le bouton améliorer. »
+
+Pistes relevées dans le code (à vérifier) :
+1. **Compteur d'élèves.** Petit compteur dans le HUD, lisible d'un coup d'œil sans gêner la partie : tes élèves en jeu « 18/30 », puis, pour chaque équipe adverse, le nombre de ses élèves visibles en ce moment (pastille à sa couleur), en respectant le brouillard de guerre (seulement ce que le joueur voit réellement ; mention « visibles » claire). Tap sur le compteur : détail par équipe (élèves visibles, cases, camps). Mise à jour quelques fois par seconde, pas à chaque image. Ajouter une ligne dans « Comment jouer ».
+2. **Tutoriel, couleur de l'adversaire.** `src/core/tutorial.ts` écrit « Verts » en dur (étapes `attack` et `win`, commentaires), alors que le tutoriel se lance avec `playerColor: progress.lastTeam` (`src/main.ts`) : l'adversaire n'est pas forcément vert (et si le joueur a choisi les Verts, c'est absurde). Générer ces textes avec le vrai nom de l'équipe adverse (« Des Rouges arrivent ! », « prends le camp des Rouges »), et garantir que l'adversaire du tutoriel n'a jamais la couleur du joueur. Relire toutes les étapes pour d'autres textes figés de ce genre. Test : tutoriel lancé avec chaque couleur, aucun texte ne nomme une autre couleur que celle de l'adversaire réel.
+3. **Tutoriel, bulle qui masque le bouton.** La bulle `.tuto-bubble` (`src/ui/tutorial.css`) est fixée en haut au centre ; à l'étape `upgrade`, le panneau du camp s'ouvre et son bouton « Améliorer » (Production) se retrouve sous la bulle. Placer la bulle automatiquement là où elle ne recouvre ni la cible de l'étape, ni un panneau ouvert, ni la main animée (haut, bas, ou côté libre), et la faire suivre si le panneau s'ouvre. Vérifier chaque étape du tutoriel en captures Playwright (844 × 390) : aucune cible ni bouton utile caché.
+
+Pour chaque point : test(s), et une ligne dans l'e-mail du jour. Puis reprendre la feuille de route.
+
 ## 05/11/2026 (transmis par la conversation avec Claude, à traiter EN PRIORITÉ la nuit du 05 au 06/11, les cinq points « a minima »)
 
 > « Maj de cette nuit, a minima :
