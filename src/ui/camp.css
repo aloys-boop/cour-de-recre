@@ -477,3 +477,33 @@
 .camp-buy {
   min-height: 38px;
 }
+
+/* Renforts automatiques : même ligne que Pion et Ralliement, interrupteur vert quand actif. */
+.reinforce-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reinforce-section h3 {
+  flex: none;
+  margin: 0;
+}
+
+.reinforce-section .pion-row {
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 6px;
+}
+
+#hud .reinforce-section .camp-buy,
+.reinforce-section .camp-buy {
+  min-height: 38px;
+  min-width: 56px;
+}
+
+.reinforce-toggle.on {
+  background: #3aa83a;
+  color: #fff;
+  box-shadow: 0 0 0 3px rgba(127, 211, 106, 0.5);
+}

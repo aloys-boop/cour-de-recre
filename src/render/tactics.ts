@@ -114,3 +114,79 @@ export function drawRallies(
     ctx.fillText(String(n), p.x + fw / 2, p.y - h + fh / 2 + 1 * z + wave / 2);
   }
 }
+
+/**
+ * Renforts automatiques : pointillé animé du camp vers la case qu'il secourt, avec des chevrons
+ * qui avancent (sens du renfort) et un petit « + » cerclé au-dessus de la case secourue.
+ */
+export function drawReinforcements(
+  ctx: CanvasRenderingContext2D,
+  cam: Camera,
+  links: readonly { from: Tile; to: Tile }[],
+  colorIndex: number,
+  time: number,
+): void {
+  if (!links.length) return;
+  const z = cam.zoom;
+  const color = TEAM_COLORS[colorIndex] ?? TEAM_COLORS[0];
+  for (const { from, to } of links) {
+    const a = cam.gridToScreen(from.cx, from.cy);
+    const b = cam.gridToScreen(to.cx, to.cy);
+    const len = Math.hypot(b.x - a.x, b.y - a.y);
+    if (len < 4) continue;
+    const ux = (b.x - a.x) / len;
+    const uy = (b.y - a.y) / len;
+    ctx.save();
+    ctx.setLineDash([7 * z, 6 * z]);
+    ctx.lineDashOffset = -time * 22 * z;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = 'rgba(20,20,30,0.5)';
+    ctx.lineWidth = Math.max(3, 4.5 * z);
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+    ctx.strokeStyle = color.light;
+    ctx.lineWidth = Math.max(1.5, 2.4 * z);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Chevrons qui glissent du camp vers la case.
+    const step = 46 * z;
+    const off = (time * 30 * z) % step;
+    const s = 5 * z;
+    ctx.fillStyle = color.main;
+    ctx.strokeStyle = color.dark;
+    ctx.lineWidth = Math.max(1, 1.2 * z);
+    for (let d = step * 0.6 + off; d < len - 18 * z; d += step) {
+      const x = a.x + ux * d;
+      const y = a.y + uy * d;
+      ctx.beginPath();
+      ctx.moveTo(x + ux * s, y + uy * s);
+      ctx.lineTo(x - ux * s - uy * s, y - uy * s + ux * s);
+      ctx.lineTo(x - ux * s * 0.3, y - uy * s * 0.3);
+      ctx.lineTo(x - ux * s + uy * s, y - uy * s - ux * s);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+    // « + » cerclé qui pulse au-dessus de la case secourue.
+    const r = (8 + Math.sin(time * 6) * 1.2) * z;
+    const cy = b.y - 30 * z;
+    ctx.fillStyle = color.main;
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = Math.max(1.5, 2 * z);
+    ctx.beginPath();
+    ctx.arc(b.x, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = color.text ?? '#fff';
+    ctx.lineWidth = Math.max(2, 2.6 * z);
+    ctx.beginPath();
+    ctx.moveTo(b.x - r * 0.5, cy);
+    ctx.lineTo(b.x + r * 0.5, cy);
+    ctx.moveTo(b.x, cy - r * 0.5);
+    ctx.lineTo(b.x, cy + r * 0.5);
+    ctx.stroke();
+    ctx.restore();
+  }
+}

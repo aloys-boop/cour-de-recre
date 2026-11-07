@@ -2,6 +2,26 @@
 
 Une entrée par session, la plus récente en haut : date, version, ce qui a été fait, ce qui a été mesuré, ce qui reste ou ce qui inquiète.
 
+## 07/11/2026 : session de développement, v5.8 (renforts automatiques)
+
+**Fait**
+- Aucun nouveau retour d'Aloys par e-mail (les trois fils du journal n'ont pas de réponse). Travail du jour : 1.3 Renforts automatiques, comme prévu et validé par Aloys le 05/11 (v5.8). « Mode Équipes, suite », en tête de la feuille de route, est une idée du studio, pas une demande : elle attend derrière la saison 1.
+- `src/core/reinforce.ts` : menace d'une case (ennemis à moins de 2,6 cases, pions compris, plus 6 × la jauge de capture ennemie), case secourue par un camp (la plus menacée, camp +3, intérêt divisé par deux à 7 cases, rien au-delà de 16 cases), envoi du nouvel élève en mode Charger vers une place libre de la case. Rien de menacé : ralliement habituel ; camp lui-même le plus menacé : l'élève reste. `World` : `setReinforce`, `reinforceOn` (l'option tombe avec le camp), `reinforceTargetOf`, cibles rafraîchies toutes les 0,5 s pour l'affichage.
+- Interface : ligne « Renforts » dans la zone « Ce camp » du panneau, interrupteur « Auto » (vert quand actif, `role="switch"`), bouton « Partout » (tous les camps), ligne d'état (« En route vers la case ♠. », « Prêts : rien de menacé. »). Pointillé animé à chevrons du camp vers la case secourue et « + » cerclé au-dessus d'elle. Son « clairon » et vibration à l'activation.
+- « Comment jouer » : rubrique « Renforts », rubrique « Améliorations » complétée. README (règle, équilibrage, versions, architecture). Pas d'étape de tutoriel : c'est une option, pas un geste.
+- `equilibre.ts` : option `renforts=1` pour le témoin.
+- 10 nouveaux tests (`renforts.test.ts`, `renforts-app.test.ts` qui joue l'interrupteur au doigt dans l'application) ; 362 tests verts.
+
+**Mesuré**
+- Témoin en Normal (800 parties, même graine) : 40,5 % sans renforts, 46,9 % avec (± 3,5), ordres par minute inchangés (17,5 et 17,4), parties un peu plus courtes (188 → 180 s). Les IA ne s'en servent pas : équilibre entre IA inchangé.
+- `perf240` : partie 0,219 ms par pas contre 0,224 avant sur la même machine, mêlée 0,121 contre 0,136 : pas de régression.
+- Contrôle visuel (844 × 390, ×3) : pointillé lisible, ligne « Renforts » en bas du panneau, accessible en faisant défiler (comme avant pour les dernières lignes).
+
+**Reste à faire, inquiétudes**
+- Le panneau du camp devient long en paysage : la ligne « Renforts » est la dernière et demande un petit défilement. À regrouper un jour (Ralliement et Renforts sur une même ligne, ou onglets).
+- Un renfort part seul : contre un gros groupe, il peut tomber en chemin. C'est le prix de l'automatisme ; à juger en vrai par Aloys. Piste : n'envoyer que par paquets de 2 ou 3.
+- Prochaine session : 1.1 bis (témoin plus humain, qui ne secourt plus ses cases lui-même mais utilise garnisons et renforts) pour chiffrer le vrai gain de ces outils.
+
 ## 06/11/2026 : même session, seconde livraison, v5.7 (alertes)
 
 **Fait**

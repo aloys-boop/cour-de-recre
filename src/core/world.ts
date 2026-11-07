@@ -28,6 +28,7 @@ import { PION, updatePions } from './pion';
 import { PowerState, type PowerEvent } from './powers';
 import { BrawlState, updateBrawls } from './brawls';
 import { updateGarrisons } from './garrison';
+import { routeNewborn, updateReinforcements } from './reinforce';
 import { CLASSES, aggroRange, applyClass, pacifist, takeSpawnClass, updateHealers, type UnitClass } from './classes';
 
 export type WorldEvent =
@@ -62,6 +63,9 @@ export interface TeamMods {
 }
 
 /** Simulation complète d'une partie : unités, cases, combats, captures, apparitions. */
+/** Force une mise à jour immédiate des cibles de renforts au pas suivant. */
+const REINFORCE_RESCAN = 1e9;
+
 export class World {
   readonly map: MapDef;
   readonly grid: Grid;
@@ -412,6 +416,7 @@ export class World {
     updateKing(this, dt);
     updateMerits(this, dt);
     updateBrawls(this);
+    updateReinforcements(this, dt);
     this.removeDead();
     // Les ordres donnés entre deux pas (joueur, IA) disposent à nouveau de tout le budget.
     this.pathsThisStep = 0;
@@ -754,8 +759,53 @@ export class World {
     return { x: r.x, y: r.y };
   }
 
-  /** Un élève qui naît dans un camp doté d'un ralliement s'y replie aussitôt. */
+  // ---------------------------------------------------------------- renforts automatiques
+
+  /** Camps en renforts automatiques (équipe qui a activé l'option). */
+  readonly reinforce = new Map<Tile, number>();
+  /** Case visée par les renforts de chaque camp (null : rien de menacé), mise à jour toutes les 0,5 s. */
+  readonly reinforceTargets = new Map<Tile, Tile | null>();
+  /** Chronomètre des mises à jour de `reinforceTargets`. */
+  reinforceScan = 0;
+
+  /** Active ou coupe les renforts automatiques d'un camp de l'équipe. Faux si le camp n'est pas à elle. */
+  setReinforce(team: number, camp: Tile, on: boolean): boolean {
+    if (!camp.isCamp || camp.owner !== team) return false;
+    if (on) {
+      this.reinforce.set(camp, team);
+      this.reinforceScan = REINFORCE_RESCAN;
+    } else {
+      this.reinforce.delete(camp);
+      this.reinforceTargets.delete(camp);
+    }
+    return true;
+  }
+
+  /** Renforts automatiques actifs sur ce camp (activés par son propriétaire actuel) ? */
+  reinforceOn(camp: Tile): boolean {
+    const team = this.reinforce.get(camp);
+    if (team === undefined) return false;
+    if (team !== camp.owner) {
+      this.reinforce.delete(camp);
+      this.reinforceTargets.delete(camp);
+      return false;
+    }
+    return true;
+  }
+
+  /** Case visée en ce moment par les renforts d'un camp (autre que le camp lui-même), ou null. */
+  reinforceTargetOf(camp: Tile): Tile | null {
+    if (!this.reinforceOn(camp)) return null;
+    const t = this.reinforceTargets.get(camp) ?? null;
+    return t && t !== camp && t.owner === camp.owner ? t : null;
+  }
+
+  /**
+   * Un élève qui naît dans un camp : en renforts automatiques, il court vers la case menacée
+   * (ou reste défendre le camp s'il est le plus menacé) ; sinon il rejoint le ralliement.
+   */
   private applyRally(camp: Tile, u: Unit): void {
+    if (routeNewborn(this, camp, u)) return;
     const r = this.rallyFor(camp);
     if (r) this.orderMove([u], r, false);
   }

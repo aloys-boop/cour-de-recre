@@ -15,7 +15,7 @@ import { drawFrozenMark } from './powers';
 import { SUPERVISOR_SCALE } from '../core/supervisors';
 import { PION } from '../core/pion';
 import type { Supervisor } from '../core/supervisors';
-import { CHARGE_COLOR, drawHealHeart, drawRallies, drawSpadeAura, spadeAuraTeams } from './tactics';
+import { CHARGE_COLOR, drawHealHeart, drawRallies, drawReinforcements, drawSpadeAura, spadeAuraTeams } from './tactics';
 import { tileView, unitVisible, pointVisible } from '../core/fog';
 import { drawFog } from './fog';
 import { campPennants, drawPennant } from './merits';
@@ -86,6 +86,8 @@ export class Renderer {
       guards?: Map<Tile, number>;
       /** Cases dont on montre la zone défendue (gardes sélectionnés, ordre « Garder » armé). */
       guardZones?: Tile[];
+      /** Renforts automatiques du joueur : camp → case secourue (pointillé à chevrons). */
+      reinforcements?: { from: Tile; to: Tile }[];
     },
   ): void {
     const ctx = this.ctx;
@@ -103,6 +105,7 @@ export class Renderer {
     // Drapeaux de ralliement par-dessus les élèves : ceux qui s'y rassemblent ne les cachent pas.
     const lines = opts.rallyLines;
     drawRallies(ctx, world, cam, opts.playerTeam, opts.time, (c) => lines === 'all' || (!!lines && lines.includes(c)));
+    if (opts.reinforcements) drawReinforcements(ctx, cam, opts.reinforcements, myColor, opts.time);
     drawFog(ctx, world, cam, opts.playerTeam, this.makeCanvas);
     for (const t of world.tiles) if (t.isCamp && t.owner !== NO_TEAM) this.drawCampBadge(world, t, cam);
     if (opts.guards) for (const [t, n] of opts.guards) drawGuardBadge(ctx, cam, t, n, myColor);

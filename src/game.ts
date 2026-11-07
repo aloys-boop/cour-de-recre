@@ -92,7 +92,8 @@ export type PlayerAction =
   | { kind: 'powerHelp'; id: string }
   | { kind: 'class'; id: string }
   | { kind: 'pion' }
-  | { kind: 'guard'; count: number };
+  | { kind: 'guard'; count: number }
+  | { kind: 'reinforce'; on: boolean };
 
 const STEP = 1 / 60;
 /** Glisser d'un pouvoir : bande (px) près des bords où la caméra défile, et vitesse maximale (px/s). */
@@ -457,6 +458,7 @@ export class Game {
       rallyLines: this.rallyDrag || this.placingRally ? 'all' : this.panelCamp ? [this.panelCamp] : [],
       guards: guardCounts(this.world, this.playerTeam),
       guardZones: this.guardZones(),
+      reinforcements: this.reinforceLinks(),
     });
     if (this.flash) drawTileFlash(ctx, this.cam, this.flash);
     if (this.armedPower && this.powerAim) drawPowerAim(ctx, this.cam, this.world, this.armedPower, this.powerAim, this.playerTeam, this.time, false);
@@ -1062,6 +1064,34 @@ export class Game {
     this.hooks.onRally?.(false);
     this.act({ kind: 'rally' });
     return true;
+  }
+
+  /** Renforts automatiques en cours du joueur : chaque camp et la case qu'il secourt. */
+  reinforceLinks(): { from: Tile; to: Tile }[] {
+    const out: { from: Tile; to: Tile }[] = [];
+    if (this.world.reinforce.size === 0) return out;
+    for (const camp of this.world.tiles) {
+      if (!camp.isCamp || camp.owner !== this.playerTeam) continue;
+      const to = this.world.reinforceTargetOf(camp);
+      if (to) out.push({ from: camp, to });
+    }
+    return out;
+  }
+
+  /**
+   * Active ou coupe les renforts automatiques d'un camp du joueur (`camp` null : tous ses camps).
+   * Retourne le nombre de camps changés.
+   */
+  setReinforce(camp: Tile | null, on: boolean): number {
+    const camps = camp ? [camp] : this.world.tiles.filter((t) => t.isCamp && t.owner === this.playerTeam);
+    let n = 0;
+    for (const c of camps) if (this.world.reinforceOn(c) !== on && this.world.setReinforce(this.playerTeam, c, on)) n++;
+    if (n) {
+      this.sfx.play(on ? 'reinforce' : 'order');
+      navigator.vibrate?.(on ? [12, 40, 12] : 12);
+      this.act({ kind: 'reinforce', on });
+    }
+    return n;
   }
 
   /** Supprime le ralliement d'un camp du joueur (ses nouveaux élèves restent au camp). */

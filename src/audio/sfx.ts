@@ -4,6 +4,7 @@
  */
 export type SfxName =
   | 'alert'
+  | 'reinforce'
   | 'punch'
   | 'hit'
   | 'ko'
@@ -136,6 +137,11 @@ export class Sfx {
         // Alerte discrète : « ding-dong » de cloche de cour, doux et court.
         this.tone(t, 880, 880, 0.16, 'sine', 0.22);
         this.tone(t + 0.15, 659, 659, 0.24, 'sine', 0.2);
+        break;
+      case 'reinforce':
+        // « En avant ! » : petit appel de clairon montant (renforts automatiques activés).
+        [392, 523, 659].forEach((f, i) => this.tone(t + i * 0.08, f, f, 0.1, 'square', 0.22));
+        this.tone(t + 0.24, 784, 800, 0.2, 'triangle', 0.26);
         break;
       case 'defeat':
         [440, 415, 392, 330].forEach((f, i) => this.tone(t + i * 0.22, f, f * 0.9, 0.3, 'sawtooth', 0.3));

@@ -46,6 +46,7 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
 - **Combat.** Les élèves se battent à coups de poing au corps à corps. Un élève inoccupé engage de lui-même les ennemis qui s'approchent. À zéro point de vie, il s'assoit, KO, puis disparaît.
 - **Repli.** Un ordre de déplacement est un rappel : les élèves cessent le combat et courent sans riposter jusqu'à destination (ils peuvent se faire frapper en fuyant). Arrivés, ils se défendent à nouveau. Pour attaquer, touche un ennemi. Le bouton **Fuir / Charger** (en haut à droite) change ce comportement : en mode Charger, les élèves se battent contre tout ce qu'ils croisent en chemin (marqueur orange).
 - **Alertes (v5.7).** Quand une de tes cases est menacée (un ennemi à moins de 2,6 cases depuis plus de 2 s, ou une jauge ennemie qui monte), qu'elle tombe, ou que ton camp est en danger, un bandeau apparaît en haut au centre (jaune : case attaquée ; rouge pulsant : camp ; bordeaux : case perdue), avec un « ding-dong » discret et une petite vibration pour le camp et les pertes. Touche le bandeau (« Y aller ») : la caméra glisse jusqu'à la case. Pour ne pas noyer le joueur, une case n'est signalée qu'une fois par attaque (puis après 12 s de calme), deux alertes sont séparées d'au moins 6 s, et ce qui arrive entre-temps est regroupé (« 3 cases attaquées », « Ton camp est attaqué, et 2 autres cases ! »), en pointant la plus urgente. Pas d'alerte pendant le tutoriel.
+- **Renforts automatiques (v5.8).** Dans le panneau d'un camp (zone « Ce camp »), l'interrupteur **Auto** de la ligne « Renforts » : chaque nouvel élève de ce camp part de lui-même secourir ta case la plus menacée, en se battant en chemin. Menace d'une case (bonus, camp ou trône) : nombre d'ennemis à moins de 2,6 cases, plus la jauge de capture ennemie ; un camp compte davantage, et une case lointaine moins (au-delà de 16 cases du camp, elle n'est pas secourue). Si rien n'est menacé, les nouveaux élèves vont au drapeau de ralliement comme d'habitude ; si le camp lui-même est le plus menacé, ils restent le défendre. Un pointillé animé à chevrons relie le camp à la case secourue, avec un « + » au-dessus d'elle ; la ligne d'état du panneau dit où partent les renforts. **Partout** active l'option dans tous tes camps. Un camp perdu perd son option (à réactiver s'il est repris). Petit appel de clairon et vibration à l'activation.
 - **Garnisons (v5.5).** Le bouton **Garder** (à gauche, à côté de « Camp ») confie une case à la sélection. Si tes élèves se tiennent déjà sur une case bonus, un camp ou le trône, ils la gardent aussitôt ; sinon le bouton s'allume en jaune et le prochain tap sur une case la leur confie (retoucher le bouton annule, un tap à côté des cases aussi). Les gardes courent sur la case en se battant en chemin, puis :
   - restent dans la zone de capture et reviennent s'y placer dès qu'ils sont libres ;
   - engagent d'eux-mêmes tout ennemi qui entre dans le **cercle défendu** (2,6 cases autour de la case, plus loin que la portée d'un élève inoccupé) ;
@@ -236,6 +237,17 @@ Une garnison n'est pas gratuite : chaque garde manque aux groupes d'attaque, et 
 
 Performances : `perf240` sans changement (partie 0,180 ms par pas contre 0,188, mêlée 0,102 contre 0,095, ordres 0,147 contre 0,169) ; 240 élèves tous en garnison sur 48 cases et en mêlée : 0,275 ms par pas.
 
+### Renforts automatiques (v5.8)
+
+Les IA n'utilisent pas l'option : leur équilibre est inchangé. `equilibre.ts` accepte `renforts=1` (le témoin met chacun de ses camps en renforts automatiques, y compris les camps pris). Témoin en Normal, 4 équipes, 800 parties, même graine :
+
+| Témoin | Victoires | Ordres par minute du témoin | Durée moyenne |
+| --- | --- | --- | --- |
+| sans renforts | 40,5 % (± 3,4) | 17,5 | 188 s |
+| renforts automatiques | **46,9 %** (± 3,5) | 17,4 | 180 s |
+
+Six points de mieux sans un ordre de plus : les nouveaux élèves ne restent plus plantés au camp pendant qu'une case tombe. L'outil aide sans dispenser de jouer. `perf240` sans changement (partie 0,219 ms par pas contre 0,224 sur la même machine avant la modification) ; le choix de la case coûte une requête dans le hash spatial par case et par camp, toutes les 0,5 s et à chaque naissance.
+
 ### Normal un peu plus dur (v5.6)
 
 Retour d'Aloys du 05/11 : « un peu trop simple ». Le témoin gagnait 54 % en Normal depuis l'attention limitée ; cible : 45 % environ. Essais à 800 parties (4 équipes, témoin contre 3 IA Normal) : dégâts ×0,95 → 50,4 % ; dégâts ×0,95 et réaction 1,7 s → 47,6 % ; groupes de 4 → 37,1 % (trop) ; dégâts ×0,95 et 40 % de défenseurs → 43,0 % ; budget de 20 ordres et dégâts ×0,95 → 48,6 %. Retenu : **dégâts ×0,95 et 42 % de défenseurs** (au lieu de ×0,9 et 45 %), soit **42,6 %** (± 2,4, 1 600 parties ; 41,9 % avec 40 % de défenseurs). Difficile et Expert frappent 5 % plus fort pour garder l'échelle :
@@ -381,6 +393,8 @@ Le dépôt contient un workflow GitHub Actions (`.github/workflows/deploy.yml`) 
 | `avant-2026-11-06` | état avant la v5.6 (point de retour) |
 | `v5.6` | demandes d'Aloys : Normal un peu plus dur, « Abandonner » avec statistiques, tap hors de la cour ramené au bord, mode Équipes fixes, ruptures annoncées 30 s avec compte à rebours et trahisons de fin de partie plus rares |
 | `v5.7` | alertes : case attaquée, case perdue, camp en danger, bandeau à toucher pour y aller, regroupement |
+| `avant-2026-11-07` | état avant la v5.8 (point de retour) |
+| `v5.8` | renforts automatiques : option « Auto » par camp (ou « Partout »), nouveaux élèves envoyés vers la case menacée, pointillé à chevrons |
 
 ## Architecture
 
@@ -407,6 +421,7 @@ src/
     challenges.ts      médailles de campagne
     ghosts.ts          option « Camps fantômes » : placement, carte d’une partie, intérêt des IA
     garrison.ts        garnisons : ordre « Garder », cercle défendu, laisse, reprise de la case
+    reinforce.ts       renforts automatiques : menace des cases, case secourue par chaque camp, envoi des nouveaux élèves
     save.ts            progression (localStorage)
     merits.ts          bons points : gains, solde, dépenses
     upgrades.ts        améliorations globales (Production, Uniformes, Entraînement, classes) et Défense par camp

@@ -14,6 +14,7 @@
 //     attention='{"ordersPerMin":18}'  attention remplacée des IA adverses (AiAttention partielle)
 //     garde=2          le témoin laisse ce nombre de gardes (ordre « Garder ») sur chaque case bonus prise
 //     part=0.25       part maximale de l'armée du témoin laissée en garnison
+//     renforts=1       le témoin met tous ses camps en renforts automatiques (v5.8)
 //     avant=1          IA et témoin sans limite d'attention (comportement d'avant la v5.4)
 // Affiche aussi les ordres par minute moyens des IA et du témoin.
 // Une partie sans vainqueur au temps limite est attribuée à l'équipe en tête (élèves + cases + camps).
@@ -50,6 +51,7 @@ const aiOverride = args.ia ? (JSON.parse(args.ia) as Partial<AiProfile>) : undef
 const avant = args.avant === '1';
 const garde = Number(args.garde ?? 0);
 const part = Number(args.part ?? 0.25);
+const renforts = args.renforts === '1';
 const aiAttention: Partial<AiAttention> | undefined = avant ? UNLIMITED_ATTENTION : args.attention ? (JSON.parse(args.attention) as Partial<AiAttention>) : undefined;
 const temoinAttention: AiAttention = avant ? UNLIMITED_ATTENTION : HUMAN_ATTENTION;
 if (args.valeurs) Object.assign(STAT_POINT_VALUES, JSON.parse(args.valeurs) as Partial<Record<TeamStat, number[]>>);
@@ -130,7 +132,10 @@ function playGame(index: number): Game {
   });
   const step = 1 / 60;
   let t = 0;
+  let tick = 0;
   while (t < limit && world.victors().length === 0) {
+    // Renforts automatiques du témoin : chaque camp qu'il tient (y compris les camps pris) est activé.
+    if (renforts && temoin && tick++ % 60 === 0) for (const c of world.tiles) if (c.isCamp && c.owner === slot && !world.reinforceOn(c)) world.setReinforce(slot, c, true);
     for (const a of ais) a.update(step);
     world.update(step);
     world.drainEvents();
