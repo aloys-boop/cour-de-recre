@@ -1,6 +1,7 @@
-import { SUIT_BONUS, TEAM_COLORS, TEAM_NAMES } from '../config';
+import { SUIT_BONUS, TEAM_COLORS, TEAM_NAMES, TEAM_PLURALS } from '../config';
 import type { DiploView } from '../core/diplomacy';
 import { teamPlural } from '../core/diplomacy';
+import { chipCount, headcount, type Headcount } from '../core/headcount';
 import type { Suit } from '../core/types';
 import type { World } from '../core/world';
 import { SUPERVISOR_BUFF, supervisorBuffLeft } from '../core/supervisors';
@@ -12,6 +13,8 @@ export interface HudHooks {
   onCancel(): void;
   onPause(): void;
   onToggleSound(): boolean;
+  /** Le détail des effectifs s'ouvre (son, vibration). */
+  onCountsOpen?(): void;
   /** Diplomatie : état d'une équipe vue par le joueur, proposer, rompre. */
   diplomacy?: {
     view(team: number): DiploView | null;
@@ -22,6 +25,9 @@ export interface HudHooks {
 
 /** Au-delà de ce nombre d'équipes, les puces passent en version compacte (pastille + nombre). */
 export const COMPACT_CHIPS_FROM = 5;
+
+/** Intervalle (secondes de jeu) entre deux recomptes des effectifs visibles. */
+export const HEADCOUNT_INTERVAL = 0.25;
 
 /** Barre de jeu : compteurs par équipe, boutons de sélection, pause et son. */
 export class Hud {
@@ -37,6 +43,12 @@ export class Hud {
   private lastWorld: World | null = null;
   private lastPlayer = 0;
   private colors: number[] = [];
+  /** Effectifs vus par le joueur, recalculés quelques fois par seconde (pas à chaque image). */
+  private counts: Headcount | null = null;
+  private countsAt = -1;
+  private countsWorld: World | null = null;
+  private countPanel: HTMLElement;
+  private countOpen = false;
 
   constructor(
     private root: HTMLElement,
@@ -59,16 +71,21 @@ export class Hud {
     this.btnSound.addEventListener('click', () => this.setSoundIcon(hooks.onToggleSound()));
     this.panel = this.buildPanel();
     root.appendChild(this.panel);
+    this.countPanel = this.buildCountPanel();
+    root.appendChild(this.countPanel);
   }
 
   show(): void {
     this.root.classList.remove('hidden');
     this.closeDiplomacy();
+    this.closeCounts();
+    this.counts = null;
   }
 
   hide(): void {
     this.root.classList.add('hidden');
     this.closeDiplomacy();
+    this.closeCounts();
   }
 
   setSoundIcon(muted: boolean): void {
@@ -81,6 +98,13 @@ export class Hud {
     this.lastPlayer = playerTeam;
     const stats = world.stats();
     const n = world.numTeams;
+    // Compteur d'élèves (v5.9) : 4 fois par seconde de jeu suffit, et c'est ce que voit le joueur.
+    if (!this.counts || this.countsWorld !== world || this.counts.fog !== !!world.rules.fog || world.time - this.countsAt >= HEADCOUNT_INTERVAL || world.time < this.countsAt) {
+      this.counts = headcount(world, playerTeam);
+      this.countsAt = world.time;
+      this.countsWorld = world;
+    }
+    const hc = this.counts;
     const sameColors = this.colors.length === n && this.colors.every((c, i) => c === world.teamColors[i]);
     if (this.chipEls.length !== n || !sameColors) this.buildChips(world);
     this.chips.classList.toggle('compact', n >= COMPACT_CHIPS_FROM);
@@ -96,16 +120,27 @@ export class Hud {
       chip.classList.toggle('breaking', breaking);
       // Compte à rebours de la rupture annoncée, bien visible sur la puce (v5.6).
       setText(chip.querySelector('.chip-timer')!, breaking ? `${Math.ceil(view!.breakingIn!)} s` : '');
-      chip.classList.toggle('open', t === this.panelTeam);
-      // Brouillard de guerre : on ne connaît pas l'effectif des équipes non alliées.
-      const hidden = !!world.rules.fog && t !== playerTeam && !ally;
-      setText(chip.querySelector('.chip-count')!, hidden ? '?' : String(s.units));
+      chip.classList.toggle('open', t === this.panelTeam || (t === playerTeam && this.countOpen));
+      // Brouillard de guerre : pour les équipes non alliées, seulement les élèves que le joueur voit (œil).
+      const row = hc.rows[t];
+      const hidden = !!row && !row.known;
+      chip.classList.toggle('fogged', hidden);
+      chip.classList.toggle('full', t === playerTeam && hc.mine >= hc.cap);
+      setText(chip.querySelector('.chip-count')!, chipCount(hc, t));
       setText(chip.querySelector('.chip-camps')!, s.camps > 1 ? `×${s.camps}` : '');
       const c = world.teamColors[t];
-      const label = `${TEAM_NAMES[c]} : ${hidden ? 'effectif inconnu' : `${s.units} élève${s.units > 1 ? 's' : ''}`}${s.camps > 1 ? `, ${s.camps} camps` : ''}${ally ? ', allié' : ''}${t === playerTeam ? ' (toi)' : '. Toucher pour la diplomatie'}`;
+      const seen = row?.units ?? 0;
+      const count =
+        t === playerTeam
+          ? `${hc.mine} élève${hc.mine > 1 ? 's' : ''} sur ${hc.cap} au plus`
+          : hidden
+            ? `${seen} élève${seen > 1 ? 's' : ''} en vue`
+            : `${s.units} élève${s.units > 1 ? 's' : ''}`;
+      const label = `${TEAM_NAMES[c]} : ${count}${s.camps > 1 ? `, ${s.camps} camps` : ''}${ally ? ', allié' : ''}${t === playerTeam ? ' (toi). Toucher pour les effectifs' : '. Toucher pour la diplomatie'}`;
       if (chip.getAttribute('aria-label') !== label) chip.setAttribute('aria-label', label);
     }
     this.refreshPanel();
+    this.refreshCounts();
     // Bonus actifs du joueur, par symbole.
     const m = world.mods[playerTeam];
     const bits: string[] = [];
@@ -134,6 +169,7 @@ export class Hud {
       b.innerHTML =
         `<span class="dot" style="background:${TEAM_COLORS[c].ui}"></span>` +
         `<span class="chip-name">${TEAM_NAMES[c]}</span>` +
+        `<span class="chip-eye" aria-hidden="true">${eyeIcon()}</span>` +
         `<span class="chip-count"></span><span class="chip-camps"></span>` +
         `<span class="chip-ally" aria-hidden="true">${handshakeIcon()}</span>` +
         `<span class="chip-timer" aria-hidden="true"></span>`;
@@ -145,7 +181,10 @@ export class Hud {
 
   /** Ouvre (ou referme) le panneau « Diplomatie » pour une équipe. */
   toggleDiplomacy(team: number): void {
-    if (team === this.lastPlayer || !this.hooks.diplomacy) return this.closeDiplomacy();
+    // Sa propre puce ouvre le détail des effectifs (v5.9).
+    if (team === this.lastPlayer) return this.toggleCounts();
+    this.closeCounts();
+    if (!this.hooks.diplomacy) return this.closeDiplomacy();
     if (this.panelTeam === team) return this.closeDiplomacy();
     this.panelTeam = team;
     this.panel.classList.remove('hidden');
@@ -234,6 +273,64 @@ export class Hud {
     }
   }
 
+  /** Ouvre (ou referme) le détail « Effectifs » : élèves, cases et camps de chaque équipe. */
+  toggleCounts(): void {
+    if (this.countOpen) return this.closeCounts();
+    this.closeDiplomacy();
+    this.countOpen = true;
+    this.countPanel.classList.remove('hidden');
+    this.chipEls[this.lastPlayer]?.classList.add('open');
+    this.hooks.onCountsOpen?.();
+    this.refreshCounts();
+  }
+
+  closeCounts(): void {
+    if (!this.countOpen) return;
+    this.countOpen = false;
+    this.countPanel.classList.add('hidden');
+    this.chipEls[this.lastPlayer]?.classList.remove('open');
+  }
+
+  get countsOpen(): boolean {
+    return this.countOpen;
+  }
+
+  private buildCountPanel(): HTMLElement {
+    const p = document.createElement('div');
+    p.id = 'count-panel';
+    p.className = 'diplo counts hidden';
+    p.setAttribute('role', 'dialog');
+    p.setAttribute('aria-label', 'Effectifs');
+    p.innerHTML =
+      '<div class="diplo-head"><span class="diplo-title">Effectifs</span><span class="counts-cap"></span>' +
+      '<button type="button" class="counts-close diplo-close" aria-label="Fermer">\u00d7</button></div>' +
+      '<table class="counts-table"><thead><tr><th scope="col">Équipe</th><th scope="col">Élèves</th><th scope="col">Cases</th><th scope="col">Camps</th></tr></thead><tbody></tbody></table>' +
+      '<p class="diplo-status counts-note"></p>';
+    p.querySelector('.diplo-close')!.addEventListener('click', () => this.closeCounts());
+    return p;
+  }
+
+  private refreshCounts(): void {
+    const hc = this.counts;
+    if (!this.countOpen || !hc) return;
+    setText(this.countPanel.querySelector('.counts-cap')!, `Toi\u00a0: ${hc.mine}/${hc.cap} élèves`);
+    const body = this.countPanel.querySelector('tbody')!;
+    let html = '';
+    for (const r of hc.rows) {
+      const name = r.isPlayer ? 'Toi' : (TEAM_PLURALS[r.color] ?? '?');
+      const units = r.known ? String(r.units) : `<span class="counts-eye" aria-label="en vue">${eyeIcon()}</span>${r.units}`;
+      const cls = [r.isPlayer ? 'me' : '', r.ally ? 'ally' : '', r.alive ? '' : 'dead'].filter(Boolean).join(' ');
+      html +=
+        `<tr${cls ? ` class="${cls}"` : ''}><th scope="row"><span class="dot" style="background:${TEAM_COLORS[r.color].ui}"></span>${name}</th>` +
+        `<td>${units}</td><td>${r.tiles}</td><td>${r.camps}</td></tr>`;
+    }
+    if (body.innerHTML !== html) body.innerHTML = html;
+    setText(
+      this.countPanel.querySelector('.counts-note')!,
+      hc.fog ? 'Brouillard\u00a0: l’œil compte les ennemis en vue, et leurs cases telles que tu les as vues.' : 'Tout ce qui est dans la cour en ce moment.',
+    );
+  }
+
   showHint(text: string, ms = 2600): void {
     this.hint.textContent = text;
     this.hint.classList.remove('hidden');
@@ -244,6 +341,15 @@ export class Hud {
 
 function setText(el: Element, text: string): void {
   if (el.textContent !== text) el.textContent = text;
+}
+
+/** Œil : effectif « en vue » sous le brouillard. */
+function eyeIcon(): string {
+  return (
+    '<svg width="14" height="10" viewBox="0 0 14 10" aria-hidden="true">' +
+    '<path d="M1 5c1.6-2.6 3.7-4 6-4s4.4 1.4 6 4c-1.6 2.6-3.7 4-6 4S2.6 7.6 1 5z" fill="none" stroke="#fff" stroke-width="1.5"/>' +
+    '<circle cx="7" cy="5" r="1.9" fill="#fff"/></svg>'
+  );
 }
 
 /** Poignée de main stylisée (marque des équipes alliées). */

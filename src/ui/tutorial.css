@@ -11,11 +11,25 @@
  * Bulle en haut au centre, sous les puces d'équipes, entre la colonne 1 / 2 / 3 à gauche et
  * les boutons du haut à droite. Elle ne capte que le bouton « Passer ».
  */
+/* Repère invisible : la bulle se place entre ces bords (barre du haut, encoches). */
+.tuto-probe {
+  position: absolute;
+  top: calc(56px + var(--sat));
+  left: calc(8px + var(--sal));
+  right: calc(8px + var(--sar));
+  bottom: calc(8px + var(--sab));
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Bulle : placée par tutorial-ui.ts (haut au centre par défaut, ailleurs si elle cacherait la cible). */
 .tuto-bubble {
   position: absolute;
   top: calc(56px + var(--sat));
-  left: 50%;
-  transform: translateX(-50%);
+  left: calc(50% - min(220px, (100% - 150px - var(--sal) - var(--sar)) / 2));
+  transition:
+    left 0.25s ease-out,
+    top 0.25s ease-out;
   width: min(440px, calc(100% - 150px - var(--sal) - var(--sar)));
   padding: 8px 10px 8px 12px;
   border-radius: 14px;
@@ -36,13 +50,13 @@
 
 @keyframes tuto-pop {
   0% {
-    transform: translateX(-50%) scale(0.85);
+    transform: scale(0.85);
   }
   60% {
-    transform: translateX(-50%) scale(1.04);
+    transform: scale(1.04);
   }
   100% {
-    transform: translateX(-50%) scale(1);
+    transform: scale(1);
   }
 }
 

@@ -15,6 +15,11 @@ Pistes relevées dans le code (à vérifier) :
 
 Pour chaque point : test(s), et une ligne dans l'e-mail du jour. Puis reprendre la feuille de route.
 
+**Ce qui en a été fait (08/11, v5.9) :** les trois points sont livrés en v5.9.
+1. Compteur : pas de nouveau bloc dans le HUD (déjà chargé en paysage), les puces d'équipe font le travail. La tienne affiche « élèves / maximum » (jaune au plafond) ; sous le brouillard, un œil devant le nombre des ennemis = élèves que tu vois en ce moment (avant : « ? »). Toucher sa propre puce ouvre « Effectifs » (élèves, cases, camps de chaque équipe, sous le brouillard tels que vus). Recompté 4 fois par seconde. Ligne « Effectifs » dans « Comment jouer ».
+2. Tutoriel : « {ennemis} » dans les textes, remplacé par le vrai nom (« Des Noirs arrivent ! » si tu joues les Verts ou une autre couleur que le Noir). L'adversaire n'avait déjà jamais ta couleur (Game attribue des couleurs distinctes) ; test sur les 8 couleurs : aucun texte ne cite une autre couleur. Aucun autre texte figé trouvé dans les étapes.
+3. Bulle : placée à chaque image parmi 8 places (haut, bas, milieu ; centre, droite, gauche) en évitant la main et la cible (poids fort), les panneaux ouverts et les boutons du HUD (poids faibles), sans sautiller. Étape « upgrade » panneau ouvert : la bulle descend en bas et dit « Touche le bouton jaune de « Production » ». Les 13 étapes vérifiées en captures 844 × 390.
+
 ## 05/11/2026 (transmis par la conversation avec Claude, à traiter EN PRIORITÉ la nuit du 05 au 06/11, les cinq points « a minima »)
 
 > « Maj de cette nuit, a minima :

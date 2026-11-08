@@ -1,5 +1,12 @@
 import './tutorial.css';
+import { UPGRADE_BUY_TEXT } from '../core/tutorial';
 import type { Game } from '../game';
+import { candidateSpots, pickSpot, type Avoid, type Rect } from './bubble-place';
+
+/** Contrôles du HUD que la bulle évite de recouvrir (s'ils ne sont pas déjà sous un panneau). */
+const HUD_CONTROLS = ['#team-chips .chip', '.hud-top-right', '#merit-pill', '#btn-charge', '.hud-controls', '.powers-bar', '#btn-select-all', '#btn-cancel', '#minimap'];
+/** Panneaux qui peuvent être ouverts pendant le tutoriel. */
+const PANELS = ['#camp-panel', '#diplo-panel', '#count-panel'];
 
 /**
  * Habillage du tutoriel : bulle de texte (étape n / 11, consigne), main animée qui montre
@@ -15,6 +22,10 @@ export class TutorialUi {
   private count: HTMLElement;
   private game: Game | null = null;
   private lastIndex = -1;
+  /** Place actuelle de la bulle (voir bubble-place.ts). */
+  private spot: string | null = null;
+  /** Repère invisible : bas de la barre du haut et bords sûrs (encoches). */
+  private probe: HTMLElement;
 
   constructor(root: HTMLElement, onSkip: () => void) {
     this.el = document.createElement('div');
@@ -37,13 +48,17 @@ export class TutorialUi {
     this.hand = document.createElement('div');
     this.hand.className = 'tuto-hand';
     this.hand.innerHTML = handIcon();
-    this.el.append(this.bubble, this.hand);
+    this.probe = document.createElement('div');
+    this.probe.className = 'tuto-probe';
+    this.probe.setAttribute('aria-hidden', 'true');
+    this.el.append(this.probe, this.bubble, this.hand);
     root.appendChild(this.el);
   }
 
   show(game: Game): void {
     this.game = game;
     this.lastIndex = -1;
+    this.spot = null;
     this.el.classList.remove('hidden');
     this.refresh();
   }
@@ -69,12 +84,17 @@ export class TutorialUi {
     const step = t.step;
     if (t.index !== this.lastIndex) {
       this.lastIndex = t.index;
+      this.spot = null; // nouvelle étape : la bulle reprend sa meilleure place
       this.count.textContent = `Étape ${t.index + 1} / ${t.total}`;
-      this.text.textContent = step.text;
       this.bubble.classList.remove('pop');
       void this.bubble.offsetWidth;
       this.bubble.classList.add('pop');
     }
+    // Panneau du camp ouvert à l'étape « upgrade » : la consigne dit quel bouton toucher.
+    const panel = document.getElementById('camp-panel');
+    const panelOpen = !!panel && !panel.classList.contains('hidden');
+    const text = step.id === 'upgrade' && panelOpen ? UPGRADE_BUY_TEXT : t.text;
+    if (this.text.textContent !== text) this.text.textContent = text;
     const at = this.handPoint(g);
     this.hand.classList.toggle('hidden', !at);
     // Glisser-déposer du pouvoir : la main part du bouton vers le haut (la carte).
@@ -85,6 +105,56 @@ export class TutorialUi {
     if (at) {
       this.hand.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(at.y)}px)`;
     }
+    this.placeBubble(at, step.target.kind === 'button' ? step.target.selector : null);
+  }
+
+  /**
+   * Place la bulle là où elle ne cache ni la main, ni ce qu'elle montre, ni (autant que possible)
+   * un panneau ouvert ou un bouton du HUD : en haut au centre par défaut, sinon en bas ou sur un côté.
+   */
+  private placeBubble(at: { x: number; y: number } | null, selector: string | null): void {
+    const size = { w: this.bubble.offsetWidth, h: this.bubble.offsetHeight };
+    const view = { w: window.innerWidth, h: window.innerHeight };
+    if (!size.w || !size.h || !view.w) return;
+    const p = this.probe.getBoundingClientRect();
+    const spots = candidateSpots(view, size, p.top, { l: p.left, r: view.w - p.right, b: view.h - p.bottom });
+    const avoid: Avoid[] = [];
+    const rectOf = (el: Element): Rect | null => {
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.height > 0 ? { x: r.left, y: r.top, w: r.width, h: r.height } : null;
+    };
+    if (at) avoid.push({ x: at.x - 30, y: at.y - 40, w: 84, h: 98, weight: 10 });
+    if (selector) {
+      const el = document.querySelector(selector);
+      const r = el && rectOf(el);
+      if (r) avoid.push({ ...r, weight: 10 });
+    }
+    const panels: Rect[] = [];
+    for (const sel of PANELS) {
+      const el = document.querySelector(sel);
+      if (!el || el.classList.contains('hidden')) continue;
+      const r = rectOf(el);
+      if (r) {
+        panels.push(r);
+        avoid.push({ ...r, weight: 1 });
+      }
+    }
+    const inside = (r: Rect) => panels.some((q) => r.x >= q.x && r.y >= q.y && r.x + r.w <= q.x + q.w && r.y + r.h <= q.y + q.h);
+    for (const sel of HUD_CONTROLS) {
+      for (const el of Array.from(document.querySelectorAll(sel))) {
+        const r = rectOf(el);
+        if (r && !inside(r)) avoid.push({ ...r, weight: 3 });
+      }
+    }
+    const best = pickSpot(spots, size, avoid, this.spot);
+    if (best.id !== this.spot) {
+      this.spot = best.id;
+      this.bubble.dataset.spot = best.id;
+    }
+    const left = `${best.x}px`;
+    const top = `${best.y}px`;
+    if (this.bubble.style.left !== left) this.bubble.style.left = left;
+    if (this.bubble.style.top !== top) this.bubble.style.top = top;
   }
 
   /** Point (px, coordonnées de la page) que montre la main pour l'étape courante. */

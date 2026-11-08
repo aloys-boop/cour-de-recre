@@ -2,6 +2,10 @@
 
 Une session = un point (ou deux petits) mené jusqu'au bout. On coche `[x]` avec la version et la date. On peut réordonner, découper, ajouter : c'est le créateur qui décide, en respectant `VISION.md` et en faisant passer `RETOURS.md` en premier.
 
+## Demandes d'Aloys du 07/11
+
+- [x] **Compteur d'élèves, tutoriel juste et lisible.** (v5.9, 08/11/2026) Puce du joueur « élèves / maximum », ennemis « en vue » (œil) sous le brouillard, détail « Effectifs » en touchant sa puce ; le tutoriel nomme le vrai adversaire ; la bulle se place là où elle ne cache ni la main ni la cible (et dit quel bouton toucher dans le panneau du camp).
+
 ## Demandes d'Aloys du 05/11
 
 - [x] **Les cinq demandes « a minima ».** (v5.6, 06/11/2026) Normal un peu plus dur, « Abandonner » avec statistiques, tap hors de la cour ramené au bord, mode Équipes fixes, ruptures annoncées 30 s et trahisons de fin de partie plus rares.

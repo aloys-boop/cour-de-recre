@@ -58,6 +58,7 @@ const hud = new Hud(
     onCancel: () => game?.clearSelection(),
     onPause: () => game?.setPaused(true),
     onToggleSound: toggleSound,
+    onCountsOpen: () => sfx.play('select'),
     diplomacy: {
       view: (team) => game?.diploView(team) ?? null,
       propose: (team) => void game?.proposeAlliance(team),
@@ -178,6 +179,7 @@ function launch(opts: GameOptions, code: MapCode | null): void {
     onPauseChange: (paused) => {
       if (paused) {
         hud.closeDiplomacy(); // le panneau ne doit pas recouvrir la pause
+        hud.closeCounts();
         alertBanner.hide();
 
         const showPause = (): void =>
@@ -207,6 +209,7 @@ function launch(opts: GameOptions, code: MapCode | null): void {
           menu.setProgress(progress);
         }
         hud.closeDiplomacy();
+        hud.closeCounts();
         overlay.end(win, o.map.name, {
           nextAvailable: false,
           stats: game ? endStats(game.stats, game.world, game.playerTeam) : undefined,
@@ -237,6 +240,7 @@ function launch(opts: GameOptions, code: MapCode | null): void {
       const victors = game?.victors ?? [];
       const alliance = victors.length > 1 && game ? victors.map((t) => game!.world.teamColors[t]) : undefined;
       hud.closeDiplomacy();
+      hud.closeCounts();
       overlay.end(win, o.map.name, {
         alliance,
         nextAvailable,

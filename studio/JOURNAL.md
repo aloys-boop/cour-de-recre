@@ -2,6 +2,26 @@
 
 Une entrée par session, la plus récente en haut : date, version, ce qui a été fait, ce qui a été mesuré, ce qui reste ou ce qui inquiète.
 
+## 08/11/2026 : session de développement, v5.9 (retours d'Aloys du 07/11)
+
+**Fait**
+- Pas de réponse par e-mail aux journaux ; les trois retours du 07/11 (transmis par la conversation, à traiter en priorité) font la v5.9. Point de retour : branche `avant-2026-11-08`.
+- Compteur d'élèves : `src/core/headcount.ts` (effectifs vus par le joueur : tout sans brouillard, ennemis visibles seulement avec, alliés toujours en entier, cases et camps selon la dernière observation, pions exclus). Puces du HUD : la sienne « 18/30 » (jaune au plafond), œil devant les effectifs « en vue » au lieu de « ? ». Toucher sa propre puce ouvre « Effectifs » (tableau élèves, cases, camps, bouton × de 44 px), refermé par la pause, la fin de partie et l'ouverture de la diplomatie. Son « select » à l'ouverture.
+- Tutoriel : `stepText()` et `TutorialState.text` remplacent « {ennemis} » par le vrai pluriel de l'adversaire ; commentaires et README sans « Verts » figés.
+- Bulle du tutoriel : `src/ui/bubble-place.ts` (logique pure : places candidates, gêne pondérée, hystérésis) branché dans `tutorial-ui.ts` ; repère invisible `.tuto-probe` pour les encoches. Étape « upgrade » panneau ouvert : consigne « Touche le bouton jaune de « Production » ».
+- « Comment jouer » : rubrique « Effectifs ». README (règle, geste, versions, architecture).
+- 12 nouveaux tests (`v59.test.ts`, `v59-app.test.ts` qui touche les puces dans l'application, assertion ajoutée au parcours du tutoriel) ; deux tests du HUD mis à jour (« ? » remplacé par le nombre en vue). 374 tests verts.
+
+**Mesuré**
+- Recompte des effectifs : 0,035 ms à 252 élèves sous brouillard, 4 fois par seconde : négligeable.
+- `perf240` : partie 0,221 ms par pas (0,219 hier), mêlée 0,121 (identique) : pas de régression. Pas de simulation d'équilibre : aucune règle de jeu ne change.
+- Captures 844 × 390 des 13 étapes du tutoriel (joueur Rouge et Noir) : plus aucune cible ni bouton utile sous la bulle ; panneau « Effectifs » à 8 équipes entièrement visible sans défilement.
+
+**Reste à faire, inquiétudes**
+- Sous le brouillard, le détail ne dit rien des effectifs complets ennemis : c'est voulu (pas de triche), mais Aloys voulait peut-être le total. S'il le demande : afficher « ≈ » d'après le dernier aperçu.
+- La puce du joueur s'élargit un peu (« 18/30 ») ; à 8 équipes les puces tiennent encore sur une ligne en 844 px, à surveiller sur iPhone SE (667 px).
+- Prochaine session : 1.1 bis (témoin plus humain), reportée d'un jour.
+
 ## 07/11/2026 : session de développement, v5.8 (renforts automatiques)
 
 **Fait**

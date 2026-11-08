@@ -181,6 +181,9 @@ describe('tutoriel dans l’application', () => {
     tap(hc.x, hc.y + 6);
     const panel = document.getElementById('camp-panel')!;
     expect(panel.classList.contains('hidden')).toBe(false);
+    // v5.9 : panneau ouvert, la bulle dit quel bouton toucher.
+    advance(0.05);
+    expect(text()).toMatch(/bouton jaune de « Production »/);
     panel.querySelector<HTMLButtonElement>('.camp-row[data-branch="prod"] .camp-buy')!.click();
     expect(game.world.teamUpgrades[0].prod).toBe(1);
     expect(stepId()).toBe('powerHelp');

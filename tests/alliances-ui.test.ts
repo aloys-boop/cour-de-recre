@@ -53,7 +53,9 @@ describe('HUD à 8 équipes et diplomatie', () => {
     expect(chips).toHaveLength(8);
     expect(document.getElementById('team-chips')!.classList.contains('compact')).toBe(true);
     expect(chips[0].classList.contains('me')).toBe(true);
-    expect(chips[0].querySelector('.chip-count')!.textContent).toBe(String(world.teamUnitCount(0)));
+    // v5.9 : sa propre puce montre « élèves/plafond ».
+    expect(chips[0].querySelector('.chip-count')!.textContent).toBe(`${world.teamUnitCount(0)}/${world.map.unitCap}`);
+    expect(chips[1].querySelector('.chip-count')!.textContent).toBe(String(world.teamUnitCount(1)));
     for (const c of chips) expect(c.tagName).toBe('BUTTON');
   });
 
@@ -115,14 +117,19 @@ describe('HUD à 8 équipes et diplomatie', () => {
     expect(played[0]).toMatchObject({ mode: 'escarmouche', team: 6, skirmish: { teams: 8, tiles: 18 } });
   });
 
-  it('brouillard de guerre : effectif des ennemis masqué, le sien et ceux des alliés visibles', () => {
+  it('brouillard de guerre : ennemis comptés seulement s’ils sont en vue (œil), le sien et ceux des alliés en entier', () => {
     const { world, hud } = setupHud();
     world.rules = { mode: 'classique', fog: true };
     world.setAllied(0, 1, true);
     hud.update(world, 0, 0);
-    const counts = [...document.querySelectorAll('#team-chips .chip .chip-count')].map((e) => e.textContent);
-    expect(counts[0]).toBe(String(world.teamUnitCount(0)));
+    const chips = [...document.querySelectorAll('#team-chips .chip')];
+    const counts = chips.map((e) => e.querySelector('.chip-count')!.textContent);
+    expect(counts[0]).toBe(`${world.teamUnitCount(0)}/${world.map.unitCap}`);
     expect(counts[1]).toBe(String(world.teamUnitCount(1)));
-    expect(counts.slice(2).every((c) => c === '?')).toBe(true);
+    expect(chips[1].classList.contains('fogged')).toBe(false);
+    // Camps ennemis loin du joueur : aucun élève en vue, et l'œil le signale.
+    expect(counts.slice(2).every((c) => c === '0')).toBe(true);
+    expect(chips.slice(2).every((c) => c.classList.contains('fogged'))).toBe(true);
+    expect(chips[2].getAttribute('aria-label')).toMatch(/0 élève en vue/);
   });
 });

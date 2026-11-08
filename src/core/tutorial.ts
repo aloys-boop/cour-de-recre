@@ -1,6 +1,7 @@
 // Tutoriel : petite carte à deux équipes et étapes guidées, chacune validée par l'action
 // réelle du joueur (sélection, ordre, capture…). Logique pure : la bulle et la main animée
 // sont dans ui/tutorial-ui.ts.
+import { TEAM_PLURALS } from '../config';
 import { awardMerit, meritsOf } from './merits';
 import { POWERS } from './powers';
 import { UPGRADES } from './upgrades';
@@ -13,7 +14,7 @@ import type { World } from './world';
 export const TUTORIAL_ID = 'tutoriel';
 
 /**
- * Carte du tutoriel : 11 × 11, ton camp à l'ouest, celui des Verts à l'est, cinq cases bonus
+ * Carte du tutoriel : 11 × 11, ton camp à l'ouest, celui de l'adversaire à l'est, cinq cases bonus
  * (un cœur tout près de toi pour la première capture), un seul obstacle.
  */
 export const TUTORIAL_MAP: MapDef = {
@@ -56,7 +57,7 @@ export type TutorialTarget =
 
 export interface TutorialStep {
   id: string;
-  /** Texte court de la bulle. */
+  /** Texte court de la bulle ; « {ennemis} » est remplacé par le nom de l'équipe adverse (voir stepText). */
   text: string;
   target: TutorialTarget;
 }
@@ -66,7 +67,7 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
   { id: 'box', text: 'Appui long sur le sol, puis glisse : tu sélectionnes tout un groupe.', target: { kind: 'drag' } },
   { id: 'move', text: 'Touche le sol pour envoyer ta sélection. Elle court sans se battre.', target: { kind: 'ground' } },
   { id: 'capture', text: 'Envoie tes élèves sur la case ♥ et reste dessus : la jauge se remplit.', target: { kind: 'tile', which: 'heart' } },
-  { id: 'attack', text: 'Des Verts arrivent ! Sélectionne tes élèves, puis touche un ennemi pour attaquer.', target: { kind: 'unit', team: 'enemy' } },
+  { id: 'attack', text: 'Des {ennemis} arrivent ! Sélectionne tes élèves, puis touche un ennemi pour attaquer.', target: { kind: 'unit', team: 'enemy' } },
   { id: 'rally', text: 'Touche « Annuler », puis appui long sur le sol : les nouveaux élèves iront au drapeau.', target: { kind: 'button', selector: '#btn-cancel' } },
   { id: 'camera', text: 'Glisse un doigt pour bouger la vue, pince pour zoomer, ou touche la mini-carte.', target: { kind: 'button', selector: '#minimap' } },
   { id: 'merits', text: 'Chaque case prise rapporte des bons points ★. Prends une autre case !', target: { kind: 'tile', which: 'free' } },
@@ -74,8 +75,19 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
   { id: 'upgrade', text: 'Sans sélection, touche ton camp (ou la pastille ★) et améliore-le.', target: { kind: 'button', selector: '#merit-pill' } },
   { id: 'powerHelp', text: 'Garde le doigt posé sur le gâteau (Goûter) : son aide s’affiche.', target: { kind: 'button', selector: '#btn-power-gouter' } },
   { id: 'power', text: 'Glisse le gâteau jusqu’à tes élèves et lâche : c’est l’heure du goûter !', target: { kind: 'button', selector: '#btn-power-gouter' } },
-  { id: 'win', text: 'Dernière étape : prends le camp des Verts pour gagner !', target: { kind: 'tile', which: 'enemyCamp' } },
+  { id: 'win', text: 'Dernière étape : prends le camp des {ennemis} pour gagner !', target: { kind: 'tile', which: 'enemyCamp' } },
 ];
+
+/**
+ * Texte d'une étape pour une couleur d'adversaire donnée (v5.9) : le tutoriel se joue avec la
+ * dernière couleur choisie, l'adversaire n'est donc pas toujours vert.
+ */
+export function stepText(step: TutorialStep, enemyColor: number): string {
+  return step.text.replace(/\{ennemis\}/g, TEAM_PLURALS[enemyColor] ?? 'adversaires');
+}
+
+/** Consigne de l'étape « upgrade » une fois le panneau du camp ouvert (le bon bouton à toucher). */
+export const UPGRADE_BUY_TEXT = 'Touche le bouton jaune de « Production » : tous tes camps produiront plus vite.';
 
 export type TutorialEvent = { kind: 'step'; index: number } | { kind: 'done' };
 
@@ -101,6 +113,16 @@ export class TutorialState {
 
   get step(): TutorialStep {
     return TUTORIAL_STEPS[Math.min(this.index, TUTORIAL_STEPS.length - 1)];
+  }
+
+  /** Couleur d'uniforme de l'adversaire (jamais celle du joueur : Game attribue des couleurs distinctes). */
+  get enemyColor(): number {
+    return this.world.teamColors[1 - this.player] ?? 1 - this.player;
+  }
+
+  /** Texte de la bulle pour l'étape courante, avec le vrai nom de l'adversaire. */
+  get text(): string {
+    return stepText(this.step, this.enemyColor);
   }
 
   get total(): number {
@@ -177,10 +199,10 @@ export class TutorialState {
     const w = this.world;
     const id = this.step.id;
     this.earnedAtStart = w.merits.earned[this.player];
-    // Avant la fin, les Verts ne produisent pas : ils attendent sagement chez eux.
+    // Avant la fin, l'adversaire ne produit pas : ils attendent sagement chez eux.
     w.productionScale[1 - this.player] = id === 'win' ? 0.5 : 0;
     if (id === 'attack') {
-      // Deux Verts approchent du groupe du joueur.
+      // Deux adversaires approchent du groupe du joueur.
       const mine = w.units.filter((u) => u.team === this.player && u.alive);
       const c = mine.length ? { x: mine.reduce((s, u) => s + u.x, 0) / mine.length, y: mine.reduce((s, u) => s + u.y, 0) / mine.length } : { x: 4, y: 6 };
       for (let i = 0; i < 2; i++) {

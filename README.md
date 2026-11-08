@@ -6,8 +6,8 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
 
 ## Tutoriel et « Comment jouer »
 
-- **Tutoriel.** Proposé automatiquement au premier lancement (« Faire le tutoriel » ou « Plus tard »), puis rejouable à tout moment : il est en tête de l'onglet « Campagne » du menu. Petite cour de 11 × 11 contre les Verts, IA passive (ses élèves restent chez eux et ne sont pas produits) jusqu'à la dernière étape, où elle se réveille en Facile avec des coups adoucis. Treize étapes guidées par une bulle de texte et une main animée qui montre où toucher ; chacune n'avance que sur l'action réelle du joueur : sélectionner un élève, sélection rectangle, déplacer, capturer une case, attaquer (deux Verts approchent), poser un point de ralliement, bouger la caméra (glisser, pincer ou mini-carte), gagner des bons points en prenant une case, la confier à une garnison (bouton « Garder »), améliorer l'équipe, lire l'aide d'un pouvoir (appui long sur le Goûter), le lancer par glisser-déposer (ou l'ancien mode), gagner la partie en prenant le camp vert. Le directeur complète au besoin les bons points pour essayer l'amélioration et le pouvoir. Le bouton « Passer » reste toujours visible et ramène au menu. Le tutoriel ne fait pas partie de la liste des niveaux : les codes de carte et la progression de la campagne sont inchangés.
-- **Comment jouer.** Les règles en quatorze rubriques courtes (but, sélection, déplacement et attaque, cases et camps, bons points, améliorations, classes, garnisons, pouvoirs, pion, caméra, ralliement, les IA, alliances), depuis le bouton « Comment jouer » du menu et du menu pause.
+- **Tutoriel.** Proposé automatiquement au premier lancement (« Faire le tutoriel » ou « Plus tard »), puis rejouable à tout moment : il est en tête de l'onglet « Campagne » du menu. Petite cour de 11 × 11 contre une autre équipe (les Verts, ou les Noirs si tu joues les Verts : la bulle nomme toujours le vrai adversaire, v5.9), IA passive (ses élèves restent chez eux et ne sont pas produits) jusqu'à la dernière étape, où elle se réveille en Facile avec des coups adoucis. Treize étapes guidées par une bulle de texte et une main animée qui montre où toucher ; chacune n'avance que sur l'action réelle du joueur : sélectionner un élève, sélection rectangle, déplacer, capturer une case, attaquer (deux adversaires approchent), poser un point de ralliement, bouger la caméra (glisser, pincer ou mini-carte), gagner des bons points en prenant une case, la confier à une garnison (bouton « Garder »), améliorer l'équipe, lire l'aide d'un pouvoir (appui long sur le Goûter), le lancer par glisser-déposer (ou l'ancien mode), gagner la partie en prenant le camp adverse. La bulle se place d'elle-même là où elle ne cache ni la main, ni ce qu'elle montre, ni le bon bouton d'un panneau ouvert (en haut au centre par défaut, sinon en bas ou sur un côté, v5.9) ; panneau du camp ouvert, elle dit quel bouton toucher. Le directeur complète au besoin les bons points pour essayer l'amélioration et le pouvoir. Le bouton « Passer » reste toujours visible et ramène au menu. Le tutoriel ne fait pas partie de la liste des niveaux : les codes de carte et la progression de la campagne sont inchangés.
+- **Comment jouer.** Les règles en rubriques courtes (but, sélection, déplacement et attaque, cases et camps, effectifs, bons points, améliorations, classes, garnisons, pouvoirs, pion, caméra, ralliement, les IA, alliances), depuis le bouton « Comment jouer » du menu et du menu pause.
 
 ## Règles du jeu
 
@@ -45,6 +45,7 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
 - **Barre de bagarre.** Le jeu repère les bagarres (élèves d'équipes ennemies au contact, regroupés de proche en proche, recalculé 4 fois par seconde). Au-dessus de chacune, une petite barre partagée en segments aux couleurs des équipes impliquées, proportionnels à leur force dans la bagarre : somme des PV restants × dégâts (profil, cases ♠, améliorations, classe, bonus de surveillant compris). Un petit chevron blanc, au-dessus du segment de l'équipe qui gagne du terrain (sa part a monté d'au moins 3 points sur les 3 dernières secondes), montre la tendance. La barre se place au-dessus des têtes et disparaît en fondu à la fin de la bagarre ; elle n'est pas affichée pour une bagarre cachée par le brouillard. Une bagarre de ton équipe hors de l'écran apparaît en haut de l'écran sous forme de mini-barre avec une flèche dans sa direction (3 au plus) : touche-la pour que la caméra glisse jusqu'à elle.
 - **Combat.** Les élèves se battent à coups de poing au corps à corps. Un élève inoccupé engage de lui-même les ennemis qui s'approchent. À zéro point de vie, il s'assoit, KO, puis disparaît.
 - **Repli.** Un ordre de déplacement est un rappel : les élèves cessent le combat et courent sans riposter jusqu'à destination (ils peuvent se faire frapper en fuyant). Arrivés, ils se défendent à nouveau. Pour attaquer, touche un ennemi. Le bouton **Fuir / Charger** (en haut à droite) change ce comportement : en mode Charger, les élèves se battent contre tout ce qu'ils croisent en chemin (marqueur orange).
+- **Effectifs (v5.9).** En haut, chaque puce d'équipe donne son nombre d'élèves en jeu ; la tienne affiche « élèves / maximum » (par exemple 18/30), en jaune quand le plafond est atteint et que tes camps ne produisent plus. Avec le brouillard de guerre, un œil précède le nombre des équipes ennemies : seuls les élèves que tu vois en ce moment sont comptés (les tiens et ceux de tes alliés le sont toujours en entier). Touche ta propre puce : le détail « Effectifs » donne, pour chaque équipe, ses élèves, ses cases et ses camps (sous le brouillard, tels que tu les as vus). Recompté 4 fois par seconde.
 - **Alertes (v5.7).** Quand une de tes cases est menacée (un ennemi à moins de 2,6 cases depuis plus de 2 s, ou une jauge ennemie qui monte), qu'elle tombe, ou que ton camp est en danger, un bandeau apparaît en haut au centre (jaune : case attaquée ; rouge pulsant : camp ; bordeaux : case perdue), avec un « ding-dong » discret et une petite vibration pour le camp et les pertes. Touche le bandeau (« Y aller ») : la caméra glisse jusqu'à la case. Pour ne pas noyer le joueur, une case n'est signalée qu'une fois par attaque (puis après 12 s de calme), deux alertes sont séparées d'au moins 6 s, et ce qui arrive entre-temps est regroupé (« 3 cases attaquées », « Ton camp est attaqué, et 2 autres cases ! »), en pointant la plus urgente. Pas d'alerte pendant le tutoriel.
 - **Renforts automatiques (v5.8).** Dans le panneau d'un camp (zone « Ce camp »), l'interrupteur **Auto** de la ligne « Renforts » : chaque nouvel élève de ce camp part de lui-même secourir ta case la plus menacée, en se battant en chemin. Menace d'une case (bonus, camp ou trône) : nombre d'ennemis à moins de 2,6 cases, plus la jauge de capture ennemie ; un camp compte davantage, et une case lointaine moins (au-delà de 16 cases du camp, elle n'est pas secourue). Si rien n'est menacé, les nouveaux élèves vont au drapeau de ralliement comme d'habitude ; si le camp lui-même est le plus menacé, ils restent le défendre. Un pointillé animé à chevrons relie le camp à la case secourue, avec un « + » au-dessus d'elle ; la ligne d'état du panneau dit où partent les renforts. **Partout** active l'option dans tous tes camps. Un camp perdu perd son option (à réactiver s'il est repris). Petit appel de clairon et vibration à l'activation.
 - **Garnisons (v5.5).** Le bouton **Garder** (à gauche, à côté de « Camp ») confie une case à la sélection. Si tes élèves se tiennent déjà sur une case bonus, un camp ou le trône, ils la gardent aussitôt ; sinon le bouton s'allume en jaune et le prochain tap sur une case la leur confie (retoucher le bouton annule, un tap à côté des cases aussi). Les gardes courent sur la case en se battant en chemin, puis :
@@ -331,6 +332,7 @@ Les pointes dépassaient le budget d'une image sur iPhone ; elles venaient des r
 | Tap sur un de tes camps (sans sélection) ou sur la pastille « ★ » | Panneau d'amélioration du camp |
 | Boutons ronds en bas (cloche, boule de neige, gâteau) | Appui long : aide ; glisser jusqu'à la carte : lancer ; tap : armer, puis viser et toucher la zone |
 | Tap sur la puce d'une équipe (en haut) | Panneau « Diplomatie » : proposer ou rompre une alliance |
+| Tap sur ta propre puce (en haut) | Détail « Effectifs » : élèves, cases et camps de chaque équipe |
 | Boutons | « Tout sélectionner », « Annuler », « Fuir / Charger », pause, son |
 
 À la souris : clic, clic maintenu pour le rectangle, glisser pour la caméra, molette pour zoomer.
@@ -395,6 +397,8 @@ Le dépôt contient un workflow GitHub Actions (`.github/workflows/deploy.yml`) 
 | `v5.7` | alertes : case attaquée, case perdue, camp en danger, bandeau à toucher pour y aller, regroupement |
 | `avant-2026-11-07` | état avant la v5.8 (point de retour) |
 | `v5.8` | renforts automatiques : option « Auto » par camp (ou « Partout »), nouveaux élèves envoyés vers la case menacée, pointillé à chevrons |
+| `avant-2026-11-08` | état avant la v5.9 (point de retour) |
+| `v5.9` | retours d'Aloys : compteur d'élèves (« 18/30 », ennemis en vue sous le brouillard, détail « Effectifs »), tutoriel qui nomme le vrai adversaire, bulle du tutoriel qui ne cache plus la cible |
 
 ## Architecture
 
@@ -410,6 +414,7 @@ src/
     ai.ts              IA d'équipe (évaluation des cases, regroupement, défense)
     diplomacy.ts       alliances : propositions, ruptures annoncées, attitude des IA
     diplomacy-extras.ts  options cadeaux, appel à l’aide, tribut et trêve
+    headcount.ts       compteur d'élèves : effectifs vus par le joueur (brouillard compris)
     king.ts            mode Roi de la cour : trône, temps de règne, victoire, aide à l'IA
     pathfinding.ts     A* 8 voisins + lissage
     spatial.ts         hash spatial pour les voisinages
@@ -450,6 +455,7 @@ src/
     pion-section.ts    rubrique « Pion » du panneau du camp
     powers-hud.ts      boutons des pouvoirs de récré
     tutorial-ui.ts     bulle, main animée et bouton « Passer » du tutoriel
+    bubble-place.ts    placement de la bulle du tutoriel (ne cache ni la main ni la cible)
     rally-section.ts   rubrique « Ralliement » du panneau du camp
     brawl-hud.ts       mini-barres des bagarres hors écran
 public/

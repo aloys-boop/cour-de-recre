@@ -207,6 +207,134 @@ button {
   }
 }
 
+/* Compteur d'élèves (v5.9) : œil devant l'effectif « en vue » sous le brouillard, plafond atteint en jaune. */
+.chip-eye {
+  display: none;
+  line-height: 0;
+  opacity: 0.85;
+}
+
+.chip.fogged .chip-eye {
+  display: inline-block;
+}
+
+.chip-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.chip.me.full .chip-count {
+  color: #ffd84a;
+}
+
+/* Détail « Effectifs » : même gabarit que la diplomatie, un tableau compact. */
+.diplo.counts {
+  width: min(330px, calc(100% - 140px - var(--sal) - var(--sar)));
+  max-height: calc(100% - 64px - var(--sat) - var(--sab));
+  overflow-y: auto;
+}
+
+.diplo.counts {
+  padding: 4px 10px 8px 12px;
+}
+
+.counts .diplo-head .diplo-title {
+  flex: 1 1 auto;
+}
+
+/* Bouton fermer : 44 px de zone tactile, discret. */
+.counts-close {
+  width: 44px;
+  height: 44px;
+  margin-right: -8px;
+  border: 0;
+  background: none;
+  color: #fff;
+  font: inherit;
+  font-size: 24px;
+  line-height: 1;
+  opacity: 0.8;
+  touch-action: manipulation;
+}
+
+.counts-eye {
+  display: inline-block;
+  margin-right: 4px;
+  line-height: 0;
+  opacity: 0.8;
+  vertical-align: 0;
+}
+
+.counts-cap {
+  font-size: 13px;
+  font-weight: 700;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+
+.counts-table {
+  width: 100%;
+  margin-top: 0;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.counts-table th,
+.counts-table td {
+  padding: 1px 4px;
+  line-height: 18px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.counts-table thead th {
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.counts-table th:first-child {
+  text-align: left;
+}
+
+.counts-table tbody th {
+  font-weight: 700;
+}
+
+.counts-table tbody tr + tr {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.counts-table tr.me {
+  color: #ffd84a;
+}
+
+.counts-table tr.ally th {
+  color: #9fdcff;
+}
+
+.counts-table tr.dead {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+
+.counts-table .dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  vertical-align: -1px;
+}
+
+.counts-note {
+  margin: 4px 0 0;
+  font-size: 12px;
+}
+
 /* Version compacte (5 équipes et plus) : pastille + nombre. */
 .chips.compact {
   gap: 6px;
