@@ -2,6 +2,26 @@
 
 Une entrée par session, la plus récente en haut : date, version, ce qui a été fait, ce qui a été mesuré, ce qui reste ou ce qui inquiète.
 
+## 09/11/2026 : session de développement, v5.10 (1.1 bis, gardes retranchés)
+
+**Fait**
+- Aucun retour d'Aloys par e-mail (les cinq journaux des 14 derniers jours sont sans réponse). Travail du jour : 1.1 bis, reporté deux fois, premier point non coché de la saison 1 (« Mode Équipes, suite » reste une idée du studio). Point de retour : branche `avant-2026-11-09`.
+- `src/core/ai.ts` : `selfRescue` ('all' par défaut, 'camps', 'none') et `harassSize` (petit groupe sur un second front, case sans ennemi visible à 3,5 cases, à 5 cases au moins de la cible principale, seulement si l'armée libre dépasse deux groupes). Par défaut, les IA ne changent pas.
+- `scripts/dev/equilibre.ts` : `secours=`, `harcele=`, `style=humain`, `rayon=`, `laisse=`, `armure=`, résumé du style du témoin dans la sortie.
+- Résultat des mesures : rayon et laisse ne changent rien, mais une garnison coûte cher. Nouveauté de jeu : **gardes retranchés** (`GARRISON.armor` = 0,75, `guardArmor()`), événement `hit` marqué `parried`, onomatopée « Paré ! » bleue (une fois sur 4), son « parry » plus sec. « Comment jouer » (Garnisons) et README à jour.
+- Contrôle visuel : l'aide en bas de l'écran (« Touche un élève puis le sol… ») recouvrait « Tout sélectionner » et les pouvoirs en 844 × 390 ; elle passe au-dessus de la rangée du bas, sur deux lignes au besoin.
+- 10 nouveaux tests (`temoin-humain.test.ts`, `garnisons-armure.test.ts`) ; 384 tests verts.
+
+**Mesuré**
+- Témoin en Normal, 800 parties par ligne : classique 40,5 %, classique avec renforts 46,9 %, humain 49,9 % (graine 1) et 52,0 % (graine 2), humain sans second front 50,2 %.
+- Garnisons (2 gardes par case bonus, 30 % de l'armée) : 30,9 % et 28,0 % ; retranchés : 34,3 % (×0,7) et 33,5 % (×0,75). À 15 % de l'armée : 42,8 % sans, 41,9 % avec (pas d'effet).
+- `perf240` : partie 0,222 ms par pas (0,221), mêlée 0,093 : pas de régression.
+
+**Reste à faire, inquiétudes**
+- La garnison reste un outil de confort, pas un gain de victoires en simulation : le témoin garde toutes ses cases bonus, ce qu'un bon joueur ne fait pas. Prochaine étape possible : un témoin qui ne garde que les cases clés.
+- « Paré ! » s'ajoute aux onomatopées ; à juger par Aloys dans une grosse mêlée (une fois sur 4 seulement, mais les gardes encaissent beaucoup).
+- Prochaine session : 1.5 Escouades à consigne, première tranche (consigne « Conquérir » pour les groupes 1-2-3).
+
 ## 08/11/2026 : session de développement, v5.9 (retours d'Aloys du 07/11)
 
 **Fait**

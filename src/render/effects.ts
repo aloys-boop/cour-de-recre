@@ -7,13 +7,17 @@ import { COLORS } from './renderer';
  * Pool fixe, aucune allocation lourde par image ; les mots sont pré-rendus une fois.
  */
 
-const WORDS = ['Paf !', 'Bam !', 'Pif !', 'Aïe !', 'Boum !'] as const;
+const WORDS = ['Paf !', 'Bam !', 'Pif !', 'Aïe !', 'Boum !', 'Paré !'] as const;
 const W_PAF = 0;
 const W_BAM = 1;
 const W_PIF = 2;
 const W_AIE = 3;
 const W_BOUM = 4;
-const WORD_COLORS = ['#ffe066', '#ff8a3d', '#ffffff', '#ff5a4a', '#ffd23f'];
+/** Coup amorti par un garde retranché (v5.10). */
+const W_PARE = 5;
+const WORD_COLORS = ['#ffe066', '#ff8a3d', '#ffffff', '#ff5a4a', '#ffd23f', '#4cc9ff'];
+/** Un coup amorti sur 4 affiche « Paré ! » : le joueur voit que ses gardes tiennent. */
+const PARRY_CHANCE = 1 / 4;
 
 const POOL = 12;
 const POPUP_LIFE = 0.75;
@@ -57,6 +61,10 @@ export class Effects {
   onEvent(ev: WorldEvent, cam: Camera): void {
     switch (ev.kind) {
       case 'hit':
+        if (ev.parried) {
+          if (this.rand() < PARRY_CHANCE && this.visible(ev.x, ev.y, cam)) this.spawn(W_PARE, ev.x, ev.y, false);
+          break;
+        }
         if (this.rand() < HIT_CHANCE && this.visible(ev.x, ev.y, cam)) {
           const r = this.rand();
           this.spawn(r < 0.4 ? W_PAF : r < 0.75 ? W_BAM : W_PIF, ev.x, ev.y, false);

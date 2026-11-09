@@ -362,7 +362,7 @@ export class Game {
           this.sfx.play('punch', color);
           break;
         case 'hit':
-          this.sfx.play('hit', color);
+          this.sfx.play(ev.parried ? 'parry' : 'hit', color);
           this.markers.push({ x: ev.x, y: ev.y, t: 0, kind: 'hit', team: color });
           break;
         case 'ko':

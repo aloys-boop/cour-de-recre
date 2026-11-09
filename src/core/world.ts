@@ -27,13 +27,13 @@ import { freshTeamUpgrades, teamDmgMul, teamHpMul, teamProdMul, type TeamUpgrade
 import { PION, updatePions } from './pion';
 import { PowerState, type PowerEvent } from './powers';
 import { BrawlState, updateBrawls } from './brawls';
-import { updateGarrisons } from './garrison';
+import { guardArmor, updateGarrisons } from './garrison';
 import { routeNewborn, updateReinforcements } from './reinforce';
 import { CLASSES, aggroRange, applyClass, pacifist, takeSpawnClass, updateHealers, type UnitClass } from './classes';
 
 export type WorldEvent =
   | { kind: 'punch'; x: number; y: number; team: number }
-  | { kind: 'hit'; x: number; y: number; team: number }
+  | { kind: 'hit'; x: number; y: number; team: number; /** Coup amorti par un garde retranché (v5.10). */ parried?: boolean }
   | { kind: 'ko'; x: number; y: number; team: number; by?: number }
   | { kind: 'captured'; x: number; y: number; team: number; camp: boolean }
   | { kind: 'spawn'; x: number; y: number; team: number }
@@ -482,9 +482,10 @@ export class World {
         if (sup && supervisorActive(sup) && dist2(u.x, u.y, sup.x, sup.y) < (SUPERVISOR_HIT_RANGE * 1.5) ** 2) {
           hitSupervisor(this, sup, Math.max(1, Math.round(punchDamage(() => this.rng.next()) * scale)), u);
         } else if (target && target.alive && !this.isFriend(u.team, target.team) && dist2(u.x, u.y, target.x, target.y) < (TUNING.punchRange * 1.5) ** 2) {
-          const dmg = Math.max(1, Math.round(punchDamage(() => this.rng.next()) * scale));
+          const armor = guardArmor(target);
+          const dmg = Math.max(1, Math.round(punchDamage(() => this.rng.next()) * scale * armor));
           const ko = target.takeDamage(dmg, u.x, u.y);
-          this.events.push({ kind: 'hit', x: target.x, y: target.y, team: target.team });
+          this.events.push(armor < 1 ? { kind: 'hit', x: target.x, y: target.y, team: target.team, parried: true } : { kind: 'hit', x: target.x, y: target.y, team: target.team });
           if (ko) {
             this.events.push({ kind: 'ko', x: target.x, y: target.y, team: target.team, by: u.team });
             awardMerit(this, u.team, target.pion ? PION.koReward : MERITS.koUnit, target.x, target.y, 'ko');

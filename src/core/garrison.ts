@@ -18,7 +18,19 @@ export const GARRISON = {
   scanEvery: 0.25,
   /** Marge (cellules) au-delà de la zone de capture avant qu'un garde inoccupé ne revienne sur la case. */
   slack: 0.25,
-} as const;
+  /**
+   * Gardes retranchés (v5.10) : multiplicateur des coups reçus par un garde qui se tient dans le
+   * cercle défendu de sa case. Il connaît le terrain : il encaisse mieux qu'un élève de passage.
+   */
+  armor: 0.75,
+};
+
+/** Multiplicateur des coups reçus par un élève : réduit pour un garde dans le cercle défendu de sa case. */
+export function guardArmor(u: Unit): number {
+  const t = u.guard;
+  if (!t || GARRISON.armor === 1) return 1;
+  return dist2(u.x, u.y, t.cx, t.cy) <= GARRISON.radius ** 2 ? GARRISON.armor : 1;
+}
 
 /** Une case peut-elle être gardée ? Cases bonus, camps (fantômes compris) et trône. */
 export function canGuard(tile: Tile): boolean {

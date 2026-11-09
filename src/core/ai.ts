@@ -15,6 +15,15 @@ const TAG_FREE = 0;
 const TAG_DEFEND = 1;
 const TAG_ATTACK = 2;
 const TAG_RALLY = 3;
+/** Élève envoyé sur le second front (harcèlement, voir TeamAi.harassSize). */
+const TAG_HARASS = 5;
+/** Distance minimale (cellules) entre la cible principale et celle du harcèlement. */
+export const HARASS_MIN_GAP = 5;
+/** Rayon (cellules) sans ennemi visible exigé autour d'une case pour la harceler. */
+export const HARASS_CLEAR = 3.5;
+
+/** Secours de ses propres cases par l'IA (voir TeamAi.selfRescue). */
+export type RescueMode = 'all' | 'camps' | 'none';
 /** Option « Surveillants » : taille de groupe à partir de laquelle l'IA va mettre un surveillant KO. */
 export const AI_SUPERVISOR_GROUP = 8;
 /** Groupe suffisant pour dégager un surveillant qui garde la cible visée. */
@@ -55,6 +64,19 @@ export class TeamAi {
   garrisonSize = 0;
   /** Part maximale de l'armée laissée en garnison (avec garrisonSize). */
   garrisonShare = 0.25;
+  /**
+   * Secours de ses propres cases (outils de mesure, « joueur témoin » humain, point 1.1 bis) :
+   * 'all' (par défaut) secourt toute case menacée, 'camps' seulement ses camps (comme un joueur
+   * qui ne réagit qu'à l'alerte « camp attaqué »), 'none' jamais.
+   */
+  selfRescue: RescueMode = 'all';
+  /**
+   * Harcèlement (« joueur témoin » humain) : taille du petit groupe envoyé sur un second front,
+   * loin de la cible principale, pendant que le gros de l'armée attaque. 0 : pas de second front.
+   */
+  harassSize = 0;
+  private harassTarget: Tile | null = null;
+  private harassSince = 0;
 
   constructor(
     readonly world: World,
@@ -102,6 +124,58 @@ export class TeamAi {
     this.think();
   }
 
+  /**
+   * Harcèlement : quand l'armée libre est assez nombreuse (de quoi former le groupe principal en
+   * plus du petit groupe), `harassSize` élèves partent prendre une case faible, à au moins
+   * HARASS_MIN_GAP cellules de la cible principale. Un seul groupe de harcèlement à la fois ;
+   * les élèves envoyés sont retirés de `strikers`.
+   */
+  private harass(mine: Unit[], strikers: Unit[], main: Tile, centroid: { x: number; y: number }): void {
+    const w = this.world;
+    const busy = mine.filter((u) => u.aiTag === TAG_HARASS && u.order.kind !== 'none').length;
+    if (busy > 0) return;
+    if (this.harassTarget && (w.isFriend(this.harassTarget.owner, this.team) || w.time - this.harassSince > 25)) this.harassTarget = null;
+    if (strikers.length < 2 * this.profile.groupMin + this.harassSize) return;
+    if (!this.harassTarget) {
+      let best: Tile | null = null;
+      let bestScore = -Infinity;
+      for (const t of w.tiles) {
+        if (t === main || t.isCamp || w.isFriend(t.owner, this.team)) continue;
+        if (Math.hypot(t.cx - main.cx, t.cy - main.cy) < HARASS_MIN_GAP) continue;
+        // Seulement une case sans défenseur visible à 3,5 cellules : le harcèlement fuit la bagarre.
+        let enemy = 0;
+        w.hash.query(t.cx, t.cy, HARASS_CLEAR, (e) => {
+          if (e.alive && !w.isFriend(e.team, this.team) && Math.hypot(e.x - t.cx, e.y - t.cy) < HARASS_CLEAR && unitVisible(w, this.team, e)) enemy++;
+        });
+        if (enemy > 0) continue;
+        const score = (t.owner === NO_TEAM ? 0.6 : 1) - 0.06 * Math.hypot(t.cx - centroid.x, t.cy - centroid.y) + w.rng.next() * 0.1;
+        if (score > bestScore) {
+          bestScore = score;
+          best = t;
+        }
+      }
+      if (!best) return;
+      this.harassTarget = best;
+      this.harassSince = w.time;
+    }
+    const t = this.harassTarget;
+    const squad = strikers
+      .slice()
+      .sort((a, b) => dist(a, t) - dist(b, t))
+      .slice(0, this.harassSize);
+    if (!this.spend()) return;
+    w.orderMove(squad, { x: t.cx, y: t.cy }, true);
+    for (const u of squad) {
+      u.aiTag = TAG_HARASS;
+      strikers.splice(strikers.indexOf(u), 1);
+    }
+  }
+
+  /** Case visée par le groupe de harcèlement (mesures, tests). */
+  get harassing(): Tile | null {
+    return this.harassTarget;
+  }
+
   private think(): void {
     const w = this.world;
     // Les élèves de garde (ordre « Garder », voir garrison.ts) vivent leur vie : l'IA ne les commande pas.
@@ -124,6 +198,7 @@ export class TeamAi {
     // `threatDelay` secondes. Seules les `fronts` plus urgentes sont secourues à chaque réflexion.
     const urgent: Array<{ t: Tile; need: number; prio: number }> = [];
     for (const t of owned) {
+      if (this.selfRescue === 'none' || (this.selfRescue === 'camps' && !t.isCamp)) continue;
       const threat = enemiesNear(t.cx, t.cy, 2.6);
       const capturing = t.capTeam !== NO_TEAM && !w.isFriend(t.capTeam, this.team);
       if (threat === 0 && !capturing) {
@@ -257,6 +332,9 @@ export class TeamAi {
     if (!target) return;
 
     // Plus d'attention disponible : les ordres offensifs attendront la prochaine réflexion.
+    if (this.tokens < 1) return;
+    // Second front : un petit groupe part harceler une case éloignée de la cible principale.
+    if (this.harassSize > 0) this.harass(mine, strikers, target, centroid);
     if (this.tokens < 1) return;
     if (this.fightSupervisor(strikers, target)) {
       this.spend();

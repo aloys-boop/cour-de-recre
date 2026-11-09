@@ -530,14 +530,18 @@ button {
 .hint {
   position: absolute;
   left: 50%;
-  bottom: calc(14px + var(--sab));
+  /* Au-dessus de la rangée du bas (« Tout sélectionner », pouvoirs) : ne la recouvre plus (v5.10). */
+  bottom: calc(76px + var(--sab));
   transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.55);
-  padding: 6px 12px;
-  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.62);
+  padding: 6px 14px;
+  border-radius: 16px;
   font-size: 13px;
   font-weight: 700;
-  white-space: nowrap;
+  line-height: 1.3;
+  text-align: center;
+  width: max-content;
+  max-width: min(560px, calc(100vw - 32px - var(--sal) - var(--sar)));
 }
 
 /* ------------------------------------------------------------ Menu */

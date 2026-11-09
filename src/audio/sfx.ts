@@ -20,7 +20,8 @@ export type SfxName =
   | 'bell'
   | 'snow'
   | 'snack'
-  | 'guard';
+  | 'guard'
+  | 'parry';
 
 /** Timbre des coups par couleur d'uniforme : hauteur et coupure du filtre. */
 const TEAM_PITCH = [1, 1.14, 1.3, 0.84];
@@ -66,7 +67,7 @@ export class Sfx {
     if (this.muted || !this.ctx || !this.master || this.ctx.state !== 'running') return;
     // Anti-saturation : on limite la cadence par type de son.
     const now = performance.now();
-    const minGap = name === 'punch' || name === 'hit' ? 45 : 80;
+    const minGap = name === 'punch' || name === 'hit' || name === 'parry' ? 45 : 80;
     const last = this.lastPlay.get(name) ?? -1e9;
     if (now - last < minGap) return;
     this.lastPlay.set(name, now);
@@ -132,6 +133,11 @@ export class Sfx {
         this.noise(t + 0.09, 0.04, 1200, 0.4);
         this.tone(t + 0.14, 392, 392, 0.16, 'triangle', 0.28);
         this.tone(t + 0.14, 587, 587, 0.16, 'triangle', 0.16);
+        break;
+      case 'parry':
+        // Coup amorti par un garde : choc plus sec et un petit « tink » de cartable levé.
+        this.noise(t, 0.05, 2400 * cm, 0.4);
+        this.tone(t, 1480 * pm, 1240 * pm, 0.06, 'triangle', 0.22);
         break;
       case 'alert':
         // Alerte discrète : « ding-dong » de cloche de cour, doux et court.

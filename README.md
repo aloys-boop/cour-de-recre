@@ -52,7 +52,8 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
   - restent dans la zone de capture et reviennent s'y placer dès qu'ils sont libres ;
   - engagent d'eux-mêmes tout ennemi qui entre dans le **cercle défendu** (2,6 cases autour de la case, plus loin que la portée d'un élève inoccupé) ;
   - ne se laissent pas attirer loin : un ennemi qui s'enfuit à plus de 3,8 cases de la case est lâché, et le garde revient ;
-  - **reprennent la case** si elle tombe, en y retournant.
+  - **reprennent la case** si elle tombe, en y retournant ;
+  - sont **retranchés** (v5.10) : tant qu'il se tient dans le cercle défendu de sa case, un garde encaisse un quart de coups en moins. Un coup ainsi amorti fait un « tink » plus sec et, une fois sur quatre, un « Paré ! » bleu au-dessus de la mêlée.
 
   Un écusson à ta couleur, contre le coin droit de la case, compte ses gardes vivants ; le cercle défendu (pointillés blancs) s'affiche quand des gardes sont sélectionnés, et pour toutes tes garnisons pendant que « Garder » est allumé. Tout nouvel ordre (déplacement, attaque, « Camp ») libère les élèves qui le reçoivent. Les pions ne gardent pas ; un infirmier de garde soigne sans aller au contact. Son « garde à vous » (deux talons qui claquent) confirme l'ordre. Les IA ne posent pas de garnison en partie.
 - **Point de ralliement (par camp).** Chaque camp a son propre drapeau ; les nouveaux élèves de ce camp s'y rendent dès leur naissance. Trois façons de le poser :
@@ -249,6 +250,31 @@ Les IA n'utilisent pas l'option : leur équilibre est inchangé. `equilibre.ts` 
 
 Six points de mieux sans un ordre de plus : les nouveaux élèves ne restent plus plantés au camp pendant qu'une case tombe. L'outil aide sans dispenser de jouer. `perf240` sans changement (partie 0,219 ms par pas contre 0,224 sur la même machine avant la modification) ; le choix de la case coûte une requête dans le hash spatial par case et par camp, toutes les 0,5 s et à chaque naissance.
 
+### Témoin humain et gardes retranchés (v5.10)
+
+Point 1.1 bis de la feuille de route. Le témoin habituel secourt lui-même chaque case menacée, ce qu'un joueur sur téléphone ne fait pas. `equilibre.ts` accepte désormais `secours=all|camps|none` (cases que le témoin secourt lui-même), `harcele=N` (petit groupe envoyé prendre une case sans défenseur, à au moins 5 cases de la cible principale) et le raccourci `style=humain` (`secours=camps renforts=1 harcele=3`) ; `rayon=`, `laisse=` et `armure=` changent les réglages des garnisons. Témoin en Normal, 4 équipes, 800 parties par ligne (± 3,5 environ) :
+
+| Témoin | Graine 1 | Graine 2 |
+| --- | --- | --- |
+| classique (secourt tout, sans renforts) | 40,5 % | |
+| classique avec renforts | 46,9 % | |
+| **humain** : camps seulement, renforts, second front | **49,9 %** | **52,0 %** |
+| humain sans second front | 50,2 % | |
+| humain, 2 gardes par case bonus (30 % de l'armée au plus) | 30,9 % | 28,0 % |
+| idem, 15 % au plus | 42,8 % | |
+| idem avec gardes retranchés (×0,75) | 34,3 % (×0,7) | **33,5 %** |
+| 15 % au plus, retranchés | 41,9 % | |
+| rayon 3,2 / laisse 4,5 (2 gardes, 30 %) | 28,5 % | |
+| rayon 2,2 / laisse 3,2 (2 gardes, 30 %) | 29,6 % | |
+
+Ce qu'on en apprend :
+- Un joueur qui ne secourt que ses camps et laisse les renforts automatiques s'occuper du reste fait **mieux** que le témoin qui court partout : 50 à 52 % en Normal, l'objectif « une partie sur deux » de la saison 1 est atteint sans toucher aux IA. Les outils des v5.5 à v5.8 font leur travail.
+- Le second front ne change rien en moyenne (49,9 % contre 50,2 %) : il ne coûte rien non plus. Gardé dans le style humain, il rend les simulations plus proches d'un vrai joueur.
+- Garder systématiquement toutes ses cases bonus coûte cher : chaque garde manque aux attaques. Le rayon et la laisse ne changent presque rien (dans le bruit) : ils restent à 2,6 et 3,8.
+- D'où les **gardes retranchés** : dans leur cercle, ils encaissent un quart de coups en moins. Gain de 4 à 6 points pour une grosse garnison (28,0 → 33,5 %), sans effet mesurable pour une petite. La garnison reste un outil de confort pour tenir une case sans la surveiller, pas un raccourci vers la victoire. Les IA ne posent pas de garnison : leur équilibre entre elles est inchangé.
+
+`perf240` : partie 0,222 ms par pas (0,221 en v5.9), mêlée 0,093 (0,121) : pas de régression ; le multiplicateur des gardes est un test de distance par coup reçu.
+
 ### Normal un peu plus dur (v5.6)
 
 Retour d'Aloys du 05/11 : « un peu trop simple ». Le témoin gagnait 54 % en Normal depuis l'attention limitée ; cible : 45 % environ. Essais à 800 parties (4 équipes, témoin contre 3 IA Normal) : dégâts ×0,95 → 50,4 % ; dégâts ×0,95 et réaction 1,7 s → 47,6 % ; groupes de 4 → 37,1 % (trop) ; dégâts ×0,95 et 40 % de défenseurs → 43,0 % ; budget de 20 ordres et dégâts ×0,95 → 48,6 %. Retenu : **dégâts ×0,95 et 42 % de défenseurs** (au lieu de ×0,9 et 45 %), soit **42,6 %** (± 2,4, 1 600 parties ; 41,9 % avec 40 % de défenseurs). Difficile et Expert frappent 5 % plus fort pour garder l'échelle :
@@ -399,6 +425,8 @@ Le dépôt contient un workflow GitHub Actions (`.github/workflows/deploy.yml`) 
 | `v5.8` | renforts automatiques : option « Auto » par camp (ou « Partout »), nouveaux élèves envoyés vers la case menacée, pointillé à chevrons |
 | `avant-2026-11-08` | état avant la v5.9 (point de retour) |
 | `v5.9` | retours d'Aloys : compteur d'élèves (« 18/30 », ennemis en vue sous le brouillard, détail « Effectifs »), tutoriel qui nomme le vrai adversaire, bulle du tutoriel qui ne cache plus la cible |
+| `avant-2026-11-09` | état avant la v5.10 (point de retour) |
+| `v5.10` | 1.1 bis : « joueur témoin » humain (ne secourt que ses camps, renforts automatiques, second front) ; gardes retranchés (un quart de coups en moins dans leur cercle, « Paré ! ») ; aide en bas de l'écran qui ne recouvre plus les boutons |
 
 ## Architecture
 
@@ -411,7 +439,7 @@ src/
     world.ts           simulation : unités, combats, captures, apparitions, victoire
     unit.ts            état d'un élève (ordres, chemin, points de vie, KO)
     tile.ts            camps et cases bonus, règles de capture
-    ai.ts              IA d'équipe (évaluation des cases, regroupement, défense)
+    ai.ts              IA d’équipe (évaluation des cases, regroupement, défense ; réglages du témoin humain : secours, second front)
     diplomacy.ts       alliances : propositions, ruptures annoncées, attitude des IA
     diplomacy-extras.ts  options cadeaux, appel à l’aide, tribut et trêve
     headcount.ts       compteur d'élèves : effectifs vus par le joueur (brouillard compris)
@@ -425,7 +453,7 @@ src/
     mapcode.ts         code de carte partageable (type de partie + graine, base 32)
     challenges.ts      médailles de campagne
     ghosts.ts          option « Camps fantômes » : placement, carte d’une partie, intérêt des IA
-    garrison.ts        garnisons : ordre « Garder », cercle défendu, laisse, reprise de la case
+    garrison.ts        garnisons : ordre « Garder », cercle défendu, laisse, reprise de la case, gardes retranchés
     reinforce.ts       renforts automatiques : menace des cases, case secourue par chaque camp, envoi des nouveaux élèves
     save.ts            progression (localStorage)
     merits.ts          bons points : gains, solde, dépenses

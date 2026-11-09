@@ -15,6 +15,13 @@
 //     garde=2          le témoin laisse ce nombre de gardes (ordre « Garder ») sur chaque case bonus prise
 //     part=0.25       part maximale de l'armée du témoin laissée en garnison
 //     renforts=1       le témoin met tous ses camps en renforts automatiques (v5.8)
+//     secours=all      cases que le témoin secourt lui-même : all, camps (seulement ses camps) ou none
+//     harcele=0        taille du petit groupe que le témoin envoie sur un second front (0 : aucun)
+//     style=humain     témoin « humain » (1.1 bis) : secours=camps renforts=1 harcele=3, sans garnison
+//                      (chaque réglage reste remplaçable : style=humain garde=2 part=0.3)
+//     rayon=2.6        rayon défendu des garnisons (GARRISON.radius), pour tout le monde
+//     laisse=3.8       laisse des garnisons (GARRISON.leash), pour tout le monde
+//     armure=0.75      coups reçus par un garde dans son cercle (GARRISON.armor), pour tout le monde
 //     avant=1          IA et témoin sans limite d'attention (comportement d'avant la v5.4)
 // Affiche aussi les ordres par minute moyens des IA et du témoin.
 // Une partie sans vainqueur au temps limite est attribuée à l'équipe en tête (élèves + cases + camps).
@@ -26,7 +33,8 @@
 // Sa position et sa couleur sont tirées au hasard. Les IA adverses ont leurs dégâts de partie.
 import { fork } from 'node:child_process';
 import { HUMAN_ATTENTION, STAT_POINT_VALUES, TEAM_NAMES, UNLIMITED_ATTENTION, type AiAttention, type AiProfile, type TeamStat } from '../../src/config';
-import { TeamAi } from '../../src/core/ai';
+import { TeamAi, type RescueMode } from '../../src/core/ai';
+import { GARRISON } from '../../src/core/garrison';
 import { generateMap, LEVELS, type LevelDef } from '../../src/core/maps';
 import { Rng } from '../../src/core/rng';
 import { skirmishLevel } from '../../src/core/skirmish';
@@ -45,7 +53,17 @@ const diff = (args.diff ?? 'difficile') as Difficulty;
 const seed0 = Number(args.graine ?? 1);
 const limit = Number(args.limite ?? 480);
 const workers = Number(args.processus ?? 4);
+// Style « humain » (1.1 bis) : valeurs par défaut des réglages du témoin, remplaçables une à une.
+if (args.style === 'humain') {
+  const preset: Record<string, string> = { secours: 'camps', renforts: '1', harcele: '3', temoin: '1' };
+  for (const [k, v] of Object.entries(preset)) args[k] ??= v;
+}
 const temoin = args.temoin === '1';
+const secours = (args.secours ?? 'all') as RescueMode;
+const harcele = Number(args.harcele ?? 0);
+if (args.rayon) GARRISON.radius = Number(args.rayon);
+if (args.laisse) GARRISON.leash = Number(args.laisse);
+if (args.armure) GARRISON.armor = Number(args.armure);
 const reaction = Number(args.reaction ?? 3);
 const aiOverride = args.ia ? (JSON.parse(args.ia) as Partial<AiProfile>) : undefined;
 const avant = args.avant === '1';
@@ -128,6 +146,8 @@ function playGame(index: number): Game {
     ai.economy.forceClass = 'aucune';
     ai.garrisonSize = garde;
     ai.garrisonShare = part;
+    ai.selfRescue = secours;
+    ai.harassSize = harcele;
     return ai;
   });
   const step = 1 / 60;
@@ -219,6 +239,8 @@ if (args.tranche) {
   if (temoin) {
     const r = total.temoinWins / nGames;
     const se = Math.sqrt((r * (1 - r)) / nGames);
+    const style = `secours ${secours}, garde ${garde}${garde ? ` (part ${part})` : ''}, renforts ${renforts ? 'oui' : 'non'}, harcèlement ${harcele || 'non'}, garnisons rayon ${GARRISON.radius} laisse ${GARRISON.leash} armure ${GARRISON.armor}`;
+    console.log(`témoin : ${style}`);
     console.log(`joueur témoin (réaction ${reaction} s) : ${total.temoinWins.toFixed(1)} victoires / ${nGames} = ${(r * 100).toFixed(1)} % (± ${(196 * se).toFixed(1)})`);
   }
   const rows: Array<Record<string, string | number>> = [];
