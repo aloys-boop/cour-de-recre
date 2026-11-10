@@ -56,6 +56,7 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
   - sont **retranchés** (v5.10) : tant qu'il se tient dans le cercle défendu de sa case, un garde encaisse un quart de coups en moins. Un coup ainsi amorti fait un « tink » plus sec et, une fois sur quatre, un « Paré ! » bleu au-dessus de la mêlée.
 
   Un écusson à ta couleur, contre le coin droit de la case, compte ses gardes vivants ; le cercle défendu (pointillés blancs) s'affiche quand des gardes sont sélectionnés, et pour toutes tes garnisons pendant que « Garder » est allumé. Tout nouvel ordre (déplacement, attaque, « Camp ») libère les élèves qui le reçoivent. Les pions ne gardent pas ; un infirmier de garde soigne sans aller au contact. Son « garde à vous » (deux talons qui claquent) confirme l'ordre. Les IA ne posent pas de garnison en partie.
+- **Conquête (v5.11).** Le bouton **Conquérir** (le drapeau, à droite de « Garder ») donne une consigne à la sélection : elle devient une escouade qui prend toute seule la case la plus intéressante à portée (22 cases au plus), puis la suivante, sans autre ordre. Choix de la case : la plus proche parmi les cases **libres** (sans propriétaire : cases bonus, trône, camps libres comme les camps fantômes), un peu plus chère si tu ne l'as jamais vue (4 cases de distance) ou par défenseur ennemi visible (2,5 cases chacun) ; un camp ou le trône passe avant une case bonus à distance comparable. Les cases et les camps tenus par une autre équipe ne sont jamais visés : prendre le terrain de l'adversaire reste ta décision (voir « Équilibrage », une escouade qui le faisait rendait Normal beaucoup trop facile). L'escouade ne voit que ce que tu vois (sous le brouillard, les défenseurs cachés ne comptent pas) et renonce pour 12 s à une case trop bien défendue (plus de 1,25 défenseur par élève de l'escouade, plus un). Elle court en se battant en chemin, comme un ordre « Charger ». Un drapeau planté à ta couleur, relié à l'escouade par des tirets, marque la case visée ; un groupe « 1 », « 2 » ou « 3 » dont la majorité est en conquête porte un petit drapeau. Retoucher « Conquérir » avec l'escouade sélectionnée lève la consigne ; tout autre ordre (déplacement, attaque, « Camp », « Garder ») fait quitter l'escouade aux élèves qui le reçoivent. Rien à prendre à portée : l'escouade attend et repart dès qu'une case s'ouvre. Roulement de tambour et deux notes de clairon confirment l'ordre. Les pions ne conquièrent pas ; les IA ne s'en servent pas en partie.
 - **Point de ralliement (par camp).** Chaque camp a son propre drapeau ; les nouveaux élèves de ce camp s'y rendent dès leur naissance. Trois façons de le poser :
   - dans le panneau du camp, rubrique « Ralliement » : « Placer » (ou « Déplacer »), puis touche la carte ; « Supprimer » retire le drapeau, et les nouveaux élèves restent alors au camp ;
   - raccourci : glisse le doigt depuis le camp jusqu'à un point de la carte (une flèche à ta couleur suit le doigt) ;
@@ -273,6 +274,27 @@ Ce qu'on en apprend :
 - Garder systématiquement toutes ses cases bonus coûte cher : chaque garde manque aux attaques. Le rayon et la laisse ne changent presque rien (dans le bruit) : ils restent à 2,6 et 3,8.
 - D'où les **gardes retranchés** : dans leur cercle, ils encaissent un quart de coups en moins. Gain de 4 à 6 points pour une grosse garnison (28,0 → 33,5 %), sans effet mesurable pour une petite. La garnison reste un outil de confort pour tenir une case sans la surveiller, pas un raccourci vers la victoire. Les IA ne posent pas de garnison : leur équilibre entre elles est inchangé.
 
+### Conquête (v5.11)
+
+Point 1.5, première tranche. Les IA ne s'en servent pas en partie (leur équilibre entre elles est inchangé). `equilibre.ts` accepte `conquete=N` (le témoin garde une escouade de N élèves en consigne « Conquérir », reformée quand elle disparaît), `iaconquete=N` (même chose pour les IA adverses), `casesennemies=1` (les escouades visent aussi les cases tenues par un ennemi) et `pause=S` (pause après chaque prise). Témoin humain en Normal, 4 équipes, 800 parties par ligne (± 3,5 environ) :
+
+| Témoin | Graine 1 | Graine 2 |
+| --- | --- | --- |
+| humain (rappel v5.10) | 49,9 % | 52,0 % |
+| **escouade de 4 en conquête des cases libres** (sans second front) | **52,4 %** | **53,4 %** |
+| idem, avec le second front | 52,6 % | |
+| escouade de 4 qui vise aussi les cases ennemies | 68,9 % | 67,1 % |
+| idem, escouade de 2 (400 parties) | 73,3 % | |
+| idem, pause de 8 s après chaque prise | 57,6 % | |
+| escouade de 6 qui vise aussi les cases ennemies | 59,0 % | |
+| IA adverses avec une escouade de 3 (cases ennemies comprises), témoin sans | 44,0 % | |
+| les deux (escouade de 4 au témoin, de 3 aux IA) | 65,5 % | |
+
+Ce qu'on en apprend :
+- Une petite escouade qui va cueillir les cases ennemies laissées sans garde rend Normal beaucoup trop facile (+17 à +23 points) : les IA, à attention limitée, ne reprennent pas assez vite leurs cases éloignées. Même en donnant le même outil aux IA, le témoin reste à 65 %.
+- Limitée aux cases **libres**, la consigne vaut +1,5 à +2,5 points : un outil de confort pour le partage de la cour en début de partie, et pour ramasser les camps fantômes ou le trône, pas un raccourci. C'est la règle retenue : prendre le terrain de l'adversaire reste une décision du joueur (pilier 1).
+- Ordres par minute du témoin inchangés (16,5 à 17,1) : la consigne ne coûte qu'un ordre.
+
 `perf240` : partie 0,222 ms par pas (0,221 en v5.9), mêlée 0,093 (0,121) : pas de régression ; le multiplicateur des gardes est un test de distance par coup reçu.
 
 ### Normal un peu plus dur (v5.6)
@@ -355,6 +377,7 @@ Les pointes dépassaient le budget d'une image sur iPhone ; elles venaient des r
 | Boutons « 1 », « 2 », « 3 » | Appui long : mémoriser la sélection ; tap : la rappeler ; second tap rapide : centrer la vue dessus |
 | Bouton « Camp » | Repli de la sélection (sans combat) sur ton camp le plus proche, pour se soigner |
 | Bouton « Garder » | La sélection garde la case où elle se tient ; ailleurs, le bouton s'allume et le prochain tap sur une case la lui confie (voir « Garnisons ») |
+| Bouton « Conquérir » | La sélection prend seule, l'une après l'autre, les cases libres les plus proches ; retoucher le bouton lève la consigne (voir « Conquête ») |
 | Tap sur un de tes camps (sans sélection) ou sur la pastille « ★ » | Panneau d'amélioration du camp |
 | Boutons ronds en bas (cloche, boule de neige, gâteau) | Appui long : aide ; glisser jusqu'à la carte : lancer ; tap : armer, puis viser et toucher la zone |
 | Tap sur la puce d'une équipe (en haut) | Panneau « Diplomatie » : proposer ou rompre une alliance |
@@ -427,6 +450,8 @@ Le dépôt contient un workflow GitHub Actions (`.github/workflows/deploy.yml`) 
 | `v5.9` | retours d'Aloys : compteur d'élèves (« 18/30 », ennemis en vue sous le brouillard, détail « Effectifs »), tutoriel qui nomme le vrai adversaire, bulle du tutoriel qui ne cache plus la cible |
 | `avant-2026-11-09` | état avant la v5.10 (point de retour) |
 | `v5.10` | 1.1 bis : « joueur témoin » humain (ne secourt que ses camps, renforts automatiques, second front) ; gardes retranchés (un quart de coups en moins dans leur cercle, « Paré ! ») ; aide en bas de l'écran qui ne recouvre plus les boutons |
+| `avant-2026-11-10` | état avant la v5.11 (point de retour) |
+| `v5.11` | 1.5, première tranche : consigne « Conquérir » (escouade qui prend seule les cases libres, drapeau sur la case visée et sur le groupe) |
 
 ## Architecture
 
@@ -454,6 +479,7 @@ src/
     challenges.ts      médailles de campagne
     ghosts.ts          option « Camps fantômes » : placement, carte d’une partie, intérêt des IA
     garrison.ts        garnisons : ordre « Garder », cercle défendu, laisse, reprise de la case, gardes retranchés
+    squads.ts          escouades à consigne : « Conquérir » (choix de la case, renoncement, enchaînement des prises)
     reinforce.ts       renforts automatiques : menace des cases, case secourue par chaque camp, envoi des nouveaux élèves
     save.ts            progression (localStorage)
     merits.ts          bons points : gains, solde, dépenses

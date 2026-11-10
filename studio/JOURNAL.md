@@ -2,6 +2,27 @@
 
 Une entrée par session, la plus récente en haut : date, version, ce qui a été fait, ce qui a été mesuré, ce qui reste ou ce qui inquiète.
 
+## 10/11/2026 : session de développement, v5.11 (1.5 a, consigne « Conquérir »)
+
+**Fait**
+- Aucun retour d'Aloys par e-mail (les six journaux des 14 derniers jours sont sans réponse). Travail du jour : 1.5 Escouades à consigne, découpé en trois tranches dans la feuille de route ; ce soir la première, « Conquérir ». Point de retour : branche `avant-2026-11-10`.
+- `src/core/squads.ts` : escouades (`World.squads`, `Unit.squad`), choix de la case (`conquestTarget` : cases libres seulement, distance, défenseurs visibles ×2,5, jamais vue +4, camp ou trône −3, portée 22 cases), renoncement 12 s à une case trop défendue (plus de 1,25 défenseur par élève, plus un), enchaînement des prises, membres libérés par tout autre ordre (`orderMove`, `orderAttack`, garde), escouade vide supprimée. Respecte le brouillard (ne voit pas les défenseurs cachés).
+- Interface : bouton « Conquérir » (drapeau) à droite de « Garder », allumé en corail quand la sélection est en conquête, retoucher lève la consigne ; petit drapeau sur les boutons « 1 », « 2 », « 3 » dont la majorité est en conquête ; drapeau planté à ta couleur sur la case visée, tirets depuis l'escouade. Son « À l'assaut ! » (roulement de tambour et clairon), vibration. Aides en bas de l'écran.
+- « Comment jouer » : rubrique « Conquête ». README (règle, contrôle, équilibrage, versions, architecture). Pas d'étape de tutoriel : c'est une consigne, pas un geste de base (comme les renforts).
+- `TeamAi.conquestSize` et options `conquete=`, `iaconquete=`, `casesennemies=`, `pause=` dans `equilibre.ts` (les IA n'utilisent pas l'outil en partie).
+- 14 nouveaux tests (`escouades.test.ts`, `escouades-app.test.ts` qui touche le bouton dans l'application) ; 398 tests verts.
+
+**Mesuré**
+- Première version (cases ennemies comprises) : témoin humain 49,9 % → 68,9 % (graine 1) et 52,0 → 67,1 % (graine 2) avec une seule escouade de 4. Beaucoup trop fort : les IA ne reprennent pas leurs cases éloignées. Exclure les camps ennemis ne change rien, une pause de 8 s après chaque prise ramène à 57,6 %, donner l'outil aux IA à 65,5 %. Retenu : **cases libres seulement**, 52,4 % et 53,4 % (+1,5 à +2,5 points), dans la cible de 45 à 55 %.
+- Ordres par minute du témoin inchangés (16,5 à 17,1), IA 14,6 à 15,0.
+- `perf240` sur la même machine, en alternance avec la version d'avant : partie 0,247 et 0,249 ms par pas contre 0,265 et 0,250 avant : pas de régression (les escouades ne coûtent rien quand il n'y en a pas, une réflexion par escouade toutes les 0,5 s sinon).
+- Captures 844 × 390 : bouton lisible (libellé 10 px sur 60 px de large), drapeau du groupe, drapeau de la case visée visible ; « Comment jouer » : guillemets insécables dans la nouvelle rubrique.
+
+**Reste à faire, inquiétudes**
+- En milieu de partie, il reste peu de cases libres : l'escouade attend alors sans rien faire (le bouton reste allumé, plus de drapeau sur la carte). À juger par Aloys ; piste : la renvoyer d'elle-même au ralliement, ou afficher « rien à prendre » sur le groupe.
+- Le vrai enseignement de la nuit : les IA laissent leurs cases éloignées sans défense et tardent à les reprendre. Un humain attentif peut l'exploiter à la main. Idée notée dans la feuille de route.
+- Prochaine session : 1.5 b Défendre (garnison mobile sur plusieurs cases voisines).
+
 ## 09/11/2026 : session de développement, v5.10 (1.1 bis, gardes retranchés)
 
 **Fait**

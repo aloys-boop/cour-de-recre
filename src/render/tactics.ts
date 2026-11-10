@@ -190,3 +190,74 @@ export function drawReinforcements(
     ctx.restore();
   }
 }
+
+/**
+ * Escouades en conquête (consigne « Conquérir ») : tirets fins de l'escouade vers la case visée,
+ * et petit drapeau planté qui flotte au-dessus de cette case. L'escouade sélectionnée est mise en
+ * avant (trait plein de couleur, drapeau plus grand) ; les autres restent discrètes.
+ */
+export function drawConquests(
+  ctx: CanvasRenderingContext2D,
+  cam: Camera,
+  links: readonly { from: Vec2; to: Tile; selected: boolean }[],
+  colorIndex: number,
+  time: number,
+): void {
+  if (!links.length) return;
+  const z = cam.zoom;
+  const color = TEAM_COLORS[colorIndex] ?? TEAM_COLORS[0];
+  for (const { from, to, selected } of links) {
+    const a = cam.gridToScreen(from.x, from.y);
+    const b = cam.gridToScreen(to.cx, to.cy);
+    const len = Math.hypot(b.x - a.x, b.y - a.y);
+    ctx.save();
+    ctx.globalAlpha = selected ? 1 : 0.7;
+    if (len > 24 * z) {
+      ctx.setLineDash([3 * z, 5 * z]);
+      ctx.lineDashOffset = -time * 16 * z;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = 'rgba(20,20,30,0.45)';
+      ctx.lineWidth = Math.max(2.5, 3.6 * z);
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+      ctx.strokeStyle = selected ? color.light : 'rgba(255,255,255,0.8)';
+      ctx.lineWidth = Math.max(1.2, 1.8 * z);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    // Drapeau planté : mât blanc, fanion à la couleur de l'équipe qui ondule.
+    const k = selected ? 1.15 : 0.9;
+    const h = 30 * z * k;
+    const fw = 15 * z * k;
+    const fh = 10 * z * k;
+    const wave = Math.sin(time * 7) * 1.6 * z;
+    const x = b.x;
+    const y = b.y;
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.beginPath();
+    ctx.ellipse(x, y, 5 * z * k, 2.2 * z * k, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#2b2b33';
+    ctx.lineWidth = Math.max(2.5, 3.2 * z);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x, y - h);
+    ctx.stroke();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = Math.max(1.2, 1.6 * z);
+    ctx.stroke();
+    ctx.fillStyle = color.main;
+    ctx.strokeStyle = color.dark;
+    ctx.lineWidth = Math.max(1, 1.2 * z);
+    ctx.beginPath();
+    ctx.moveTo(x, y - h);
+    ctx.quadraticCurveTo(x + fw / 2, y - h - 2 * z + wave, x + fw, y - h + fh / 2 + wave / 2);
+    ctx.quadraticCurveTo(x + fw / 2, y - h + fh + 1 * z + wave, x, y - h + fh);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+}

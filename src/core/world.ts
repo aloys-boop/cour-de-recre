@@ -29,6 +29,7 @@ import { PowerState, type PowerEvent } from './powers';
 import { BrawlState, updateBrawls } from './brawls';
 import { guardArmor, updateGarrisons } from './garrison';
 import { routeNewborn, updateReinforcements } from './reinforce';
+import { updateSquads, type Squad } from './squads';
 import { CLASSES, aggroRange, applyClass, pacifist, takeSpawnClass, updateHealers, type UnitClass } from './classes';
 
 export type WorldEvent =
@@ -319,6 +320,7 @@ export class World {
       const goal = this.grid.clampPos({ x: target.x + Math.cos(a) * r, y: target.y + Math.sin(a) * r }, 0.3);
       u.order = { kind: 'move', target: goal, engage };
       u.guard = null; // un nouvel ordre libère le garde (garrison.ts le remet pour ses retours)
+      u.squad = 0; // … et l'escouade (squads.ts la remet pour ses propres ordres)
       u.engagedId = -1;
       u.supId = 0;
       u.pendingHit = 0;
@@ -334,6 +336,7 @@ export class World {
       if (!u.alive || this.isFriend(u.team, target.team)) continue;
       u.order = { kind: 'attack', target: target.pos, unitId: targetId };
       u.guard = null;
+      u.squad = 0;
       u.engagedId = targetId;
       u.supId = 0;
       this.computePath(u, target.pos);
@@ -348,6 +351,7 @@ export class World {
       if (!u.alive) continue;
       u.order = { kind: 'attack', target: { x: s.x, y: s.y }, supId: s.id };
       u.guard = null;
+      u.squad = 0;
       u.engagedId = -1;
       u.supId = s.id;
       u.pendingHit = 0;
@@ -407,6 +411,7 @@ export class World {
     this.rebuildHash();
     updatePions(this);
     updateGarrisons(this);
+    updateSquads(this, dt);
     for (const u of this.units) this.updateUnit(u, dt);
     updateHealers(this, dt);
     this.separate();
@@ -759,6 +764,12 @@ export class World {
     }
     return { x: r.x, y: r.y };
   }
+
+  // ---------------------------------------------------------------- escouades à consigne
+
+  /** Escouades en conquête (voir squads.ts), par identifiant. */
+  readonly squads = new Map<number, Squad>();
+  nextSquadId = 1;
 
   // ---------------------------------------------------------------- renforts automatiques
 

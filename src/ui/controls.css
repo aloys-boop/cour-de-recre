@@ -149,3 +149,41 @@
     height: 44px;
   }
 }
+
+/* « Conquérir » (v5.11) : un peu plus large pour son libellé ; allumé quand la sélection est en conquête. */
+.ctl-conquer {
+  width: 60px;
+}
+
+.ctl-conquer .ctl-label {
+  font-size: 10px;
+  letter-spacing: -0.2px;
+}
+
+.ctl-conquer.off {
+  opacity: 0.45;
+}
+
+.ctl-conquer.on {
+  background: #ff6a4a;
+  border-color: #fff;
+}
+
+/* Petit drapeau sur un groupe dont la majorité des élèves est en conquête. */
+.ctl-flag {
+  position: absolute;
+  bottom: -5px;
+  right: -5px;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #2b2b33;
+  border: 1.5px solid #fff;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.ctl-group.conquering .ctl-flag {
+  display: inline-flex;
+}

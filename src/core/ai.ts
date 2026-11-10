@@ -1,3 +1,4 @@
+import { assignConquest, squadMembers } from './squads';
 import { AI_ATTENTION, AI_PROFILES, type AiAttention, type AiProfile } from '../config';
 import { EconomyAi } from './ai-economy';
 import { goldenAiBonus, goldenRetarget } from './events';
@@ -75,6 +76,12 @@ export class TeamAi {
    * loin de la cible principale, pendant que le gros de l'armée attaque. 0 : pas de second front.
    */
   harassSize = 0;
+  /**
+   * Escouade en conquête (consigne « Conquérir », v5.11) : taille de l'escouade que l'IA laisse
+   * prendre seule les cases libres ou faibles. Une à la fois, reformée quand elle a disparu,
+   * seulement si l'armée libre suffit encore pour le groupe principal. 0 : pas d'escouade.
+   */
+  conquestSize = 0;
   private harassTarget: Tile | null = null;
   private harassSince = 0;
 
@@ -171,6 +178,18 @@ export class TeamAi {
     }
   }
 
+  /** Forme l'escouade en conquête si l'IA n'en a pas (un ordre du budget d'attention). */
+  private conquest(mine: Unit[]): void {
+    const w = this.world;
+    for (const sq of w.squads.values()) if (sq.team === this.team && squadMembers(w, sq.id).length > 0) return;
+    const free = mine.filter((u) => u.aiTag === TAG_FREE && u.engagedId < 0);
+    if (free.length < 2 * this.profile.groupMin + this.conquestSize) return;
+    if (!this.spend()) return;
+    const squad = free.slice(0, this.conquestSize);
+    assignConquest(w, squad);
+    for (const u of squad) mine.splice(mine.indexOf(u), 1);
+  }
+
   /** Case visée par le groupe de harcèlement (mesures, tests). */
   get harassing(): Tile | null {
     return this.harassTarget;
@@ -179,9 +198,10 @@ export class TeamAi {
   private think(): void {
     const w = this.world;
     // Les élèves de garde (ordre « Garder », voir garrison.ts) vivent leur vie : l'IA ne les commande pas.
-    const mine = w.units.filter((u) => u.team === this.team && u.alive && !u.pion && u.aiTag !== TAG_LOANED && !u.guard);
+    const mine = w.units.filter((u) => u.team === this.team && u.alive && !u.pion && u.aiTag !== TAG_LOANED && !u.guard && !u.squad);
     if (mine.length === 0) return;
     for (const u of mine) if (u.order.kind === 'none' && u.aiTag !== TAG_RALLY) u.aiTag = TAG_FREE;
+    if (this.conquestSize > 0) this.conquest(mine);
 
     const owned = w.tiles.filter((t) => t.owner === this.team);
     // Ennemis visibles autour d'un point : requête dans le hash spatial du monde (pas de parcours de tous les élèves).

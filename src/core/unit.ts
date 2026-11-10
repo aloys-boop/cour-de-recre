@@ -59,6 +59,8 @@ export class Unit {
   home: Tile | null = null;
   /** Garnison (ordre « Garder », voir garrison.ts) : case gardée, ou null. */
   guard: Tile | null = null;
+  /** Escouade en conquête (consigne « Conquérir », voir squads.ts) : identifiant, ou 0. */
+  squad = 0;
   /** Instant de la dernière recherche d'intrus dans la zone gardée. */
   guardScan = 0;
   hpMul = 1;

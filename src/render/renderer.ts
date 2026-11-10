@@ -15,7 +15,7 @@ import { drawFrozenMark } from './powers';
 import { SUPERVISOR_SCALE } from '../core/supervisors';
 import { PION } from '../core/pion';
 import type { Supervisor } from '../core/supervisors';
-import { CHARGE_COLOR, drawHealHeart, drawRallies, drawReinforcements, drawSpadeAura, spadeAuraTeams } from './tactics';
+import { CHARGE_COLOR, drawHealHeart, drawRallies, drawConquests, drawReinforcements, drawSpadeAura, spadeAuraTeams } from './tactics';
 import { tileView, unitVisible, pointVisible } from '../core/fog';
 import { drawFog } from './fog';
 import { campPennants, drawPennant } from './merits';
@@ -88,6 +88,8 @@ export class Renderer {
       guardZones?: Tile[];
       /** Renforts automatiques du joueur : camp → case secourue (pointillé à chevrons). */
       reinforcements?: { from: Tile; to: Tile }[];
+      /** Escouades en conquête du joueur : centre et case visée. */
+      conquests?: { from: Vec2; to: Tile; selected: boolean }[];
     },
   ): void {
     const ctx = this.ctx;
@@ -106,6 +108,7 @@ export class Renderer {
     const lines = opts.rallyLines;
     drawRallies(ctx, world, cam, opts.playerTeam, opts.time, (c) => lines === 'all' || (!!lines && lines.includes(c)));
     if (opts.reinforcements) drawReinforcements(ctx, cam, opts.reinforcements, myColor, opts.time);
+    if (opts.conquests) drawConquests(ctx, cam, opts.conquests, myColor, opts.time);
     drawFog(ctx, world, cam, opts.playerTeam, this.makeCanvas);
     for (const t of world.tiles) if (t.isCamp && t.owner !== NO_TEAM) this.drawCampBadge(world, t, cam);
     if (opts.guards) for (const [t, n] of opts.guards) drawGuardBadge(ctx, cam, t, n, myColor);

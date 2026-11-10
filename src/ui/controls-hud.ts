@@ -10,13 +10,16 @@ export const GROUP_HOLD_MS = 400;
  *  - « 1 », « 2 », « 3 » : appui long = enregistrer la sélection, tap = rappeler le groupe,
  *    second tap rapide = centrer la caméra dessus ; le bouton affiche le nombre d'élèves vivants ;
  *  - « Camp » : repli de la sélection sur le camp le plus proche, pour se soigner ;
- *  - « Garder » : la sélection garde une case (celle où elle se tient, sinon la prochaine touchée).
+ *  - « Garder » : la sélection garde une case (celle où elle se tient, sinon la prochaine touchée) ;
+ *  - « Conquérir » : la sélection devient une escouade qui prend seule les cases libres
+ *    (retoucher le bouton lève la consigne) ; un petit drapeau marque les groupes en conquête.
  */
 export class ControlsHud {
   readonly el: HTMLElement;
   private groupBtns: HTMLButtonElement[] = [];
   private campBtn: HTMLButtonElement;
   private guardBtn: HTMLButtonElement;
+  private conquerBtn: HTMLButtonElement;
   private taps = new DoubleTap(380, Infinity);
   private timer = 0;
 
@@ -52,6 +55,14 @@ export class ControlsHud {
     this.guardBtn.innerHTML = `${guardIcon()}<span class="ctl-label">Garder</span>`;
     this.guardBtn.addEventListener('click', () => this.guard());
     row.appendChild(this.guardBtn);
+    this.conquerBtn = document.createElement('button');
+    this.conquerBtn.type = 'button';
+    this.conquerBtn.id = 'btn-conquer';
+    this.conquerBtn.className = 'ctl-btn ctl-camp ctl-conquer';
+    this.conquerBtn.setAttribute('aria-label', 'Conquérir : la sélection prend seule les cases libres');
+    this.conquerBtn.innerHTML = `${flagIcon()}<span class="ctl-label">Conquérir</span>`;
+    this.conquerBtn.addEventListener('click', () => this.conquer());
+    row.appendChild(this.conquerBtn);
     this.root.appendChild(this.el);
     this.refresh();
     this.timer = window.setInterval(() => {
@@ -68,10 +79,15 @@ export class ControlsHud {
       const txt = n > 0 ? String(n) : '';
       if (c.textContent !== txt) c.textContent = txt;
       b.classList.toggle('empty', n === 0);
+      b.classList.toggle('conquering', n > 0 && !!game && game.groupConquering(i) * 2 >= n);
     });
     this.campBtn.classList.toggle('off', !game || game.selected.size === 0);
     this.guardBtn.classList.toggle('off', !game || game.selected.size === 0);
     this.guardBtn.classList.toggle('armed', !!game && game.guardArmed);
+    this.conquerBtn.classList.toggle('off', !game || game.selected.size === 0);
+    const on = !!game && game.selectionConquers;
+    this.conquerBtn.classList.toggle('on', on);
+    this.conquerBtn.setAttribute('aria-pressed', String(on));
   }
 
   destroy(): void {
@@ -133,6 +149,15 @@ export class ControlsHud {
     this.refresh();
   }
 
+  /** « Conquérir » : la sélection part en conquête (ou s'arrête si elle y est déjà). */
+  conquer(): void {
+    const game = this.getGame();
+    if (!game) return;
+    const r = game.conquer();
+    if (r === 'vide' && !game.paused && !game.over) this.hint('Sélectionne des élèves, puis « Conquérir » : ils prendront seuls les cases libres.');
+    this.refresh();
+  }
+
   // ---------------------------------------------------------------- boutons
 
   private makeGroupButton(i: number): HTMLButtonElement {
@@ -141,7 +166,7 @@ export class ControlsHud {
     b.id = `btn-group-${i + 1}`;
     b.className = 'ctl-btn ctl-group empty';
     b.setAttribute('aria-label', `Groupe ${i + 1} : toucher pour le sélectionner, appui long pour y enregistrer la sélection`);
-    b.innerHTML = `<span class="ctl-num">${i + 1}</span><span class="ctl-count"></span>`;
+    b.innerHTML = `<span class="ctl-num">${i + 1}</span><span class="ctl-count"></span><span class="ctl-flag" aria-hidden="true">${flagIcon(12)}</span>`;
     let hold = 0;
     let fired = false;
     let down = false;
@@ -181,4 +206,8 @@ function campIcon(): string {
 
 function guardIcon(): string {
   return '<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5c3 1.4 5.6 1.8 8 1.6v6.4c0 4.4-3.3 7.6-8 9-4.7-1.4-8-4.6-8-9V3.1c2.4.2 5-.2 8-1.6z" fill="#fff"/><path d="M10 4.2c2 .9 3.8 1.2 5.4 1.1v4.2c0 3-2.2 5.2-5.4 6.2z" fill="#2b2b33"/></svg>';
+}
+
+function flagIcon(size = 20): string {
+  return `<svg width="${size}" height="${size}" viewBox="0 0 20 20" aria-hidden="true"><path d="M4.5 2v16.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><path d="M5.5 2.6c3-1.4 5.2 1.4 9.8.2v7.2c-4.6 1.2-6.8-1.6-9.8-.2z" fill="#ff6a4a" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
 }

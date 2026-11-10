@@ -38,6 +38,7 @@ import { BrawlBars } from './render/brawls';
 import type { Vec2 } from './core/types';
 import { TutorialState, type TutorialEvent } from './core/tutorial';
 import { assignGuards, canGuard, guardCounts } from './core/garrison';
+import { assignConquest, releaseSquad, squadMembers } from './core/squads';
 
 /** Résultat d'une partie ; « abandon » : le joueur a abandonné (défaite, statistiques quand même). */
 export type GameResult = 'victoire' | 'defaite' | 'abandon';
@@ -93,7 +94,8 @@ export type PlayerAction =
   | { kind: 'class'; id: string }
   | { kind: 'pion' }
   | { kind: 'guard'; count: number }
-  | { kind: 'reinforce'; on: boolean };
+  | { kind: 'reinforce'; on: boolean }
+  | { kind: 'conquer'; count: number };
 
 const STEP = 1 / 60;
 /** Glisser d'un pouvoir : bande (px) près des bords où la caméra défile, et vitesse maximale (px/s). */
@@ -459,6 +461,7 @@ export class Game {
       guards: guardCounts(this.world, this.playerTeam),
       guardZones: this.guardZones(),
       reinforcements: this.reinforceLinks(),
+      conquests: this.conquestLinks(),
     });
     if (this.flash) drawTileFlash(ctx, this.cam, this.flash);
     if (this.armedPower && this.powerAim) drawPowerAim(ctx, this.cam, this.world, this.armedPower, this.powerAim, this.playerTeam, this.time, false);
@@ -634,6 +637,73 @@ export class Game {
     const total = guardCounts(this.world, this.playerTeam).get(tile) ?? n;
     this.hooks.onHint?.(`${total} garde${total > 1 ? 's' : ''} sur cette case : ils la défendent et la reprennent si elle tombe.`);
     this.act({ kind: 'guard', count: n });
+  }
+
+  /**
+   * Bouton « Conquérir » : la sélection forme une escouade qui prend d'elle-même, l'une après
+   * l'autre, les cases libres les plus proches. Si toute la sélection est déjà en
+   * conquête, la consigne est levée (les élèves s'arrêtent là où ils vont).
+   */
+  conquer(): 'conquete' | 'stop' | 'rien' | 'vide' {
+    if (this.paused || this.over) return 'vide';
+    const units = this.selectedUnits().filter((u) => !u.pion);
+    if (units.length === 0) return 'vide';
+    if (units.every((u) => u.squad > 0)) {
+      releaseSquad(units);
+      this.sfx.play('order');
+      this.hooks.onHint?.('Consigne « Conquérir » levée : ces élèves attendent tes ordres.');
+      return 'stop';
+    }
+    this.guardArmed = false;
+    const sq = assignConquest(this.world, units);
+    if (!sq) return 'vide';
+    this.act({ kind: 'conquer', count: units.length });
+    if (!sq.target) {
+      this.sfx.play('select');
+      this.hooks.onHint?.('Conquête : rien à prendre à portée pour l’instant. L’escouade attend et repartira dès qu’une case s’ouvre.');
+      return 'rien';
+    }
+    this.flash = { tile: sq.target, t: 0 };
+    this.markers.push({ x: sq.target.cx, y: sq.target.cy, t: 0, kind: 'capture', team: this.opts.playerColor });
+    this.sfx.play('conquer');
+    navigator.vibrate?.([10, 30, 10]);
+    const n = units.length;
+    this.hooks.onHint?.(`Escouade de ${n} en conquête : elle prend les cases libres une à une.`);
+    return 'conquete';
+  }
+
+  /** La sélection est-elle entièrement en conquête (bouton « Conquérir » allumé) ? */
+  get selectionConquers(): boolean {
+    let any = false;
+    for (const id of this.selected) {
+      const u = this.world.unitById(id);
+      if (!u || !u.alive || u.pion || u.team !== this.playerTeam) continue;
+      if (u.squad === 0) return false;
+      any = true;
+    }
+    return any;
+  }
+
+  /** Nombre d'élèves en conquête dans un groupe mémorisé. */
+  groupConquering(index: number): number {
+    let n = 0;
+    for (const id of this.groups.ids(index)) {
+      const u = this.world.unitById(id);
+      if (u && u.alive && u.squad > 0) n++;
+    }
+    return n;
+  }
+
+  /** Escouades en conquête du joueur : centre de l'escouade et case visée (pointillé et drapeau). */
+  conquestLinks(): { from: Vec2; to: Tile; selected: boolean }[] {
+    const out: { from: Vec2; to: Tile; selected: boolean }[] = [];
+    for (const sq of this.world.squads.values()) {
+      if (sq.team !== this.playerTeam || !sq.target) continue;
+      const m = squadMembers(this.world, sq.id);
+      const c = centroid(m.map((u) => u.pos));
+      if (c) out.push({ from: c, to: sq.target, selected: m.some((u) => this.selected.has(u.id)) });
+    }
+    return out;
   }
 
   /** Zones défendues à montrer : cases gardées par la sélection, ou toutes pendant que « Garder » est armé. */
