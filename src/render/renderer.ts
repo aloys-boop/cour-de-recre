@@ -5,6 +5,7 @@ import type { Unit } from '../core/unit';
 import type { World } from '../core/world';
 import type { Camera } from './camera';
 import { drawGuardBadge, drawGuardZone } from './garrison';
+import { drawDefenceAir, drawDefenceFloor, type DefenceView } from './defence';
 import { drawGoldenTile, drawStarvingBar } from './golden';
 import { drawGhostCamp } from './ghost';
 import { drawThroneTile } from './king';
@@ -90,6 +91,8 @@ export class Renderer {
       reinforcements?: { from: Tile; to: Tile }[];
       /** Escouades en conquête du joueur : centre et case visée. */
       conquests?: { from: Vec2; to: Tile; selected: boolean }[];
+      /** Escouades en défense du joueur : secteur, poste, case secourue. */
+      defences?: DefenceView[];
     },
   ): void {
     const ctx = this.ctx;
@@ -102,6 +105,7 @@ export class Renderer {
     for (const t of world.tiles) this.drawTile(world, t, cam, opts.time);
     const myColor = world.teamColors[opts.playerTeam];
     if (opts.guardZones) for (const t of opts.guardZones) drawGuardZone(ctx, cam, t, myColor, opts.time);
+    if (opts.defences) drawDefenceFloor(ctx, cam, opts.defences, myColor, opts.time);
     this.drawMarkers(opts.markers, cam, 'floor');
     this.drawUnitsAndObstacles(world, cam, opts.selected, opts.playerTeam);
     // Drapeaux de ralliement par-dessus les élèves : ceux qui s'y rassemblent ne les cachent pas.
@@ -109,6 +113,7 @@ export class Renderer {
     drawRallies(ctx, world, cam, opts.playerTeam, opts.time, (c) => lines === 'all' || (!!lines && lines.includes(c)));
     if (opts.reinforcements) drawReinforcements(ctx, cam, opts.reinforcements, myColor, opts.time);
     if (opts.conquests) drawConquests(ctx, cam, opts.conquests, myColor, opts.time);
+    if (opts.defences) drawDefenceAir(ctx, cam, opts.defences, myColor, opts.time);
     drawFog(ctx, world, cam, opts.playerTeam, this.makeCanvas);
     for (const t of world.tiles) if (t.isCamp && t.owner !== NO_TEAM) this.drawCampBadge(world, t, cam);
     if (opts.guards) for (const [t, n] of opts.guards) drawGuardBadge(ctx, cam, t, n, myColor);

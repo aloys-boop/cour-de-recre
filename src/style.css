@@ -541,7 +541,8 @@ button {
   line-height: 1.3;
   text-align: center;
   width: max-content;
-  max-width: min(560px, calc(100vw - 32px - var(--sal) - var(--sar)));
+  /* Centrée, elle laisse libre la colonne des contrôles à gauche (5 rangées depuis la v5.12). */
+  max-width: min(560px, calc(100vw - 300px - 2 * max(var(--sal), var(--sar))));
 }
 
 /* ------------------------------------------------------------ Menu */

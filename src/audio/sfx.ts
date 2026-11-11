@@ -6,6 +6,7 @@ export type SfxName =
   | 'alert'
   | 'reinforce'
   | 'conquer'
+  | 'defend'
   | 'punch'
   | 'hit'
   | 'ko'
@@ -155,6 +156,13 @@ export class Sfx {
         for (let i = 0; i < 4; i++) this.noise(t + i * 0.045, 0.04, 1800, 0.16);
         this.tone(t + 0.2, 523, 523, 0.09, 'square', 0.2);
         this.tone(t + 0.3, 784, 790, 0.18, 'square', 0.22);
+        break;
+      case 'defend':
+        // « Serrez les rangs ! » : coup de sifflet de surveillant, puis deux pas lourds.
+        this.tone(t, 2100, 2350, 0.09, 'sine', 0.18);
+        this.tone(t + 0.11, 2350, 2350, 0.16, 'sine', 0.2);
+        this.noise(t + 0.3, 0.05, 700, 0.45);
+        this.noise(t + 0.42, 0.05, 700, 0.45);
         break;
       case 'defeat':
         [440, 415, 392, 330].forEach((f, i) => this.tone(t + i * 0.22, f, f * 0.9, 0.3, 'sawtooth', 0.3));

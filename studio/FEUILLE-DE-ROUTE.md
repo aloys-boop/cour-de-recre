@@ -22,8 +22,9 @@ But mesurable : un joueur humain qui donne 15 à 25 ordres par minute doit pouvo
 - [x] **1.2 Garnisons.** (v5.5, 05/11/2026) Ordre « Garder » sur une case : les élèves assignés restent dans la zone, défendent un rayon, ne se font pas attirer loin, reprennent la case s'ils la perdent. Pastille visible sur la case gardée (nombre de gardes).
 - [ ] **1.5 Escouades à consigne.** Découpé en trois tranches :
   - [x] **1.5 a Conquérir.** (v5.11, 10/11/2026) Bouton « Conquérir » : la sélection devient une escouade qui prend seule, l'une après l'autre, la case libre la plus proche (sans tricher sous le brouillard, renonce à une case trop défendue). Drapeau sur la case visée et sur le groupe 1-2-3 en conquête. Les cases ennemies sont exclues : mesuré, les viser rendait Normal beaucoup trop facile (témoin 67 à 73 %).
-  - [ ] **1.5 b Défendre.** Garnison mobile : l'escouade tient une zone de plusieurs cases voisines et court à celle qui est attaquée.
+  - [x] **1.5 b Défendre.** (v5.12, 11/11/2026) Bouton « Défendre » : garnison mobile d'un secteur de 4 cases au plus autour de l'escouade ; poste au centre, secours de la case attaquée ou tombée, laisse de 4,2 cases, retranchée comme des gardes. Bouclier sur le poste, bouclier « ! » sur la case secourue, bouclier bleu sur le groupe. Mesuré : coûte au témoin à 4 élèves (−4 à −6 points), neutre à 6.
   - [ ] **1.5 c Suivre.** L'escouade escorte un autre groupe (ou se colle à lui pour le renforcer).
+  - Idée (11/11) : laisser régler le secteur au doigt (toucher les cases à ajouter ou retirer, comme « Garder » armé), si Aloys trouve le secteur automatique trop rigide.
   - Idée (à valider) : apprendre aux IA à reprendre plus vite leurs cases éloignées ; ce n'est qu'ensuite qu'une conquête des cases ennemies (réservée à Facile ?) pourrait revenir.
 - [ ] **1.6 Rythme réglable.** Vitesse de jeu ×0,75 / ×1 en Facile et Normal, et pause tactique où l'on peut donner des ordres (option).
 - [ ] **1.7 Bilan saison 1.** Simulations, réglages fins, mise à jour du tutoriel et de « Comment jouer » pour tous les nouveaux gestes.

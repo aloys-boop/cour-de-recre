@@ -187,3 +187,61 @@
 .ctl-group.conquering .ctl-flag {
   display: inline-flex;
 }
+
+/* « Défendre » (v5.12) : bleu quand la sélection est en défense ; même largeur que « Conquérir ». */
+.ctl-defend.on {
+  background: #3f8cff;
+  border-color: #fff;
+}
+
+.ctl-defend.on svg path:first-child {
+  fill: #1a3f88;
+}
+
+/* Petit bouclier sur un groupe dont la majorité des élèves est en défense (à gauche du drapeau). */
+.ctl-shield {
+  position: absolute;
+  bottom: -5px;
+  left: -5px;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #2b2b33;
+  border: 1.5px solid #fff;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.ctl-group.defending .ctl-shield {
+  display: inline-flex;
+}
+
+/* Écrans de hauteur moyenne (iPhone en paysage) : la colonne a 5 rangées, on serre un peu. */
+@media (max-height: 420px) {
+  .hud-controls,
+  .ctl-row {
+    gap: 5px;
+  }
+  .ctl-btn {
+    width: 46px;
+    height: 46px;
+  }
+  .ctl-conquer {
+    width: 60px;
+  }
+}
+
+@media (max-height: 360px) {
+  .hud-controls,
+  .ctl-row {
+    gap: 4px;
+  }
+  .ctl-btn {
+    width: 44px;
+    height: 44px;
+  }
+  .ctl-conquer {
+    width: 58px;
+  }
+}

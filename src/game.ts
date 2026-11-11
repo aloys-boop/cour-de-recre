@@ -23,6 +23,7 @@ import { centroid, ControlGroups, DoubleTap, nearestOwnCamp, onScreen } from './
 import { drawArrow, type OrderArrow } from './render/arrow';
 import { magnetTile, neighbourRadius, orderMoveExact, pickUnit, startFocus, startZoom, tileGoals, type AimTile, type PickResult } from './core/aim';
 import { drawTileFlash, type TileFlash } from './render/aimfx';
+import type { DefenceView } from './render/defence';
 import { eventPerceived, pointVisible, unitVisible } from './core/fog';
 import { isSupervisor, supervisorActive, supervisorAnnouncement, supervisorsOf, takeWhistles, type Supervisor } from './core/supervisors';
 import { teamPlural } from './core/diplomacy';
@@ -38,7 +39,7 @@ import { BrawlBars } from './render/brawls';
 import type { Vec2 } from './core/types';
 import { TutorialState, type TutorialEvent } from './core/tutorial';
 import { assignGuards, canGuard, guardCounts } from './core/garrison';
-import { assignConquest, releaseSquad, squadMembers } from './core/squads';
+import { assignConquest, assignDefence, releaseSquad, squadMembers, squadMode, type SquadMode } from './core/squads';
 
 /** Résultat d'une partie ; « abandon » : le joueur a abandonné (défaite, statistiques quand même). */
 export type GameResult = 'victoire' | 'defaite' | 'abandon';
@@ -95,7 +96,8 @@ export type PlayerAction =
   | { kind: 'pion' }
   | { kind: 'guard'; count: number }
   | { kind: 'reinforce'; on: boolean }
-  | { kind: 'conquer'; count: number };
+  | { kind: 'conquer'; count: number }
+  | { kind: 'defend'; count: number; tiles: number };
 
 const STEP = 1 / 60;
 /** Glisser d'un pouvoir : bande (px) près des bords où la caméra défile, et vitesse maximale (px/s). */
@@ -462,6 +464,7 @@ export class Game {
       guardZones: this.guardZones(),
       reinforcements: this.reinforceLinks(),
       conquests: this.conquestLinks(),
+      defences: this.defenceViews(),
     });
     if (this.flash) drawTileFlash(ctx, this.cam, this.flash);
     if (this.armedPower && this.powerAim) drawPowerAim(ctx, this.cam, this.world, this.armedPower, this.powerAim, this.playerTeam, this.time, false);
@@ -648,7 +651,7 @@ export class Game {
     if (this.paused || this.over) return 'vide';
     const units = this.selectedUnits().filter((u) => !u.pion);
     if (units.length === 0) return 'vide';
-    if (units.every((u) => u.squad > 0)) {
+    if (units.every((u) => squadMode(this.world, u) === 'conquer')) {
       releaseSquad(units);
       this.sfx.play('order');
       this.hooks.onHint?.('Consigne « Conquérir » levée : ces élèves attendent tes ordres.');
@@ -672,24 +675,77 @@ export class Game {
     return 'conquete';
   }
 
-  /** La sélection est-elle entièrement en conquête (bouton « Conquérir » allumé) ? */
-  get selectionConquers(): boolean {
-    let any = false;
+  /**
+   * Bouton « Défendre » (v5.12) : la sélection devient une garnison mobile chargée des cases à toi
+   * qui l'entourent (4 au plus) ; elle se poste au centre, court à la case attaquée et reprend celle
+   * qui tombe. Si toute la sélection défend déjà, la consigne est levée.
+   */
+  defend(): 'defense' | 'stop' | 'rien' | 'vide' {
+    if (this.paused || this.over) return 'vide';
+    const units = this.selectedUnits().filter((u) => !u.pion);
+    if (units.length === 0) return 'vide';
+    if (units.every((u) => squadMode(this.world, u) === 'defend')) {
+      releaseSquad(units);
+      this.sfx.play('order');
+      this.hooks.onHint?.('Consigne « Défendre » levée : ces élèves attendent tes ordres.');
+      return 'stop';
+    }
+    this.guardArmed = false;
+    const sq = assignDefence(this.world, units);
+    if (!sq) {
+      this.sfx.play('deny');
+      this.hooks.onHint?.('Aucune case à toi par ici : amène d’abord l’escouade près de tes cases, puis « Défendre ».');
+      return 'rien';
+    }
+    this.act({ kind: 'defend', count: units.length, tiles: sq.zone.length });
+    for (const t of sq.zone) this.markers.push({ x: t.cx, y: t.cy, t: 0, kind: 'capture', team: this.opts.playerColor });
+    if (sq.post) this.flash = { tile: sq.post, t: 0 };
+    this.sfx.play('defend');
+    navigator.vibrate?.([20, 40, 20]);
+    const k = sq.zone.length;
+    const small = units.length < 4 ? ' À moins de 4, elle sera vite débordée.' : '';
+    this.hooks.onHint?.(`Escouade de ${units.length} en défense de ${k} case${k > 1 ? 's' : ''} : elle court à celle qui est attaquée, puis revient.${small}`);
+    return 'defense';
+  }
+
+  /** Mode commun de toute la sélection (bouton allumé), ou null. */
+  private selectionMode(): SquadMode | null {
+    let mode: SquadMode | null = null;
     for (const id of this.selected) {
       const u = this.world.unitById(id);
       if (!u || !u.alive || u.pion || u.team !== this.playerTeam) continue;
-      if (u.squad === 0) return false;
-      any = true;
+      const m = squadMode(this.world, u);
+      if (!m || (mode && m !== mode)) return null;
+      mode = m;
     }
-    return any;
+    return mode;
+  }
+
+  /** La sélection est-elle entièrement en conquête (bouton « Conquérir » allumé) ? */
+  get selectionConquers(): boolean {
+    return this.selectionMode() === 'conquer';
+  }
+
+  /** La sélection est-elle entièrement en défense (bouton « Défendre » allumé) ? */
+  get selectionDefends(): boolean {
+    return this.selectionMode() === 'defend';
   }
 
   /** Nombre d'élèves en conquête dans un groupe mémorisé. */
   groupConquering(index: number): number {
+    return this.groupInMode(index, 'conquer');
+  }
+
+  /** Nombre d'élèves en défense dans un groupe mémorisé. */
+  groupDefending(index: number): number {
+    return this.groupInMode(index, 'defend');
+  }
+
+  private groupInMode(index: number, mode: SquadMode): number {
     let n = 0;
     for (const id of this.groups.ids(index)) {
       const u = this.world.unitById(id);
-      if (u && u.alive && u.squad > 0) n++;
+      if (u && u.alive && squadMode(this.world, u) === mode) n++;
     }
     return n;
   }
@@ -698,10 +754,22 @@ export class Game {
   conquestLinks(): { from: Vec2; to: Tile; selected: boolean }[] {
     const out: { from: Vec2; to: Tile; selected: boolean }[] = [];
     for (const sq of this.world.squads.values()) {
-      if (sq.team !== this.playerTeam || !sq.target) continue;
+      if (sq.team !== this.playerTeam || sq.mode !== 'conquer' || !sq.target) continue;
       const m = squadMembers(this.world, sq.id);
       const c = centroid(m.map((u) => u.pos));
       if (c) out.push({ from: c, to: sq.target, selected: m.some((u) => this.selected.has(u.id)) });
+    }
+    return out;
+  }
+
+  /** Escouades en défense du joueur : secteur, poste, case secourue et centre de l'escouade. */
+  defenceViews(): DefenceView[] {
+    const out: DefenceView[] = [];
+    for (const sq of this.world.squads.values()) {
+      if (sq.team !== this.playerTeam || sq.mode !== 'defend') continue;
+      const m = squadMembers(this.world, sq.id);
+      const c = centroid(m.map((u) => u.pos));
+      if (c) out.push({ zone: sq.zone, post: sq.post, target: sq.target, from: c, selected: m.some((u) => this.selected.has(u.id)) });
     }
     return out;
   }

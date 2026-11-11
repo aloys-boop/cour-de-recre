@@ -20,6 +20,10 @@
 //     style=humain     témoin « humain » (1.1 bis) : secours=camps renforts=1 harcele=3, sans garnison
 //                      (chaque réglage reste remplaçable : style=humain garde=2 part=0.3)
 //     conquete=0       taille de l'escouade que le témoin laisse en consigne « Conquérir » (v5.11, 0 : aucune)
+//     defense=0        taille de l'escouade que le témoin laisse en consigne « Défendre » (v5.12, 0 : aucune)
+//     defenseou=grappe où se forme cette escouade : grappe (la plus riche en cases du témoin) ou camp (son premier camp)
+//     defenseseuil=3   l'escouade ne se forme que si le témoin a au moins ce multiple de sa taille en élèves libres
+//     retranche=1      escouades en défense retranchées dans leur secteur (SQUAD.entrenched)
 //     casesennemies=0  les escouades visent-elles les cases tenues par un ennemi (SQUAD.enemyTiles)
 //     pause=0          pause des escouades après chaque prise (SQUAD.pause, s)
 //     iaconquete=0     taille de l'escouade en conquête des IA adverses (0 : aucune)
@@ -39,7 +43,7 @@ import { fork } from 'node:child_process';
 import { HUMAN_ATTENTION, STAT_POINT_VALUES, TEAM_NAMES, UNLIMITED_ATTENTION, type AiAttention, type AiProfile, type TeamStat } from '../../src/config';
 import { TeamAi, type RescueMode } from '../../src/core/ai';
 import { GARRISON } from '../../src/core/garrison';
-import { assignConquest, SQUAD, squadsOf } from '../../src/core/squads';
+import { assignConquest, assignDefence, SQUAD, squadsOf } from '../../src/core/squads';
 import { generateMap, LEVELS, type LevelDef } from '../../src/core/maps';
 import { Rng } from '../../src/core/rng';
 import { skirmishLevel } from '../../src/core/skirmish';
@@ -77,6 +81,10 @@ const part = Number(args.part ?? 0.25);
 const renforts = args.renforts === '1';
 const conquete = Number(args.conquete ?? 0);
 const iaConquete = Number(args.iaconquete ?? 0);
+const defense = Number(args.defense ?? 0);
+const defenseOu = String(args.defenseou ?? 'grappe');
+const defenseSeuil = Number(args.defenseseuil ?? 3);
+if (args.retranche !== undefined) (SQUAD as { entrenched: boolean }).entrenched = args.retranche !== '0';
 if (args.casesennemies) (SQUAD as { enemyTiles: boolean }).enemyTiles = args.casesennemies === '1';
 if (args.pause) (SQUAD as { pause: number }).pause = Number(args.pause);
 const aiAttention: Partial<AiAttention> | undefined = avant ? UNLIMITED_ATTENTION : args.attention ? (JSON.parse(args.attention) as Partial<AiAttention>) : undefined;
@@ -168,9 +176,32 @@ function playGame(index: number): Game {
     const k = tick++;
     if (renforts && temoin && k % 60 === 0) for (const c of world.tiles) if (c.isCamp && c.owner === slot && !world.reinforceOn(c)) world.setReinforce(slot, c, true);
     // Consigne « Conquérir » du témoin : une escouade à la fois, reformée dès qu'elle disparaît.
-    if (conquete && temoin && k % 60 === 30 && squadsOf(world, slot).length === 0) {
+    if (conquete && temoin && k % 60 === 30 && !squadsOf(world, slot).some((s) => s.squad.mode === 'conquer')) {
       const free = world.units.filter((u) => u.team === slot && u.alive && !u.pion && !u.guard && u.order.kind === 'none' && u.engagedId < 0);
       if (free.length >= conquete * 2) assignConquest(world, free.slice(0, conquete));
+    }
+    // Consigne « Défendre » du témoin : une escouade à la fois, reformée dès qu'elle disparaît, une fois
+    // l'armée assez grande (`defenseseuil` × la taille de l'escouade). Elle tient le premier camp
+    // (defenseou=camp) ou la grappe la plus riche de cases à lui (defenseou=grappe).
+    if (defense && temoin && k % 60 === 45 && !squadsOf(world, slot).some((s) => s.squad.mode === 'defend')) {
+      const free = world.units.filter((u) => u.team === slot && u.alive && !u.pion && !u.guard && !u.squad && u.engagedId < 0);
+      const mine = world.tiles.filter((c) => (c.kind === 'bonus' || c.isCamp || c.kind === 'throne') && c.owner === slot);
+      let home = mine.find((c) => c.isCamp) ?? null;
+      if (defenseOu === 'grappe') {
+        let best = -1;
+        for (const c of mine) {
+          const n = mine.filter((o) => Math.hypot(o.cx - c.cx, o.cy - c.cy) <= SQUAD.zoneReach).length;
+          if (n > best) {
+            best = n;
+            home = c;
+          }
+        }
+      }
+      if (home && free.length >= defense * defenseSeuil) {
+        const h = home;
+        free.sort((a, b) => Math.hypot(a.x - h.cx, a.y - h.cy) - Math.hypot(b.x - h.cx, b.y - h.cy));
+        assignDefence(world, free.slice(0, defense), { x: h.cx, y: h.cy });
+      }
     }
     for (const a of ais) a.update(step);
     world.update(step);
@@ -255,7 +286,7 @@ if (args.tranche) {
   if (temoin) {
     const r = total.temoinWins / nGames;
     const se = Math.sqrt((r * (1 - r)) / nGames);
-    const style = `secours ${secours}, garde ${garde}${garde ? ` (part ${part})` : ''}, renforts ${renforts ? 'oui' : 'non'}, harcèlement ${harcele || 'non'}, conquête ${conquete || 'non'}, garnisons rayon ${GARRISON.radius} laisse ${GARRISON.leash} armure ${GARRISON.armor}`;
+    const style = `secours ${secours}, garde ${garde}${garde ? ` (part ${part})` : ''}, renforts ${renforts ? 'oui' : 'non'}, harcèlement ${harcele || 'non'}, conquête ${conquete || 'non'}, défense ${defense ? `${defense} (${defenseOu}, seuil ${defenseSeuil}, retranchée ${SQUAD.entrenched ? 'oui' : 'non'})` : 'non'}, garnisons rayon ${GARRISON.radius} laisse ${GARRISON.leash} armure ${GARRISON.armor}`;
     console.log(`témoin : ${style}`);
     console.log(`joueur témoin (réaction ${reaction} s) : ${total.temoinWins.toFixed(1)} victoires / ${nGames} = ${(r * 100).toFixed(1)} % (± ${(196 * se).toFixed(1)})`);
   }

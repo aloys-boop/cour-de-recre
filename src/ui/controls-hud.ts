@@ -12,7 +12,10 @@ export const GROUP_HOLD_MS = 400;
  *  - « Camp » : repli de la sélection sur le camp le plus proche, pour se soigner ;
  *  - « Garder » : la sélection garde une case (celle où elle se tient, sinon la prochaine touchée) ;
  *  - « Conquérir » : la sélection devient une escouade qui prend seule les cases libres
- *    (retoucher le bouton lève la consigne) ; un petit drapeau marque les groupes en conquête.
+ *    (retoucher le bouton lève la consigne) ; un petit drapeau marque les groupes en conquête ;
+ *  - « Défendre » (v5.12) : la sélection devient une garnison mobile du secteur qui l'entoure ;
+ *    un petit bouclier bleu marque les groupes en défense.
+ * Les deux consignes d'escouade ont leur propre rangée, sous « Camp » et « Garder ».
  */
 export class ControlsHud {
   readonly el: HTMLElement;
@@ -20,6 +23,7 @@ export class ControlsHud {
   private campBtn: HTMLButtonElement;
   private guardBtn: HTMLButtonElement;
   private conquerBtn: HTMLButtonElement;
+  private defendBtn: HTMLButtonElement;
   private taps = new DoubleTap(380, Infinity);
   private timer = 0;
 
@@ -62,7 +66,18 @@ export class ControlsHud {
     this.conquerBtn.setAttribute('aria-label', 'Conquérir : la sélection prend seule les cases libres');
     this.conquerBtn.innerHTML = `${flagIcon()}<span class="ctl-label">Conquérir</span>`;
     this.conquerBtn.addEventListener('click', () => this.conquer());
-    row.appendChild(this.conquerBtn);
+    const row2 = document.createElement('div');
+    row2.className = 'ctl-row';
+    row2.appendChild(this.conquerBtn);
+    this.defendBtn = document.createElement('button');
+    this.defendBtn.type = 'button';
+    this.defendBtn.id = 'btn-defend';
+    this.defendBtn.className = 'ctl-btn ctl-camp ctl-conquer ctl-defend';
+    this.defendBtn.setAttribute('aria-label', 'Défendre : la sélection tient seule les cases qui l’entourent');
+    this.defendBtn.innerHTML = `${wallIcon()}<span class="ctl-label">Défendre</span>`;
+    this.defendBtn.addEventListener('click', () => this.defend());
+    row2.appendChild(this.defendBtn);
+    this.el.appendChild(row2);
     this.root.appendChild(this.el);
     this.refresh();
     this.timer = window.setInterval(() => {
@@ -80,6 +95,7 @@ export class ControlsHud {
       if (c.textContent !== txt) c.textContent = txt;
       b.classList.toggle('empty', n === 0);
       b.classList.toggle('conquering', n > 0 && !!game && game.groupConquering(i) * 2 >= n);
+      b.classList.toggle('defending', n > 0 && !!game && game.groupDefending(i) * 2 >= n);
     });
     this.campBtn.classList.toggle('off', !game || game.selected.size === 0);
     this.guardBtn.classList.toggle('off', !game || game.selected.size === 0);
@@ -88,6 +104,10 @@ export class ControlsHud {
     const on = !!game && game.selectionConquers;
     this.conquerBtn.classList.toggle('on', on);
     this.conquerBtn.setAttribute('aria-pressed', String(on));
+    this.defendBtn.classList.toggle('off', !game || game.selected.size === 0);
+    const def = !!game && game.selectionDefends;
+    this.defendBtn.classList.toggle('on', def);
+    this.defendBtn.setAttribute('aria-pressed', String(def));
   }
 
   destroy(): void {
@@ -158,6 +178,15 @@ export class ControlsHud {
     this.refresh();
   }
 
+  /** « Défendre » : la sélection tient le secteur qui l'entoure (ou lève la consigne si elle y est déjà). */
+  defend(): void {
+    const game = this.getGame();
+    if (!game) return;
+    const r = game.defend();
+    if (r === 'vide' && !game.paused && !game.over) this.hint('Sélectionne des élèves près de tes cases, puis « Défendre » : ils tiendront seuls le secteur.');
+    this.refresh();
+  }
+
   // ---------------------------------------------------------------- boutons
 
   private makeGroupButton(i: number): HTMLButtonElement {
@@ -166,7 +195,7 @@ export class ControlsHud {
     b.id = `btn-group-${i + 1}`;
     b.className = 'ctl-btn ctl-group empty';
     b.setAttribute('aria-label', `Groupe ${i + 1} : toucher pour le sélectionner, appui long pour y enregistrer la sélection`);
-    b.innerHTML = `<span class="ctl-num">${i + 1}</span><span class="ctl-count"></span><span class="ctl-flag" aria-hidden="true">${flagIcon(12)}</span>`;
+    b.innerHTML = `<span class="ctl-num">${i + 1}</span><span class="ctl-count"></span><span class="ctl-flag" aria-hidden="true">${flagIcon(12)}</span><span class="ctl-shield" aria-hidden="true">${wallIcon(12)}</span>`;
     let hold = 0;
     let fired = false;
     let down = false;
@@ -210,4 +239,9 @@ function guardIcon(): string {
 
 function flagIcon(size = 20): string {
   return `<svg width="${size}" height="${size}" viewBox="0 0 20 20" aria-hidden="true"><path d="M4.5 2v16.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><path d="M5.5 2.6c3-1.4 5.2 1.4 9.8.2v7.2c-4.6 1.2-6.8-1.6-9.8-.2z" fill="#ff6a4a" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
+}
+
+/** Bouclier bleu barré d'un rempart : « Défendre ». */
+function wallIcon(size = 20): string {
+  return `<svg width="${size}" height="${size}" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5c3 1.4 5.6 1.8 8 1.6v6.4c0 4.4-3.3 7.6-8 9-4.7-1.4-8-4.6-8-9V3.1c2.4.2 5-.2 8-1.6z" fill="#3f8cff" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/><path d="M5.5 8.2h2v-1.6h1.6v1.6h1.8v-1.6h1.6v1.6h2v4.3h-9z" fill="#fff"/></svg>`;
 }

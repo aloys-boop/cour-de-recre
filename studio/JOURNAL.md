@@ -2,6 +2,29 @@
 
 Une entrée par session, la plus récente en haut : date, version, ce qui a été fait, ce qui a été mesuré, ce qui reste ou ce qui inquiète.
 
+## 11/11/2026 : session de développement, v5.12 (1.5 b, consigne « Défendre »)
+
+**Fait**
+- Aucun retour d'Aloys par e-mail (les sept journaux des 14 derniers jours sont sans réponse). Travail du jour : 1.5 b Défendre, deuxième tranche des escouades. Point de retour : branche `avant-2026-11-11` (le dépôt refuse toujours les tags).
+- `src/core/squads.ts` : `Squad.mode` (« conquer » ou « defend »), `zone`, `post`. `defenceZone` (case où se tient l'escouade, puis ses cases à 7 cases au plus, 4 au total), `zonePost` (case la plus centrale), `defenceTarget` (case avec ennemis visibles, perdue ou en train d'être prise ; ignore une case trop défendue ; hystérésis), `thinkDefence` (secours, engagement des intrus, laisse de 4,2 cases, retour au poste), `defenderArmor` (retranchés comme les gardes dans leur secteur, « Paré ! »). Les escouades en conquête ne changent pas.
+- Interface : les deux consignes d'escouade ont leur rangée (« Conquérir », « Défendre ») sous « Camp » et « Garder » ; boutons ramenés à 46 px sous 420 px de haut pour que la colonne tienne. « Défendre » allumé en bleu, petit bouclier bleu à gauche des groupes 1-2-3 en défense ; au sol, tirets du poste vers les cases du secteur, bouclier planté sur le poste, bouclier bleu « ! » et tirets bleus vers la case secourue ; zones défendues dessinées quand l'escouade est sélectionnée. Son « Serrez les rangs ! » (sifflet, deux pas), vibration. « Défendre » sur une escouade en conquête change sa consigne. Aide refusant l'ordre loin de ses cases, avertissement sous 4 élèves.
+- L'aide en bas de l'écran laisse libre la colonne des contrôles (largeur maximale réduite de 268 px).
+- « Comment jouer » : rubrique « Défense ». README (règle, contrôle, équilibrage, versions, architecture). Pas d'étape de tutoriel, comme « Conquérir ».
+- `equilibre.ts` : `defense=`, `defenseou=`, `defenseseuil=`, `retranche=` ; la reformation de l'escouade en conquête ne confond plus les deux consignes.
+- 13 nouveaux tests (`escouades-defense.test.ts`, `escouades-defense-app.test.ts` qui touche les boutons dans l'application) ; 411 tests verts.
+
+**Mesuré**
+- Témoin humain, Normal, 800 parties par ligne : sans escouade 49,9 % (graine 1) et 52,0 % (graine 2). Défense de 4 retranchée : 46,3 et 46,0 % (44,1 sans retranchement) ; défense de 6 retranchée : 49,1 et 51,1 %. Une escouade de 2 formée très tôt : 34,9 %. Pas de déséquilibre : la consigne est un outil de confort, pas un gain.
+- Ordres par minute : témoin 16,3 à 16,9, IA 14,7 à 14,9 (inchangés).
+- `perf240` en alternance avec la v5.11 : partie 0,223 / 0,223 ms par pas contre 0,224 / 0,221 : pas de régression.
+- Captures 844 × 390 : colonne de 5 rangées entre les puces et « Tout sélectionner » sans chevauchement, aide centrée qui ne touche plus les boutons, bouclier « ! » lisible sur une case disputée.
+
+**Reste à faire, inquiétudes**
+- Le secteur est choisi automatiquement autour de l'escouade : il faut l'amener près des bonnes cases avant de toucher « Défendre ». Si c'est trop rigide pour Aloys, piste notée : régler le secteur au doigt.
+- La colonne de gauche compte maintenant 5 rangées ; sur un iPhone plus petit (SE en paysage, 375 px de haut), à vérifier en vrai.
+- Le bouclier « ! » est bleu : pour un joueur Bleu, il reste lisible grâce au « ! » et au liseré blanc, mais moins distinct.
+- Prochaine session : 1.5 c Suivre (escorte d'un autre groupe), qui clôt les escouades.
+
 ## 10/11/2026 : session de développement, v5.11 (1.5 a, consigne « Conquérir »)
 
 **Fait**

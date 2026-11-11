@@ -29,7 +29,7 @@ import { PowerState, type PowerEvent } from './powers';
 import { BrawlState, updateBrawls } from './brawls';
 import { guardArmor, updateGarrisons } from './garrison';
 import { routeNewborn, updateReinforcements } from './reinforce';
-import { updateSquads, type Squad } from './squads';
+import { defenderArmor, updateSquads, type Squad } from './squads';
 import { CLASSES, aggroRange, applyClass, pacifist, takeSpawnClass, updateHealers, type UnitClass } from './classes';
 
 export type WorldEvent =
@@ -487,7 +487,7 @@ export class World {
         if (sup && supervisorActive(sup) && dist2(u.x, u.y, sup.x, sup.y) < (SUPERVISOR_HIT_RANGE * 1.5) ** 2) {
           hitSupervisor(this, sup, Math.max(1, Math.round(punchDamage(() => this.rng.next()) * scale)), u);
         } else if (target && target.alive && !this.isFriend(u.team, target.team) && dist2(u.x, u.y, target.x, target.y) < (TUNING.punchRange * 1.5) ** 2) {
-          const armor = guardArmor(target);
+          const armor = target.squad > 0 ? Math.min(guardArmor(target), defenderArmor(this, target)) : guardArmor(target);
           const dmg = Math.max(1, Math.round(punchDamage(() => this.rng.next()) * scale * armor));
           const ko = target.takeDamage(dmg, u.x, u.y);
           this.events.push(armor < 1 ? { kind: 'hit', x: target.x, y: target.y, team: target.team, parried: true } : { kind: 'hit', x: target.x, y: target.y, team: target.team });
