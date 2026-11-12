@@ -769,6 +769,8 @@ export class World {
 
   /** Escouades en conquête (voir squads.ts), par identifiant. */
   readonly squads = new Map<number, Squad>();
+  /** Escortes dissoutes faute de protégé (« Suivre », v5.13), à lire puis vider par l'interface. */
+  readonly escortsEnded: { team: number; x: number; y: number }[] = [];
   nextSquadId = 1;
 
   // ---------------------------------------------------------------- renforts automatiques

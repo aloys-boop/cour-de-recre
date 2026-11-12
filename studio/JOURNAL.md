@@ -2,6 +2,28 @@
 
 Une entrée par session, la plus récente en haut : date, version, ce qui a été fait, ce qui a été mesuré, ce qui reste ou ce qui inquiète.
 
+## 12/11/2026 : session de développement, v5.13 (1.5 c, consigne « Suivre »)
+
+**Fait**
+- Aucun retour d'Aloys par e-mail (les huit journaux des 14 derniers jours sont sans réponse). Travail du jour : 1.5 c Suivre, dernière tranche des escouades (« Mode Équipes, suite » reste une idée du studio, derrière la saison 1). Point de retour : branche `avant-2026-11-12`.
+- `src/core/squads.ts` : mode « follow », `assignEscort` (protégé par identifiants et, s'il en a une, par escouade : ses futurs membres sont protégés aussi), `escortWard`, `thinkEscort` (rejoint le protégé au-delà de 2,2 cases plus son étalement, attaque l'ennemi visible à moins de 3 cases d'un protégé, laisse de 4,5 cases, dispersion quand plus personne n'est debout). `World.escortsEnded` prévient l'interface.
+- Interface : bouton « Suivre » (rond vert à double chevron) sur la rangée de « Camp » et « Garder ». Il s'arme comme « Garder » ; le tap suivant sur un de ses élèves désigne le protégé (son escouade, sinon son groupe 1-2-3, sinon ses voisins), ou un tap sur un bouton 1-2-3 (liseré vert pendant l'attente). Écusson vert au-dessus du protégé, tirets quand l'escorte traîne, petit écusson vert en haut à gauche des groupes en escorte. Son « Avec toi ! » (deux claquements de mains, petite tierce), vibration, aides.
+- « Comment jouer » : rubrique « Escorte ». README (règle, contrôle, équilibrage, versions, architecture). Pas d'étape de tutoriel, comme les deux autres consignes.
+- `equilibre.ts` : `suivre=N` (escorte attachée à l'escouade en conquête du témoin).
+- 10 nouveaux tests (`escouades-suivre.test.ts`, `escouades-suivre-app.test.ts` qui arme le bouton, touche un groupe puis un élève dans l'application) ; 421 tests verts.
+
+**Mesuré**
+- Témoin humain, Normal, 800 parties par ligne : conquête de 4 seule 52,6 % ; escortée par 4 : 47,4 % (graine 1) et 45,3 % (graine 2) ; escortée par 2 : 45,1 % ; conquête de 8 : 48,5 %. Comme les autres consignes, immobiliser des élèves coûte au témoin : outil de confort, pas de déséquilibre, Normal reste dans la cible.
+- Ordres par minute : témoin 16,4 à 17,0, IA 14,7 à 14,8 (inchangés).
+- `perf240` en alternance avec la v5.12 : partie 0,198 / 0,208 ms par pas contre 0,232 / 0,214 : pas de régression.
+- Captures 844 × 390 : rangée « Camp, Garder, Suivre » de 148 px qui ne touche ni la carte ni l'aide, bouton armé lisible, écusson vert net au-dessus du groupe escorté.
+
+**Reste à faire, inquiétudes**
+- Le point 1.5 est fini : trois consignes, trois couleurs (corail, bleu, vert). La colonne de gauche commence à être chargée ; si Aloys s'y perd, piste : regrouper les trois consignes derrière un seul bouton « Consigne ».
+- Désigner le protégé par un tap demande un groupe visible ; les boutons 1-2-3 couvrent le cas d'un groupe hors de l'écran.
+- L'escorte qui suit un groupe en retraite le suit aussi en retraite, mais en chargeant (elle se bat en chemin) : à juger en vrai.
+- Prochaine session : 1.6 Rythme réglable (vitesse ×0,75 en Facile et Normal, pause tactique avec ordres).
+
 ## 11/11/2026 : session de développement, v5.12 (1.5 b, consigne « Défendre »)
 
 **Fait**

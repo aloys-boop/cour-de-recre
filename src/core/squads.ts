@@ -4,6 +4,9 @@
 //  - « Défendre » (v5.12) : garnison mobile. L'escouade reçoit un secteur (jusqu'à 4 cases à toi
 //    autour d'elle), se poste sur la case la plus centrale, court à celle qui est attaquée ou
 //    reprend celle qui est tombée, puis revient à son poste.
+//  - « Suivre » (v5.13) : escorte. L'escouade colle à un autre groupe d'élèves (le « protégé »),
+//    se jette sur les ennemis qui l'approchent, ne les poursuit pas loin, et se disperse quand il
+//    n'y a plus personne à escorter.
 // Dans les deux cas, l'escouade ne voit que ce que son équipe voit (brouillard) et renonce à une
 // case trop bien défendue pour sa taille.
 
@@ -57,10 +60,18 @@ export const SQUAD = {
    * dans le cercle défendu de chaque case de leur secteur, comme des gardes. Réglable pour les mesures.
    */
   entrenched: true as boolean,
+  /** « Suivre » : l'escorte se remet en route dès qu'elle est à plus de cette distance (cases) du protégé, en plus de son étalement. */
+  followDist: 2.2,
+  /** « Suivre » : un ennemi visible à moins de cette distance (cases) d'un protégé est une menace. */
+  escortRadius: 3,
+  /** « Suivre » : un ennemi engagé qui s'éloigne à plus de cette distance (cases) de tout protégé est lâché. */
+  escortLeash: 4.5,
+  /** « Suivre » : un élève d'escorte ne va pas chercher une menace à plus de cette distance (cases) de lui. */
+  escortReach: 7,
 } as const;
 
 /** Consigne d'une escouade. */
-export type SquadMode = 'conquer' | 'defend';
+export type SquadMode = 'conquer' | 'defend' | 'follow';
 
 export interface Squad {
   readonly id: number;
@@ -81,6 +92,12 @@ export interface Squad {
   restUntil: number;
   /** Nombre de cases prises depuis la consigne. */
   taken: number;
+  /** « Suivre » : identifiants des élèves protégés (vide sinon). */
+  ward?: Set<number>;
+  /** « Suivre » : escouade protégée (ses nouveaux membres deviennent protégés), ou 0. */
+  wardSquad?: number;
+  /** « Suivre » : centre du protégé à la dernière réflexion (dessin), ou null. */
+  anchor?: { x: number; y: number } | null;
 }
 
 /** Une case peut-elle être visée par une conquête ? Cases bonus, camps (fantômes compris) et trône. */
@@ -206,6 +223,10 @@ function thinkSquad(world: World, sq: Squad, members: Unit[]): void {
   if (fit.length === 0) return;
   if (sq.mode === 'defend') {
     thinkDefence(world, sq, fit);
+    return;
+  }
+  if (sq.mode === 'follow') {
+    thinkEscort(world, sq, members, fit);
     return;
   }
   // Case prise : on passe à la suivante.
@@ -398,4 +419,142 @@ export function defenderArmor(world: World, u: Unit): number {
   const r2 = GARRISON.radius * GARRISON.radius;
   for (const t of sq.zone) if (dist2(u.x, u.y, t.cx, t.cy) <= r2) return GARRISON.armor;
   return 1;
+}
+
+// ---------------------------------------------------------------- « Suivre » (v5.13)
+
+/**
+ * Donne la consigne « Suivre » à des élèves : ils forment une escorte qui colle aux élèves
+ * `wardIds` (le protégé). Si `wardSquad` est donné, les membres de cette escouade, présents et à
+ * venir, sont aussi protégés. Les élèves de l'escorte ne peuvent pas se protéger eux-mêmes ; les
+ * pions ne font pas partie d'une escorte (mais peuvent être protégés). Null si personne ne convient.
+ */
+export function assignEscort(world: World, units: readonly Unit[], wardIds: Iterable<number>, wardSquad = 0): Squad | null {
+  const members = units.filter((u) => u.alive && !u.pion);
+  if (members.length === 0) return null;
+  const team = members[0].team;
+  const mine = new Set(members.map((u) => u.id));
+  const ward = new Set<number>();
+  for (const id of wardIds) {
+    const w = world.unitById(id);
+    if (w && w.alive && w.team === team && !mine.has(id)) ward.add(id);
+  }
+  // L'escouade protégée ne peut pas être celle que l'on forme (ni l'ancienne escouade des membres).
+  const squadOk = wardSquad > 0 && world.squads.has(wardSquad) && !members.some((u) => u.squad === wardSquad);
+  if (squadOk) for (const w of squadMembers(world, wardSquad)) if (!mine.has(w.id)) ward.add(w.id);
+  if (ward.size === 0) return null;
+  const sq: Squad = {
+    id: world.nextSquadId++,
+    team,
+    mode: 'follow',
+    zone: [],
+    post: null,
+    target: null,
+    clock: 0,
+    avoid: new Map(),
+    taken: 0,
+    restUntil: 0,
+    ward,
+    wardSquad: squadOk ? wardSquad : 0,
+    anchor: null,
+  };
+  world.squads.set(sq.id, sq);
+  for (const u of members) {
+    u.guard = null;
+    u.squad = sq.id;
+  }
+  thinkSquad(world, sq, members);
+  return sq;
+}
+
+/** Protégés vivants d'une escorte (met à jour la liste : nouveaux membres de l'escouade protégée, disparus retirés). */
+export function escortWard(world: World, sq: Squad): Unit[] {
+  const ward = sq.ward;
+  if (!ward) return [];
+  if (sq.wardSquad && world.squads.has(sq.wardSquad)) {
+    for (const u of squadMembers(world, sq.wardSquad)) if (u.squad !== sq.id) ward.add(u.id);
+  }
+  const out: Unit[] = [];
+  for (const id of [...ward]) {
+    const u = world.unitById(id);
+    if (!u || !u.alive || u.team !== sq.team || u.squad === sq.id) {
+      ward.delete(id);
+      continue;
+    }
+    out.push(u);
+  }
+  return out;
+}
+
+/** Ennemi visible le plus menaçant pour le protégé : le plus proche de `u` parmi ceux qui approchent un protégé. */
+function escortThreat(world: World, u: Unit, ward: readonly Unit[], c: { x: number; y: number }, spread: number): Unit | null {
+  const r = SQUAD.escortRadius;
+  const r2 = r * r;
+  const reach2 = SQUAD.escortReach * SQUAD.escortReach;
+  let best: Unit | null = null;
+  let bd = Infinity;
+  world.hash.query(c.x, c.y, r + spread, (o) => {
+    if (!o.alive || world.isFriend(o.team, u.team)) return;
+    const d = dist2(o.x, o.y, u.x, u.y);
+    if (d > reach2 || d >= bd) return;
+    if (!ward.some((w) => dist2(o.x, o.y, w.x, w.y) <= r2)) return;
+    if (!unitVisible(world, u.team, o)) return;
+    bd = d;
+    best = o;
+  });
+  return best;
+}
+
+function thinkEscort(world: World, sq: Squad, members: Unit[], fit: Unit[]): void {
+  const ward = escortWard(world, sq);
+  if (ward.length === 0) {
+    // Plus personne à escorter : l'escouade se disperse et attend les ordres.
+    const c = centroid(members.map((u) => u.pos));
+    for (const u of members) u.squad = 0;
+    world.squads.delete(sq.id);
+    if (c) world.escortsEnded.push({ team: sq.team, x: c.x, y: c.y });
+    return;
+  }
+  const c = centroid(ward.map((u) => u.pos))!;
+  sq.anchor = c;
+  let spread = 0;
+  for (const w of ward) spread = Math.max(spread, Math.hypot(w.x - c.x, w.y - c.y));
+  spread = Math.min(spread, 4);
+  const leash2 = SQUAD.escortLeash * SQUAD.escortLeash;
+  const far = SQUAD.followDist + spread;
+  const go: Unit[] = [];
+  for (const u of fit) {
+    if (u.supId > 0) continue;
+    if (u.engagedId >= 0) {
+      // Laisse : on ne poursuit pas un ennemi qui s'éloigne du protégé.
+      const e = world.unitById(u.engagedId);
+      if (e && e.alive && !ward.some((w) => dist2(e.x, e.y, w.x, w.y) <= leash2)) {
+        u.engagedId = -1;
+        u.pendingHit = 0;
+        go.push(u);
+      }
+      continue;
+    }
+    if (u.order.kind === 'attack') continue;
+    // Menace sur le protégé : on fonce dessus.
+    if (!pacifist(u)) {
+      const e = escortThreat(world, u, ward, c, spread);
+      if (e) {
+        world.orderAttack([u], e.id);
+        u.squad = sq.id;
+        continue;
+      }
+    }
+    const d = Math.hypot(u.x - c.x, u.y - c.y);
+    if (u.order.kind === 'move') {
+      // En route : on ne corrige que si le protégé s'est beaucoup déplacé depuis l'ordre.
+      const g = u.order.target;
+      if (Math.hypot(g.x - c.x, g.y - c.y) > SQUAD.followDist) go.push(u);
+      continue;
+    }
+    if (d > far) go.push(u);
+  }
+  if (go.length === 0) return;
+  world.orderMove(go, c, true);
+  for (const u of go) u.squad = sq.id; // un ordre libère l'escouade : on la remet
 }

@@ -39,7 +39,7 @@ import { BrawlBars } from './render/brawls';
 import type { Vec2 } from './core/types';
 import { TutorialState, type TutorialEvent } from './core/tutorial';
 import { assignGuards, canGuard, guardCounts } from './core/garrison';
-import { assignConquest, assignDefence, releaseSquad, squadMembers, squadMode, type SquadMode } from './core/squads';
+import { assignConquest, assignDefence, assignEscort, releaseSquad, squadMembers, squadMode, type SquadMode } from './core/squads';
 
 /** Résultat d'une partie ; « abandon » : le joueur a abandonné (défaite, statistiques quand même). */
 export type GameResult = 'victoire' | 'defaite' | 'abandon';
@@ -97,7 +97,8 @@ export type PlayerAction =
   | { kind: 'guard'; count: number }
   | { kind: 'reinforce'; on: boolean }
   | { kind: 'conquer'; count: number }
-  | { kind: 'defend'; count: number; tiles: number };
+  | { kind: 'defend'; count: number; tiles: number }
+  | { kind: 'follow'; count: number; ward: number };
 
 const STEP = 1 / 60;
 /** Glisser d'un pouvoir : bande (px) près des bords où la caméra défile, et vitesse maximale (px/s). */
@@ -157,6 +158,8 @@ export class Game {
   charge = false;
   /** Ordre « Garder » armé : le prochain tap sur une case la confie à la sélection. */
   guardArmed = false;
+  /** Consigne « Suivre » armée (v5.13) : le prochain tap sur un de ses élèves (ou un groupe 1-2-3) désigne le protégé. */
+  followArmed = false;
   /** Défis : le camp de départ du joueur a-t-il été pris au moins une fois ? */
   homeCampLost = false;
   private homeCamp?: Tile;
@@ -427,6 +430,13 @@ export class Game {
       if (!u || !u.alive) this.selected.delete(id);
     }
     if (this.guardArmed && this.selected.size === 0) this.guardArmed = false;
+    if (this.followArmed && this.selected.size === 0) this.followArmed = false;
+    // Escortes dissoutes : plus personne à protéger.
+    for (const e of w.escortsEnded.splice(0)) {
+      if (e.team !== this.playerTeam) continue;
+      this.sfx.play('order');
+      this.hooks.onHint?.('Escorte terminée : plus personne à suivre. Ces élèves attendent tes ordres.');
+    }
     this.hudTimer += dt;
     if (this.hudTimer > 0.25) {
       this.hudTimer = 0;
@@ -464,6 +474,7 @@ export class Game {
       guardZones: this.guardZones(),
       reinforcements: this.reinforceLinks(),
       conquests: this.conquestLinks(),
+      escorts: this.escortLinks(),
       defences: this.defenceViews(),
     });
     if (this.flash) drawTileFlash(ctx, this.cam, this.flash);
@@ -535,6 +546,7 @@ export class Game {
       return;
     }
     if (this.guardArmed) return this.guardAt(sx, sy);
+    if (this.followArmed) return this.followAt(sx, sy);
     const pk = this.pick(sx, sy);
     // Sans sélection, un tap sur un de ses camps ouvre son panneau d'amélioration, sauf si le doigt
     // est vraiment sur un élève (silhouette touchée) : il est alors sélectionné.
@@ -601,6 +613,7 @@ export class Game {
    */
   guard(): 'garde' | 'arme' | 'desarme' | 'vide' {
     if (this.paused || this.over) return 'vide';
+    this.followArmed = false;
     if (this.guardArmed) {
       this.guardArmed = false;
       return 'desarme';
@@ -658,6 +671,7 @@ export class Game {
       return 'stop';
     }
     this.guardArmed = false;
+    this.followArmed = false;
     const sq = assignConquest(this.world, units);
     if (!sq) return 'vide';
     this.act({ kind: 'conquer', count: units.length });
@@ -691,6 +705,7 @@ export class Game {
       return 'stop';
     }
     this.guardArmed = false;
+    this.followArmed = false;
     const sq = assignDefence(this.world, units);
     if (!sq) {
       this.sfx.play('deny');
@@ -706,6 +721,119 @@ export class Game {
     const small = units.length < 4 ? ' À moins de 4, elle sera vite débordée.' : '';
     this.hooks.onHint?.(`Escouade de ${units.length} en défense de ${k} case${k > 1 ? 's' : ''} : elle court à celle qui est attaquée, puis revient.${small}`);
     return 'defense';
+  }
+
+  /**
+   * Bouton « Suivre » (v5.13) : arme la consigne ; le prochain tap sur un de ses élèves (ou sur un
+   * bouton de groupe 1, 2, 3) désigne le groupe à escorter. Retoucher le bouton désarme ; si toute la
+   * sélection escorte déjà, la consigne est levée.
+   */
+  follow(): 'arme' | 'desarme' | 'stop' | 'vide' {
+    if (this.paused || this.over) return 'vide';
+    if (this.followArmed) {
+      this.followArmed = false;
+      return 'desarme';
+    }
+    const units = this.selectedUnits().filter((u) => !u.pion);
+    if (units.length === 0) return 'vide';
+    if (units.every((u) => squadMode(this.world, u) === 'follow')) {
+      releaseSquad(units);
+      this.sfx.play('order');
+      this.hooks.onHint?.('Consigne « Suivre » levée : ces élèves attendent tes ordres.');
+      return 'stop';
+    }
+    this.guardArmed = false;
+    this.followArmed = true;
+    this.sfx.play('select');
+    return 'arme';
+  }
+
+  /** Tap pendant que « Suivre » est armé : le groupe touché (un de tes élèves et ses voisins, ou son escouade, ou son groupe 1-2-3) devient le protégé. */
+  private followAt(sx: number, sy: number): void {
+    this.followArmed = false;
+    const cands: Array<{ unit: Unit; team: number; sx: number; sy: number; depth: number }> = [];
+    for (const u of this.world.units) {
+      if (!u.alive || u.team !== this.playerTeam || this.selected.has(u.id)) continue;
+      const p = this.cam.gridToScreen(u.x, u.y);
+      cands.push({ unit: u, team: u.team, sx: p.x, sy: p.y, depth: u.x + u.y });
+    }
+    const pk = pickUnit(cands, sx, sy, this.cam.zoom, this.playerTeam, false, FEET_Y);
+    const leader = pk?.unit ?? null;
+    if (!leader) {
+      this.sfx.play('deny');
+      this.hooks.onHint?.('Personne à suivre ici : touche un de tes élèves hors de la sélection, ou un bouton de groupe 1, 2, 3.');
+      return;
+    }
+    let ids: number[];
+    let wardSquad = 0;
+    const gi = [0, 1, 2].find((i) => this.groups.ids(i).includes(leader.id));
+    if (leader.squad > 0 && this.world.squads.has(leader.squad)) {
+      wardSquad = leader.squad;
+      ids = squadMembers(this.world, leader.squad).map((u) => u.id);
+    } else if (gi !== undefined) {
+      ids = this.groups.recall(gi, this.isMine);
+    } else {
+      ids = [];
+      const r = neighbourRadius(this.cam.zoom);
+      for (const u of this.world.units) {
+        if (u.team !== this.playerTeam || !u.alive || this.selected.has(u.id)) continue;
+        if (u === leader || (!u.pion && Math.hypot(u.x - leader.x, u.y - leader.y) <= r)) ids.push(u.id);
+      }
+    }
+    this.escort(ids, wardSquad);
+  }
+
+  /** « Suivre » armé puis bouton de groupe : la sélection escorte ce groupe. Vrai si la consigne a été prise. */
+  followGroup(index: number): boolean {
+    if (!this.followArmed) return false;
+    this.followArmed = false;
+    const ids = this.groups.recall(index, this.isMine).filter((id) => !this.selected.has(id));
+    if (ids.length === 0) {
+      this.sfx.play('deny');
+      this.hooks.onHint?.(`Groupe ${index + 1} vide (ou déjà dans la sélection) : consigne « Suivre » annulée.`);
+      return true;
+    }
+    this.escort(ids, 0);
+    return true;
+  }
+
+  private escort(ids: number[], wardSquad: number): void {
+    const units = this.selectedUnits().filter((u) => !u.pion);
+    const sq = units.length ? assignEscort(this.world, units, ids, wardSquad) : null;
+    if (!sq) {
+      this.sfx.play('deny');
+      this.hooks.onHint?.('Ce groupe ne peut pas être escorté : choisis d’autres élèves que ceux de la sélection.');
+      return;
+    }
+    const ward = sq.ward?.size ?? 0;
+    const c = centroid([...(sq.ward ?? [])].map((id) => this.world.unitById(id)!.pos));
+    if (c) this.markers.push({ x: c.x, y: c.y, t: 0, kind: 'move', team: this.opts.playerColor });
+    this.sfx.play('follow');
+    navigator.vibrate?.([15, 25, 15]);
+    this.act({ kind: 'follow', count: units.length, ward });
+    this.hooks.onHint?.(`Escorte de ${units.length} : elle suit ${ward > 1 ? `ces ${ward} élèves` : 'cet élève'} partout et chasse ceux qui l’approchent.`);
+  }
+
+  /** La sélection est-elle entièrement en escorte (bouton « Suivre » allumé) ? */
+  get selectionFollows(): boolean {
+    return this.selectionMode() === 'follow';
+  }
+
+  /** Nombre d'élèves en escorte dans un groupe mémorisé. */
+  groupFollowing(index: number): number {
+    return this.groupInMode(index, 'follow');
+  }
+
+  /** Escortes du joueur : centre de l'escorte, centre du protégé (tirets et cœur au-dessus du protégé). */
+  escortLinks(): { from: Vec2; to: Vec2; selected: boolean }[] {
+    const out: { from: Vec2; to: Vec2; selected: boolean }[] = [];
+    for (const sq of this.world.squads.values()) {
+      if (sq.team !== this.playerTeam || sq.mode !== 'follow' || !sq.anchor) continue;
+      const m = squadMembers(this.world, sq.id);
+      const c = centroid(m.map((u) => u.pos));
+      if (c) out.push({ from: c, to: sq.anchor, selected: m.some((u) => this.selected.has(u.id)) });
+    }
+    return out;
   }
 
   /** Mode commun de toute la sélection (bouton allumé), ou null. */
@@ -1009,6 +1137,7 @@ export class Game {
   clearSelection(): void {
     this.selected.clear();
     this.guardArmed = false;
+    this.followArmed = false;
     this.hooks.onHud(this.world, 0);
   }
 

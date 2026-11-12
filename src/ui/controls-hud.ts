@@ -14,8 +14,10 @@ export const GROUP_HOLD_MS = 400;
  *  - « Conquérir » : la sélection devient une escouade qui prend seule les cases libres
  *    (retoucher le bouton lève la consigne) ; un petit drapeau marque les groupes en conquête ;
  *  - « Défendre » (v5.12) : la sélection devient une garnison mobile du secteur qui l'entoure ;
- *    un petit bouclier bleu marque les groupes en défense.
- * Les deux consignes d'escouade ont leur propre rangée, sous « Camp » et « Garder ».
+ *    un petit bouclier bleu marque les groupes en défense ;
+ *  - « Suivre » (v5.13) : arme l'escorte ; le prochain tap sur un de ses élèves (ou un groupe 1-2-3)
+ *    désigne le groupe à suivre ; un petit écusson vert marque les groupes en escorte.
+ * « Camp », « Garder » et « Suivre » partagent une rangée ; « Conquérir » et « Défendre » la suivante.
  */
 export class ControlsHud {
   readonly el: HTMLElement;
@@ -24,6 +26,7 @@ export class ControlsHud {
   private guardBtn: HTMLButtonElement;
   private conquerBtn: HTMLButtonElement;
   private defendBtn: HTMLButtonElement;
+  private followBtn: HTMLButtonElement;
   private taps = new DoubleTap(380, Infinity);
   private timer = 0;
 
@@ -59,6 +62,14 @@ export class ControlsHud {
     this.guardBtn.innerHTML = `${guardIcon()}<span class="ctl-label">Garder</span>`;
     this.guardBtn.addEventListener('click', () => this.guard());
     row.appendChild(this.guardBtn);
+    this.followBtn = document.createElement('button');
+    this.followBtn.type = 'button';
+    this.followBtn.id = 'btn-follow';
+    this.followBtn.className = 'ctl-btn ctl-camp ctl-follow';
+    this.followBtn.setAttribute('aria-label', 'Suivre : la sélection escorte le groupe que tu touches ensuite');
+    this.followBtn.innerHTML = `${followIcon()}<span class="ctl-label">Suivre</span>`;
+    this.followBtn.addEventListener('click', () => this.follow());
+    row.appendChild(this.followBtn);
     this.conquerBtn = document.createElement('button');
     this.conquerBtn.type = 'button';
     this.conquerBtn.id = 'btn-conquer';
@@ -96,6 +107,8 @@ export class ControlsHud {
       b.classList.toggle('empty', n === 0);
       b.classList.toggle('conquering', n > 0 && !!game && game.groupConquering(i) * 2 >= n);
       b.classList.toggle('defending', n > 0 && !!game && game.groupDefending(i) * 2 >= n);
+      b.classList.toggle('following', n > 0 && !!game && game.groupFollowing(i) * 2 >= n);
+      b.classList.toggle('pick', !!game && game.followArmed && n > 0);
     });
     this.campBtn.classList.toggle('off', !game || game.selected.size === 0);
     this.guardBtn.classList.toggle('off', !game || game.selected.size === 0);
@@ -108,6 +121,11 @@ export class ControlsHud {
     const def = !!game && game.selectionDefends;
     this.defendBtn.classList.toggle('on', def);
     this.defendBtn.setAttribute('aria-pressed', String(def));
+    this.followBtn.classList.toggle('off', !game || game.selected.size === 0);
+    this.followBtn.classList.toggle('armed', !!game && game.followArmed);
+    const fol = !!game && game.selectionFollows;
+    this.followBtn.classList.toggle('on', fol && !game.followArmed);
+    this.followBtn.setAttribute('aria-pressed', String(fol));
   }
 
   destroy(): void {
@@ -121,6 +139,11 @@ export class ControlsHud {
   tapGroup(i: number): void {
     const game = this.getGame();
     if (!game) return;
+    // « Suivre » armé : le groupe touché devient le protégé (la sélection ne change pas).
+    if (game.followGroup(i)) {
+      this.refresh();
+      return;
+    }
     const double = this.taps.hit(performance.now(), i);
     const n = game.recallGroup(i);
     if (n === 0) {
@@ -187,6 +210,17 @@ export class ControlsHud {
     this.refresh();
   }
 
+  /** « Suivre » : arme l'escorte (puis tap sur le groupe à suivre), désarme, ou lève la consigne. */
+  follow(): void {
+    const game = this.getGame();
+    if (!game) return;
+    const r = game.follow();
+    if (r === 'vide' && !game.paused && !game.over) this.hint('Sélectionne des élèves, puis « Suivre » et touche le groupe qu’ils doivent escorter.');
+    else if (r === 'arme') this.hint('Touche le groupe à escorter : un de tes élèves, ou un bouton 1, 2, 3.');
+    else if (r === 'desarme') this.hint('Consigne « Suivre » annulée.');
+    this.refresh();
+  }
+
   // ---------------------------------------------------------------- boutons
 
   private makeGroupButton(i: number): HTMLButtonElement {
@@ -195,7 +229,7 @@ export class ControlsHud {
     b.id = `btn-group-${i + 1}`;
     b.className = 'ctl-btn ctl-group empty';
     b.setAttribute('aria-label', `Groupe ${i + 1} : toucher pour le sélectionner, appui long pour y enregistrer la sélection`);
-    b.innerHTML = `<span class="ctl-num">${i + 1}</span><span class="ctl-count"></span><span class="ctl-flag" aria-hidden="true">${flagIcon(12)}</span><span class="ctl-shield" aria-hidden="true">${wallIcon(12)}</span>`;
+    b.innerHTML = `<span class="ctl-num">${i + 1}</span><span class="ctl-count"></span><span class="ctl-flag" aria-hidden="true">${flagIcon(12)}</span><span class="ctl-shield" aria-hidden="true">${wallIcon(12)}</span><span class="ctl-escort" aria-hidden="true">${followIcon(12)}</span>`;
     let hold = 0;
     let fired = false;
     let down = false;
@@ -244,4 +278,9 @@ function flagIcon(size = 20): string {
 /** Bouclier bleu barré d'un rempart : « Défendre ». */
 function wallIcon(size = 20): string {
   return `<svg width="${size}" height="${size}" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5c3 1.4 5.6 1.8 8 1.6v6.4c0 4.4-3.3 7.6-8 9-4.7-1.4-8-4.6-8-9V3.1c2.4.2 5-.2 8-1.6z" fill="#3f8cff" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/><path d="M5.5 8.2h2v-1.6h1.6v1.6h1.8v-1.6h1.6v1.6h2v4.3h-9z" fill="#fff"/></svg>`;
+}
+
+/** Rond vert à double chevron : « Suivre ». */
+function followIcon(size = 20): string {
+  return `<svg width="${size}" height="${size}" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.6" fill="#22b573" stroke="#fff" stroke-width="1.4"/><path d="M6 6l3.6 4L6 14M10.6 6l3.6 4-3.6 4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 }

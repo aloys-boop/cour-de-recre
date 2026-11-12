@@ -7,6 +7,7 @@ export type SfxName =
   | 'reinforce'
   | 'conquer'
   | 'defend'
+  | 'follow'
   | 'punch'
   | 'hit'
   | 'ko'
@@ -163,6 +164,13 @@ export class Sfx {
         this.tone(t + 0.11, 2350, 2350, 0.16, 'sine', 0.2);
         this.noise(t + 0.3, 0.05, 700, 0.45);
         this.noise(t + 0.42, 0.05, 700, 0.45);
+        break;
+      case 'follow':
+        // « Avec toi ! » : deux claquements de mains, puis une petite tierce qui répond.
+        this.noise(t, 0.035, 2600, 0.3);
+        this.noise(t + 0.1, 0.035, 2600, 0.3);
+        this.tone(t + 0.2, 587, 587, 0.09, 'triangle', 0.24);
+        this.tone(t + 0.3, 740, 745, 0.16, 'triangle', 0.26);
         break;
       case 'defeat':
         [440, 415, 392, 330].forEach((f, i) => this.tone(t + i * 0.22, f, f * 0.9, 0.3, 'sawtooth', 0.3));

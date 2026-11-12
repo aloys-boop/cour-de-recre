@@ -245,3 +245,61 @@
     width: 58px;
   }
 }
+
+/* « Suivre » (v5.13) : armé (on attend le tap sur le groupe à suivre) ou allumé en vert (sélection en escorte). */
+.ctl-follow.off {
+  opacity: 0.45;
+}
+
+.ctl-follow.on {
+  background: #22b573;
+  border-color: #fff;
+}
+
+.ctl-follow.on svg circle {
+  fill: #0e6b42;
+}
+
+.ctl-follow.armed {
+  background: #22b573;
+  border-color: #fff;
+  animation: ctl-armed-green 0.9s ease-in-out infinite alternate;
+}
+
+.ctl-follow.armed svg circle {
+  fill: #0e6b42;
+}
+
+@keyframes ctl-armed-green {
+  from {
+    box-shadow: 0 0 0 0 rgba(34, 181, 115, 0.85);
+  }
+  to {
+    box-shadow: 0 0 0 7px rgba(34, 181, 115, 0);
+  }
+}
+
+/* Pendant que « Suivre » est armé, les groupes 1-2-3 non vides invitent au tap (liseré vert). */
+.ctl-group.pick {
+  border-color: #22b573;
+  box-shadow: 0 0 0 2px rgba(34, 181, 115, 0.55);
+}
+
+/* Petit écusson vert sur un groupe dont la majorité des élèves est en escorte (en haut à gauche). */
+.ctl-escort {
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #2b2b33;
+  border: 1.5px solid #fff;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.ctl-group.following .ctl-escort {
+  display: inline-flex;
+}

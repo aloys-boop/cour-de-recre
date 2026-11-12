@@ -22,6 +22,7 @@
 //     conquete=0       taille de l'escouade que le témoin laisse en consigne « Conquérir » (v5.11, 0 : aucune)
 //     defense=0        taille de l'escouade que le témoin laisse en consigne « Défendre » (v5.12, 0 : aucune)
 //     defenseou=grappe où se forme cette escouade : grappe (la plus riche en cases du témoin) ou camp (son premier camp)
+//     suivre=0         taille de l'escorte (consigne « Suivre », v5.13) que le témoin attache à son escouade en conquête (0 : aucune ; demande conquete=N)
 //     defenseseuil=3   l'escouade ne se forme que si le témoin a au moins ce multiple de sa taille en élèves libres
 //     retranche=1      escouades en défense retranchées dans leur secteur (SQUAD.entrenched)
 //     casesennemies=0  les escouades visent-elles les cases tenues par un ennemi (SQUAD.enemyTiles)
@@ -43,7 +44,7 @@ import { fork } from 'node:child_process';
 import { HUMAN_ATTENTION, STAT_POINT_VALUES, TEAM_NAMES, UNLIMITED_ATTENTION, type AiAttention, type AiProfile, type TeamStat } from '../../src/config';
 import { TeamAi, type RescueMode } from '../../src/core/ai';
 import { GARRISON } from '../../src/core/garrison';
-import { assignConquest, assignDefence, SQUAD, squadsOf } from '../../src/core/squads';
+import { assignConquest, assignDefence, assignEscort, SQUAD, squadMembers, squadsOf } from '../../src/core/squads';
 import { generateMap, LEVELS, type LevelDef } from '../../src/core/maps';
 import { Rng } from '../../src/core/rng';
 import { skirmishLevel } from '../../src/core/skirmish';
@@ -84,6 +85,7 @@ const iaConquete = Number(args.iaconquete ?? 0);
 const defense = Number(args.defense ?? 0);
 const defenseOu = String(args.defenseou ?? 'grappe');
 const defenseSeuil = Number(args.defenseseuil ?? 3);
+const suivre = Number(args.suivre ?? 0);
 if (args.retranche !== undefined) (SQUAD as { entrenched: boolean }).entrenched = args.retranche !== '0';
 if (args.casesennemies) (SQUAD as { enemyTiles: boolean }).enemyTiles = args.casesennemies === '1';
 if (args.pause) (SQUAD as { pause: number }).pause = Number(args.pause);
@@ -179,6 +181,12 @@ function playGame(index: number): Game {
     if (conquete && temoin && k % 60 === 30 && !squadsOf(world, slot).some((s) => s.squad.mode === 'conquer')) {
       const free = world.units.filter((u) => u.team === slot && u.alive && !u.pion && !u.guard && u.order.kind === 'none' && u.engagedId < 0);
       if (free.length >= conquete * 2) assignConquest(world, free.slice(0, conquete));
+    }
+    // Consigne « Suivre » du témoin : une escorte attachée à son escouade en conquête, reformée quand elle disparaît.
+    if (suivre && temoin && k % 60 === 15 && !squadsOf(world, slot).some((s) => s.squad.mode === 'follow')) {
+      const conq = squadsOf(world, slot).find((s) => s.squad.mode === 'conquer');
+      const free = world.units.filter((u) => u.team === slot && u.alive && !u.pion && !u.guard && !u.squad && u.order.kind === 'none' && u.engagedId < 0);
+      if (conq && free.length >= suivre * 2) assignEscort(world, free.slice(0, suivre), squadMembers(world, conq.squad.id).map((u) => u.id), conq.squad.id);
     }
     // Consigne « Défendre » du témoin : une escouade à la fois, reformée dès qu'elle disparaît, une fois
     // l'armée assez grande (`defenseseuil` × la taille de l'escouade). Elle tient le premier camp
@@ -286,7 +294,7 @@ if (args.tranche) {
   if (temoin) {
     const r = total.temoinWins / nGames;
     const se = Math.sqrt((r * (1 - r)) / nGames);
-    const style = `secours ${secours}, garde ${garde}${garde ? ` (part ${part})` : ''}, renforts ${renforts ? 'oui' : 'non'}, harcèlement ${harcele || 'non'}, conquête ${conquete || 'non'}, défense ${defense ? `${defense} (${defenseOu}, seuil ${defenseSeuil}, retranchée ${SQUAD.entrenched ? 'oui' : 'non'})` : 'non'}, garnisons rayon ${GARRISON.radius} laisse ${GARRISON.leash} armure ${GARRISON.armor}`;
+    const style = `secours ${secours}, garde ${garde}${garde ? ` (part ${part})` : ''}, renforts ${renforts ? 'oui' : 'non'}, harcèlement ${harcele || 'non'}, conquête ${conquete || 'non'}, escorte ${suivre || 'non'}, défense ${defense ? `${defense} (${defenseOu}, seuil ${defenseSeuil}, retranchée ${SQUAD.entrenched ? 'oui' : 'non'})` : 'non'}, garnisons rayon ${GARRISON.radius} laisse ${GARRISON.leash} armure ${GARRISON.armor}`;
     console.log(`témoin : ${style}`);
     console.log(`joueur témoin (réaction ${reaction} s) : ${total.temoinWins.toFixed(1)} victoires / ${nGames} = ${(r * 100).toFixed(1)} % (± ${(196 * se).toFixed(1)})`);
   }

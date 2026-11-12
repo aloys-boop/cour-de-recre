@@ -58,6 +58,7 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
   Un écusson à ta couleur, contre le coin droit de la case, compte ses gardes vivants ; le cercle défendu (pointillés blancs) s'affiche quand des gardes sont sélectionnés, et pour toutes tes garnisons pendant que « Garder » est allumé. Tout nouvel ordre (déplacement, attaque, « Camp ») libère les élèves qui le reçoivent. Les pions ne gardent pas ; un infirmier de garde soigne sans aller au contact. Son « garde à vous » (deux talons qui claquent) confirme l'ordre. Les IA ne posent pas de garnison en partie.
 - **Conquête (v5.11).** Le bouton **Conquérir** (le drapeau, sous « Camp » depuis la v5.12) donne une consigne à la sélection : elle devient une escouade qui prend toute seule la case la plus intéressante à portée (22 cases au plus), puis la suivante, sans autre ordre. Choix de la case : la plus proche parmi les cases **libres** (sans propriétaire : cases bonus, trône, camps libres comme les camps fantômes), un peu plus chère si tu ne l'as jamais vue (4 cases de distance) ou par défenseur ennemi visible (2,5 cases chacun) ; un camp ou le trône passe avant une case bonus à distance comparable. Les cases et les camps tenus par une autre équipe ne sont jamais visés : prendre le terrain de l'adversaire reste ta décision (voir « Équilibrage », une escouade qui le faisait rendait Normal beaucoup trop facile). L'escouade ne voit que ce que tu vois (sous le brouillard, les défenseurs cachés ne comptent pas) et renonce pour 12 s à une case trop bien défendue (plus de 1,25 défenseur par élève de l'escouade, plus un). Elle court en se battant en chemin, comme un ordre « Charger ». Un drapeau planté à ta couleur, relié à l'escouade par des tirets, marque la case visée ; un groupe « 1 », « 2 » ou « 3 » dont la majorité est en conquête porte un petit drapeau. Retoucher « Conquérir » avec l'escouade sélectionnée lève la consigne ; tout autre ordre (déplacement, attaque, « Camp », « Garder ») fait quitter l'escouade aux élèves qui le reçoivent. Rien à prendre à portée : l'escouade attend et repart dès qu'une case s'ouvre. Roulement de tambour et deux notes de clairon confirment l'ordre. Les pions ne conquièrent pas ; les IA ne s'en servent pas en partie.
 - **Défense (v5.12).** Le bouton **Défendre** (le bouclier bleu, à droite de « Conquérir », sur la même rangée) donne l'autre consigne d'escouade : la sélection devient une **garnison mobile**. Son secteur : la case où elle se tient (même si elle n'est pas encore à toi) et tes cases (bonus, camps, trône) à 7 cases au plus, les plus proches d'abord, 4 cases en tout au plus. Elle se poste sur la case la plus centrale du secteur (petit bouclier planté à ta couleur, tirets vers les autres cases). Dès qu'un ennemi visible entre sur une case du secteur, ou qu'une case tombe ou commence à être prise, elle y court (bouclier bleu « ! » et tirets bleus), chasse les intrus, reprend la case, puis revient au poste. Elle ne poursuit personne au-delà de 4,2 cases de son secteur et ne se jette pas sur une case trop défendue pour sa taille (même seuil que la conquête) ; elle tient alors son poste. Dans le cercle défendu de ses cases, elle est **retranchée** comme des gardes (un quart de coups en moins, « Paré ! »). Un groupe « 1 », « 2 » ou « 3 » dont la majorité est en défense porte un petit bouclier bleu (à gauche ; le drapeau de conquête est à droite). Retoucher « Défendre » lève la consigne ; « Défendre » sur une escouade en conquête la fait changer de consigne ; tout autre ordre fait quitter l'escouade. Loin de tes cases, l'ordre est refusé avec une aide. Coup de sifflet et deux pas lourds confirment l'ordre. Les pions ne défendent pas ; les IA ne s'en servent pas en partie.
+- **Escorte (v5.13).** Le bouton **Suivre** (le rond vert à double chevron, à droite de « Garder », sur la rangée de « Camp ») donne la troisième consigne d'escouade : la sélection devient une **escorte**. Touche « Suivre » (le bouton s'allume et pulse), puis touche le groupe à escorter : un de tes élèves hors de la sélection (avec ses voisins proches ; s'il fait partie d'un groupe 1-2-3, tout ce groupe ; s'il est dans une escouade en conquête ou en défense, toute l'escouade, y compris ses futurs membres), ou directement un bouton « 1 », « 2 » ou « 3 » (liseré vert pendant l'attente), pratique quand le groupe est hors de l'écran. L'escorte colle au protégé : elle se remet en route dès qu'elle est à plus de 2,2 cases de lui (plus son étalement), en se battant en chemin ; elle se jette sur tout ennemi visible à moins de 3 cases d'un protégé (7 cases au plus de l'élève d'escorte) et lâche ceux qui s'éloignent à plus de 4,5 cases de tout protégé. Quand le protégé s'arrête sur une case, l'escorte la prend avec lui. Un écusson vert flotte au-dessus du protégé, relié à l'escorte par des tirets quand elle est à la traîne ; un groupe « 1 », « 2 » ou « 3 » dont la majorité est en escorte porte un petit écusson vert (en haut à gauche). Retoucher « Suivre » pendant l'attente l'annule ; avec l'escorte sélectionnée, il lève la consigne ; tout autre ordre fait quitter l'escorte. Quand plus aucun protégé n'est debout, l'escorte se disperse et une aide le signale. Deux claquements de mains et une petite tierce confirment l'ordre. Les pions ne font pas partie d'une escorte, mais ton pion peut être escorté ; les IA ne s'en servent pas en partie.
 - **Point de ralliement (par camp).** Chaque camp a son propre drapeau ; les nouveaux élèves de ce camp s'y rendent dès leur naissance. Trois façons de le poser :
   - dans le panneau du camp, rubrique « Ralliement » : « Placer » (ou « Déplacer »), puis touche la carte ; « Supprimer » retire le drapeau, et les nouveaux élèves restent alors au camp ;
   - raccourci : glisse le doigt depuis le camp jusqu'à un point de la carte (une flèche à ta couleur suit le doigt) ;
@@ -381,6 +382,23 @@ Ce qu'on en apprend :
 
 `perf240`, en alternance avec la v5.11 sur la même machine : partie 0,223 et 0,223 ms par pas contre 0,224 et 0,221 avant, mêlée 0,130 et 0,120 contre 0,119 et 0,127 : pas de régression.
 
+### Escorte (v5.13)
+
+Point 1.5, troisième tranche. Les IA ne s'en servent pas en partie. `equilibre.ts` accepte `suivre=N` : le témoin attache une escorte de N élèves à son escouade en conquête (avec `conquete=4`), reformée quand elle disparaît, une fois qu'il a 2 × N élèves libres. Témoin humain en Normal, 4 équipes, 800 parties par ligne (± 3,5 environ) :
+
+| Témoin humain | graine 1 | graine 2 |
+| --- | --- | --- |
+| escouade de 4 en conquête (référence v5.11) | 52,6 % | 53,4 % |
+| escouade de 4 en conquête, escortée par 4 | 47,4 % | 45,3 % |
+| escouade de 4 en conquête, escortée par 2 | 45,1 % | |
+| escouade de 8 en conquête (même effectif engagé) | 48,5 % | |
+
+Ce qu'on en apprend :
+- Escorter coûte au témoin 5 à 8 points, autant ou un peu plus que doubler l'escouade : comme les garnisons et la défense, la consigne immobilise des élèves loin du front principal. Pas de raccourci vers la victoire, Normal reste dans la cible (45 à 55 %). L'escorte sert au joueur humain : protéger un pion, accompagner une escouade sans la suivre du doigt, renforcer un groupe envoyé loin.
+- Ordres par minute du témoin inchangés (16,4 à 17,0), IA 14,7 à 14,8.
+
+`perf240`, en alternance avec la v5.12 sur la même machine : partie 0,198 et 0,208 ms par pas contre 0,232 et 0,214 avant : pas de régression (la logique ne tourne que s'il y a une escorte).
+
 ## Contrôles tactiles
 
 | Geste | Effet |
@@ -401,6 +419,7 @@ Ce qu'on en apprend :
 | Bouton « Camp » | Repli de la sélection (sans combat) sur ton camp le plus proche, pour se soigner |
 | Bouton « Garder » | La sélection garde la case où elle se tient ; ailleurs, le bouton s'allume et le prochain tap sur une case la lui confie (voir « Garnisons ») |
 | Bouton « Conquérir » | La sélection prend seule, l'une après l'autre, les cases libres les plus proches ; retoucher le bouton lève la consigne (voir « Conquête ») |
+| Bouton « Suivre » | Le bouton s'allume ; touche ensuite un de tes élèves (ou un bouton « 1 », « 2 », « 3 ») : la sélection escorte ce groupe partout et chasse ceux qui l'approchent ; retoucher le bouton annule, ou lève la consigne de l'escorte sélectionnée (voir « Escorte ») |
 | Bouton « Défendre » | La sélection tient seule les cases à toi qui l'entourent (4 au plus) : elle court à celle qui est attaquée, la reprend si elle tombe, puis revient au poste ; retoucher le bouton lève la consigne (voir « Défense ») |
 | Tap sur un de tes camps (sans sélection) ou sur la pastille « ★ » | Panneau d'amélioration du camp |
 | Boutons ronds en bas (cloche, boule de neige, gâteau) | Appui long : aide ; glisser jusqu'à la carte : lancer ; tap : armer, puis viser et toucher la zone |
@@ -478,6 +497,8 @@ Le dépôt contient un workflow GitHub Actions (`.github/workflows/deploy.yml`) 
 | `v5.11` | 1.5, première tranche : consigne « Conquérir » (escouade qui prend seule les cases libres, drapeau sur la case visée et sur le groupe) |
 | `avant-2026-11-11` | état avant la v5.12 (point de retour) |
 | `v5.12` | 1.5, deuxième tranche : consigne « Défendre » (garnison mobile d'un secteur de 4 cases au plus, retranchée, bouclier sur le poste, sur la case secourue et sur le groupe) ; rangée dédiée aux deux consignes d'escouade |
+| `avant-2026-11-12` | état avant la v5.13 (point de retour) |
+| `v5.13` | 1.5, troisième tranche : consigne « Suivre » (escorte d'un groupe désigné par un tap ou un bouton 1-2-3, chasse des ennemis qui l'approchent, écusson vert sur le protégé et sur le groupe) ; fin du point 1.5 Escouades |
 
 ## Architecture
 
@@ -505,7 +526,7 @@ src/
     challenges.ts      médailles de campagne
     ghosts.ts          option « Camps fantômes » : placement, carte d’une partie, intérêt des IA
     garrison.ts        garnisons : ordre « Garder », cercle défendu, laisse, reprise de la case, gardes retranchés
-    squads.ts          escouades à consigne : « Conquérir » (choix de la case, renoncement, enchaînement des prises) et « Défendre » (secteur, poste, secours, laisse, retranchement)
+    squads.ts          escouades à consigne : « Conquérir » (choix de la case, renoncement, enchaînement des prises), « Défendre » (secteur, poste, secours, laisse, retranchement) et « Suivre » (protégé, menaces, laisse, dispersion)
     reinforce.ts       renforts automatiques : menace des cases, case secourue par chaque camp, envoi des nouveaux élèves
     save.ts            progression (localStorage)
     merits.ts          bons points : gains, solde, dépenses
@@ -528,6 +549,7 @@ src/
     powers.ts          aperçu de la zone visée, effets des pouvoirs, élèves figés
     brawls.ts          barres de bagarre (segments, tendance, fondu)
     defence.ts         escouades en défense : tirets du secteur, bouclier du poste, bouclier « ! » de la case secourue
+    escort.ts          escortes : tirets vers le protégé, écusson vert au-dessus de lui
   input/touch.ts       gestes tactiles et souris
   audio/sfx.ts         sons synthétisés (Web Audio)
   ui/                  menu, HUD, fenêtres (pause, fin, installation, accueil, « Comment jouer »)
