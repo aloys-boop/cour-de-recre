@@ -40,6 +40,7 @@ import type { Vec2 } from './core/types';
 import { TutorialState, type TutorialEvent } from './core/tutorial';
 import { assignGuards, canGuard, guardCounts } from './core/garrison';
 import { assignConquest, assignDefence, assignEscort, releaseSquad, squadMembers, squadMode, type SquadMode } from './core/squads';
+import { speedFactor, TacticalPause, tempoAllowed, type GameSpeed } from './core/tempo';
 
 /** Résultat d'une partie ; « abandon » : le joueur a abandonné (défaite, statistiques quand même). */
 export type GameResult = 'victoire' | 'defaite' | 'abandon';
@@ -57,11 +58,15 @@ export interface GameOptions {
   rules?: GameRules;
   /** Partie guidée du tutoriel (IA passive jusqu'à la dernière étape). */
   tutorial?: boolean;
+  /** Vitesse de jeu choisie (v5.14) : appliquée seulement en Facile et Normal. */
+  speed?: GameSpeed;
 }
 
 export interface GameHooks {
   onEnd(result: GameResult, opts: GameOptions): void;
   onPauseChange(paused: boolean): void;
+  /** Pause tactique prise ou levée (v5.14). */
+  onTactical?(active: boolean): void;
   onHud(world: World, selectedCount: number): void;
   /** Point de ralliement posé (ou effacé) par le joueur. */
   onRally?(cleared: boolean): void;
@@ -151,6 +156,10 @@ export class Game {
   private time = 0;
   paused = false;
   over = false;
+  /** Pause tactique (v5.14) : la cour est figée mais les ordres restent possibles. */
+  readonly tactical: TacticalPause;
+  /** Facteur de vitesse de la partie (0,75 en vitesse lente, Facile et Normal seulement). */
+  speed = 1;
   private dpr = 1;
   private ac = new AbortController();
   private endTimer = 0;
@@ -175,6 +184,8 @@ export class Game {
     const others = Array.from({ length: MAX_TEAMS }, (_, c) => c).filter((c) => c !== opts.playerColor);
     const seed = opts.seed ?? Date.now() % 100000;
     const rules = normalizeRules(opts.rules);
+    this.tactical = new TacticalPause(tempoAllowed(opts.difficulty, !!opts.tutorial));
+    this.speed = speedFactor(opts.speed ?? 'normale', opts.difficulty, !!opts.tutorial);
     // Roi de la cour : trône au centre (jamais en campagne : pas de règles passées).
     this.world = new World(isKingMode(rules) ? withThrone(opts.map) : opts.map, opts.map.teams, seed, [opts.playerColor, ...others]);
     this.world.rules = rules;
@@ -313,6 +324,32 @@ export class Game {
     this.act({ kind: 'camera', how: 'minimap' });
   }
 
+  /** Vitesse changée en cours de partie (menu pause) ; sans effet en Difficile et Expert. */
+  setSpeed(speed: GameSpeed): number {
+    this.speed = speedFactor(speed, this.opts.difficulty, !!this.opts.tutorial);
+    return this.speed;
+  }
+
+  /** Bouton de pause tactique : fige ou relance la cour. Renvoie le nouvel état. */
+  toggleTactical(): boolean {
+    return this.setTactical(!this.tactical.active);
+  }
+
+  setTactical(on: boolean): boolean {
+    if (this.over || this.paused) return this.tactical.active;
+    if (on === this.tactical.active) return on;
+    if (on && !this.tactical.allowed) {
+      this.sfx.play('deny');
+      return false;
+    }
+    this.tactical.set(on);
+    this.sfx.play(on ? 'freeze' : 'unfreeze');
+    navigator.vibrate?.(on ? [20, 40, 20] : 15);
+    this.hooks.onTactical?.(on);
+    this.hooks.onHud(this.world, this.selected.size);
+    return on;
+  }
+
   setPaused(p: boolean): void {
     if (this.over) return;
     if (this.paused === p) return;
@@ -330,7 +367,21 @@ export class Game {
     this.frameDt = dt;
     this.cam.update(dt);
     if (!this.paused && !this.over) this.edgeScroll(dt);
-    if (!this.paused && !this.over) {
+    const frozen = this.tactical.active && !this.over;
+    if (frozen && !this.paused) {
+      // Pause tactique : la cour est figée, seuls les repères d'ordre et l'interface vivent.
+      this.tactical.tick(dt);
+      for (const m of this.markers) m.t += dt;
+      this.markers = this.markers.filter((m) => m.t < 1);
+      if (this.flash && this.flash.t >= 0) this.flash.t += dt;
+      this.hudTimer += dt;
+      if (this.hudTimer > 0.25) {
+        this.hudTimer = 0;
+        this.hooks.onHud(this.world, this.selected.size);
+      }
+    } else if (!this.paused && !this.over) {
+      // Vitesse lente (Facile, Normal) : moins de temps de jeu par seconde réelle.
+      dt *= this.speed;
       this.acc += dt;
       let steps = 0;
       while (this.acc >= STEP && steps < 4) {

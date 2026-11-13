@@ -14,6 +14,8 @@ import { DiplomacyExtrasHud } from './ui/diplomacy-extras';
 import { Menu, type MenuState } from './ui/menu';
 import { Overlay } from './ui/overlay';
 import { TacticsHud } from './ui/tactics-hud';
+import { TempoHud, tempoBlock } from './ui/tempo-hud';
+import { tempoAllowed } from './core/tempo';
 import { codeBlock, medalsBlock } from './ui/share';
 import { KingHud, kingEnd } from './ui/king-hud';
 import { CampPanel } from './ui/camp-panel';
@@ -81,6 +83,16 @@ const tactics = new TacticsHud(hudRoot, {
       2400,
     );
     return game.charge;
+  },
+});
+
+// Rythme (v5.14) : bouton de pause tactique, en Facile et Normal.
+const tempoHud = new TempoHud(hudRoot, {
+  onToggle: () => {
+    if (!game) return false;
+    const on = game.toggleTactical();
+    if (on && game.tactical.count === 1) hud.showHint('Pause tactique : la cour est figée. Sélectionne, donne tes ordres, achète, puis touche ▶ pour reprendre.', 4200);
+    return on;
   },
 });
 
@@ -158,6 +170,7 @@ function launch(opts: GameOptions, code: MapCode | null): void {
   overlay.hide();
   menu.hide();
   hud.show();
+  opts = { ...opts, speed: progress.speed ?? 'normale' };
   game = new Game(canvas, minimapCanvas, sfx, opts, {
     onHud: (world, selected) => (hud.update(world, selected, 0), kingHud.update(world, 0), campPanel.refresh(), powersHud.refresh()),
     onCampTap: (camp) => campPanel.open(camp),
@@ -176,6 +189,7 @@ function launch(opts: GameOptions, code: MapCode | null): void {
     onAnnounce: (text) => hud.showHint(text, 2600),
     onHint: (text) => hud.showHint(text, 2800),
     onAlert: (a) => alertBanner.show(a),
+    onTactical: (on) => tempoHud.set(on),
     onPauseChange: (paused) => {
       if (paused) {
         hud.closeDiplomacy(); // le panneau ne doit pas recouvrir la pause
@@ -189,7 +203,7 @@ function launch(opts: GameOptions, code: MapCode | null): void {
               game?.setPaused(false);
             },
             () => backToMenu(),
-            code ? [codeBlock(codeText)] : [],
+            [...(tutorial ? [] : [rhythmBlock(opts)]), ...(code ? [codeBlock(codeText)] : [])],
             () => overlay.howTo(showPause),
             tutorial ? undefined : () => game?.surrender(),
           );
@@ -262,6 +276,8 @@ function launch(opts: GameOptions, code: MapCode | null): void {
   kingHud.update(game.world, 0);
   campPanel.refresh();
   tactics.set(game.charge);
+  tempoHud.set(false);
+  tempoHud.setAvailable(tempoAllowed(opts.difficulty, tutorial) && progress.tacticalPause !== false);
   if (tutorial) tutorialUi.show(game);
   else {
     tutorialUi.hide();
@@ -280,7 +296,27 @@ function launch(opts: GameOptions, code: MapCode | null): void {
   game.start();
 }
 
+/** Bloc « Rythme » du menu pause : vitesse et bouton de pause tactique, mémorisés. */
+function rhythmBlock(opts: GameOptions): HTMLElement {
+  return tempoBlock(
+    { allowed: tempoAllowed(opts.difficulty, !!opts.tutorial), speed: progress.speed ?? 'normale', tacticalButton: progress.tacticalPause !== false },
+    (speed) => {
+      progress = { ...progress, speed };
+      saveProgress(progress);
+      game?.setSpeed(speed);
+      sfx.play('select');
+    },
+    (on) => {
+      progress = { ...progress, tacticalPause: on };
+      saveProgress(progress);
+      tempoHud.setAvailable(on && !!game && game.tactical.allowed);
+      sfx.play('select');
+    },
+  );
+}
+
 function backToMenu(): void {
+  tempoHud.set(false);
   alertBanner.hide();
   campPanel.close();
   tutorialUi.hide();

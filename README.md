@@ -91,6 +91,7 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
   | Expert | 40 | 3 | 0,5 s |
 
   Normal est réglé pour qu'un joueur moyen gagne environ une partie sur deux à 4 équipes (voir « Équilibrage »). Difficile et Expert sont les anciens Normal et Difficile (avant la v5.2) : une ancienne sauvegarde réglée sur « Normal » s'ouvre en Difficile, « Difficile » en Expert.
+- **Rythme réglable (v5.14), en Facile et Normal.** Un sablier en haut à droite déclenche la **pause tactique** : la cour se fige (liseré bleu glacé, bandeau « Pause tactique »), personne ne bouge, mais tu peux sélectionner, donner tes ordres, poser tes consignes, acheter des améliorations et lancer tes pouvoirs ; tout part dès que tu touches ▶ (le sablier) ou « Reprendre » sur le bandeau. Dans la pause, la rubrique « Rythme » règle la **vitesse** (Normale, ou Lente ×0,75 : trois secondes de jeu pour quatre secondes réelles) et peut masquer le sablier ; les deux réglages sont mémorisés. En Difficile et Expert, et dans le tutoriel, la cour tourne toujours à pleine vitesse, sans pause tactique.
 - **Option « Camps fantômes » (escarmouche).** La cour compte en plus 1 à 3 camps sans propriétaire (selon sa taille), gris pâle à liseré pointillé avec un petit fantôme, placés vers le centre à égale distance des équipes (symétriques quand la carte l’est). Ils se capturent comme un camp (lentement) ; pris, ils produisent des élèves comme un camp normal et peuvent être repris. Ils comptent comme des camps pour la victoire : une équipe qui ne tient plus qu’un camp fantôme reste en vie, et « tenir tous les camps » les inclut. Même code de carte et même option : même disposition.
 
 ## Bons points et améliorations de camp
@@ -399,6 +400,19 @@ Ce qu'on en apprend :
 
 `perf240`, en alternance avec la v5.12 sur la même machine : partie 0,198 et 0,208 ms par pas contre 0,232 et 0,214 avant : pas de régression (la logique ne tourne que s'il y a une escorte).
 
+### Rythme réglable (v5.14)
+
+Point 1.6. Les IA ne changent pas : elles jouent en temps de jeu. La vitesse lente donne au joueur plus de temps réel par seconde de jeu ; pour la mesurer, `equilibre.ts` accepte `vitesse=0.75` : le témoin garde ses ordres par minute *réelle*, donc 1/0,75 fois plus d'ordres par minute de jeu (`attentionAtSpeed` dans `src/core/tempo.ts`), et ses réactions raccourcissent d'autant (2,25 s au lieu de 3). Témoin humain en Normal, 4 équipes, 800 parties par ligne (± 3,5 environ) :
+
+| Témoin humain | graine 1 | graine 2 |
+| --- | --- | --- |
+| vitesse normale | 49,9 % | 52,0 % |
+| vitesse lente ×0,75 | 54,0 % | 56,3 % |
+
+La vitesse lente vaut environ 4 points au témoin : une aide réelle mais mesurée, qui laisse Normal près de la cible. La pause tactique ne se simule pas (elle ne donne que du temps de réflexion) : c'est un outil de confort, réservé comme la vitesse lente à Facile et Normal. Ordres par minute : témoin 16,7 à 16,9 à vitesse normale, 22,1 à 22,2 en vitesse lente (par minute de jeu), IA 14,7 à 14,8.
+
+`perf240` : la boucle de simulation ne change pas (le rythme n'agit que sur la boucle d'images de l'application) ; partie 0,111 à 0,194 ms par pas, dans le bruit des mesures précédentes.
+
 ## Contrôles tactiles
 
 | Geste | Effet |
@@ -425,7 +439,8 @@ Ce qu'on en apprend :
 | Boutons ronds en bas (cloche, boule de neige, gâteau) | Appui long : aide ; glisser jusqu'à la carte : lancer ; tap : armer, puis viser et toucher la zone |
 | Tap sur la puce d'une équipe (en haut) | Panneau « Diplomatie » : proposer ou rompre une alliance |
 | Tap sur ta propre puce (en haut) | Détail « Effectifs » : élèves, cases et camps de chaque équipe |
-| Boutons | « Tout sélectionner », « Annuler », « Fuir / Charger », pause, son |
+| Sablier (en haut à droite, Facile et Normal) | Pause tactique : la cour se fige, les ordres restent possibles ; ▶ ou le bandeau « Reprendre » relance |
+| Boutons | « Tout sélectionner », « Annuler », « Fuir / Charger », pause tactique, pause (avec la rubrique « Rythme » : vitesse, sablier affiché ou masqué), son |
 
 À la souris : clic, clic maintenu pour le rectangle, glisser pour la caméra, molette pour zoomer.
 
@@ -499,6 +514,8 @@ Le dépôt contient un workflow GitHub Actions (`.github/workflows/deploy.yml`) 
 | `v5.12` | 1.5, deuxième tranche : consigne « Défendre » (garnison mobile d'un secteur de 4 cases au plus, retranchée, bouclier sur le poste, sur la case secourue et sur le groupe) ; rangée dédiée aux deux consignes d'escouade |
 | `avant-2026-11-12` | état avant la v5.13 (point de retour) |
 | `v5.13` | 1.5, troisième tranche : consigne « Suivre » (escorte d'un groupe désigné par un tap ou un bouton 1-2-3, chasse des ennemis qui l'approchent, écusson vert sur le protégé et sur le groupe) ; fin du point 1.5 Escouades |
+| `avant-2026-11-13` | état avant la v5.14 (point de retour) |
+| `v5.14` | 1.6 Rythme réglable : pause tactique (sablier, cour figée, ordres possibles) et vitesse lente ×0,75, en Facile et Normal, réglées dans la pause et mémorisées |
 
 ## Architecture
 
@@ -527,6 +544,7 @@ src/
     ghosts.ts          option « Camps fantômes » : placement, carte d’une partie, intérêt des IA
     garrison.ts        garnisons : ordre « Garder », cercle défendu, laisse, reprise de la case, gardes retranchés
     squads.ts          escouades à consigne : « Conquérir » (choix de la case, renoncement, enchaînement des prises), « Défendre » (secteur, poste, secours, laisse, retranchement) et « Suivre » (protégé, menaces, laisse, dispersion)
+    tempo.ts           rythme réglable : vitesse lente, pause tactique, attention humaine en temps de jeu
     reinforce.ts       renforts automatiques : menace des cases, case secourue par chaque camp, envoi des nouveaux élèves
     save.ts            progression (localStorage)
     merits.ts          bons points : gains, solde, dépenses

@@ -26,7 +26,9 @@ But mesurable : un joueur humain qui donne 15 à 25 ordres par minute doit pouvo
   - [x] **1.5 c Suivre.** (v5.13, 12/11/2026) Bouton « Suivre » armé, puis tap sur un de ses élèves (ou sur un bouton 1-2-3) : la sélection escorte ce groupe (toute son escouade s'il en a une), se jette sur les ennemis qui l'approchent, laisse de 4,5 cases, se disperse quand il n'y a plus personne. Écusson vert sur le protégé et sur le groupe. Mesuré : coûte 5 à 8 points au témoin qui escorte sa conquête, comme les autres consignes.
   - Idée (11/11) : laisser régler le secteur au doigt (toucher les cases à ajouter ou retirer, comme « Garder » armé), si Aloys trouve le secteur automatique trop rigide.
   - Idée (à valider) : apprendre aux IA à reprendre plus vite leurs cases éloignées ; ce n'est qu'ensuite qu'une conquête des cases ennemies (réservée à Facile ?) pourrait revenir.
-- [ ] **1.6 Rythme réglable.** Vitesse de jeu ×0,75 / ×1 en Facile et Normal, et pause tactique où l'on peut donner des ordres (option).
+- [x] **1.6 Rythme réglable.** (v5.14, 13/11/2026) Sablier en haut à droite (Facile et Normal) : pause tactique, cour figée sous un liseré bleu, ordres, consignes, achats et pouvoirs possibles, ▶ ou bandeau « Reprendre » pour relancer. Rubrique « Rythme » dans la pause : vitesse Normale ou Lente ×0,75, sablier affiché ou masqué, mémorisés. Mesuré : la vitesse lente vaut environ 4 points au témoin (49,9 → 54,0 % et 52,0 → 56,3 %).
+  - Idée : une rubrique « Rythme » aussi dans le menu principal, pour régler la vitesse avant la partie.
+  - Idée : statistiques de fin de partie « pauses tactiques : N » (déjà comptées par `TacticalPause`).
 - [ ] **1.7 Bilan saison 1.** Simulations, réglages fins, mise à jour du tutoriel et de « Comment jouer » pour tous les nouveaux gestes.
 
 ## Saison 2 : sensations et lisibilité

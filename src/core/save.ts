@@ -1,5 +1,6 @@
 import { STORAGE_KEY } from '../config';
 import { sanitizeMedals, type MedalMap } from './challenges';
+import { sanitizeSpeed, type GameSpeed } from './tempo';
 import type { Difficulty, TeamId } from './types';
 
 export interface Progress {
@@ -23,6 +24,10 @@ export interface Progress {
    * Une ancienne sauvegarde est convertie : « normal » → « difficile », « difficile » → « expert ».
    */
   difficultyScale?: number;
+  /** Vitesse de jeu en Facile et Normal (v5.14, facultatif : absente = « normale »). */
+  speed?: GameSpeed;
+  /** Bouton de pause tactique affiché en Facile et Normal (v5.14, facultatif : absent = affiché). */
+  tacticalPause?: boolean;
 }
 
 /** Échelle de difficulté actuelle (Facile, Normal, Difficile, Expert). */
@@ -70,6 +75,8 @@ export function loadProgress(store: StorageLike | null = storage()): Progress {
       medals: sanitizeMedals(parsed.medals),
       tutorialSeen: !!parsed.tutorialSeen,
       tutorialDone: !!parsed.tutorialDone,
+      speed: sanitizeSpeed(parsed.speed),
+      tacticalPause: parsed.tacticalPause !== false,
     };
   } catch {
     return { ...DEFAULT, wins: {} };

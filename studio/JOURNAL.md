@@ -2,6 +2,28 @@
 
 Une entrée par session, la plus récente en haut : date, version, ce qui a été fait, ce qui a été mesuré, ce qui reste ou ce qui inquiète.
 
+## 13/11/2026 : session de développement, v5.14 (1.6, rythme réglable)
+
+**Fait**
+- Aucun retour d'Aloys par e-mail (les neuf journaux des 14 derniers jours sont sans réponse). Travail du jour : 1.6 Rythme réglable, en entier. Point de retour : branche `avant-2026-11-13`.
+- `src/core/tempo.ts` : `tempoAllowed` (Facile et Normal, jamais dans le tutoriel), `speedFactor` (0,75 en vitesse lente, toujours 1 en Difficile et Expert), `attentionAtSpeed` (attention d'un humain exprimée en temps de jeu), `TacticalPause` (bascule, nombre de pauses, temps réel figé).
+- `Game` : `tactical`, `speed`, `setTactical`, `toggleTactical`, `setSpeed`. Cour figée : plus aucun pas de simulation, mais sélection, ordres, consignes, achats et pouvoirs passent ; repères d'ordre et HUD continuent de vivre. Vitesse lente : la boucle à pas fixe reçoit 0,75 s de jeu par seconde réelle (caméra et défilement restent à vitesse réelle).
+- Interface : sablier entre « Fuir / Charger » et le son ; figé, il devient ▶ bleu glacé qui pulse, liseré bleu autour de la cour et bandeau « Pause tactique · donne tes ordres » avec « Reprendre ». Sons « Un, deux, trois, soleil ! » (trois notes qui se figent) et reprise (glissando, claquement), vibrations, aide au premier usage. Rubrique « Rythme » dans la pause : vitesse Normale / Lente ×0,75, sablier affiché / masqué (boutons de 44 px), mémorisés dans la sauvegarde (champs facultatifs, anciennes sauvegardes intactes). En Difficile et Expert, la rubrique dit que c'est réservé à Facile et Normal.
+- « Comment jouer » : rubrique « Rythme ». README (règle, contrôles, équilibrage, versions, architecture). Pas d'étape de tutoriel : c'est une option, et le tutoriel tourne toujours à pleine vitesse.
+- `equilibre.ts` : `vitesse=0.75` (le témoin garde ses ordres par minute réelle).
+- 8 nouveaux tests (`tempo.test.ts`, `tempo-app.test.ts` qui fige la cour, donne un ordre, vérifie que rien ne bouge puis que tout repart, règle la vitesse dans la pause) ; 429 tests verts. Attention : j'avais d'abord écrasé `tests/rythme.test.ts` (rythme de partie, v4) par erreur ; rattrapé avant le commit, mes tests s'appellent `tempo*`.
+
+**Mesuré**
+- Témoin humain, Normal, 800 parties par ligne : vitesse normale 49,9 % (graine 1) et 52,0 % (graine 2) ; vitesse lente 54,0 et 56,3 %. La vitesse lente vaut environ 4 points : aide réelle, Normal reste près de la cible.
+- Ordres par minute (de jeu) : témoin 16,7 à 16,9 à vitesse normale, 22,1 à 22,2 en vitesse lente ; IA 14,7 à 14,8.
+- `perf240` : la simulation ne change pas ; trois passages entre 0,111 et 0,194 ms par pas, rendu 0,9 à 2,5 ms par image, dans le bruit (le code du rythme n'est que dans la boucle d'images de l'application).
+- Captures 844 × 390 : sablier lisible, ▶ bleu net en pause tactique, bandeau centré qui ne touche ni les puces ni les boutons même à 8 équipes, rubrique « Rythme » propre dans la pause.
+
+**Reste à faire, inquiétudes**
+- La pause tactique est illimitée : en Normal, un joueur patient peut tout microgérer à l'arrêt. C'est voulu (piliers 1 et 3), mais si Aloys trouve que ça enlève la tension, piste : la limiter (trois par partie, ou une recharge).
+- Le réglage de vitesse ne se fait que dans la pause ; une rubrique « Rythme » au menu principal serait plus découvrable.
+- Prochaine session : 1.7 Bilan saison 1 (simulations d'ensemble, réglages fins, tutoriel et « Comment jouer » relus pour tous les nouveaux gestes), puis la saison 2.
+
 ## 12/11/2026 : session de développement, v5.13 (1.5 c, consigne « Suivre »)
 
 **Fait**

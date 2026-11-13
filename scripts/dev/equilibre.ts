@@ -31,6 +31,8 @@
 //     rayon=2.6        rayon défendu des garnisons (GARRISON.radius), pour tout le monde
 //     laisse=3.8       laisse des garnisons (GARRISON.leash), pour tout le monde
 //     armure=0.75      coups reçus par un garde dans son cercle (GARRISON.armor), pour tout le monde
+//     vitesse=1        vitesse de jeu du témoin (v5.14) : à 0.75, un humain garde ses ordres par minute
+//                      réelle, donc 1/0.75 fois plus d'ordres par minute de jeu et des réactions plus courtes
 //     avant=1          IA et témoin sans limite d'attention (comportement d'avant la v5.4)
 // Affiche aussi les ordres par minute moyens des IA et du témoin.
 // Une partie sans vainqueur au temps limite est attribuée à l'équipe en tête (élèves + cases + camps).
@@ -47,6 +49,7 @@ import { GARRISON } from '../../src/core/garrison';
 import { assignConquest, assignDefence, assignEscort, SQUAD, squadMembers, squadsOf } from '../../src/core/squads';
 import { generateMap, LEVELS, type LevelDef } from '../../src/core/maps';
 import { Rng } from '../../src/core/rng';
+import { attentionAtSpeed } from '../../src/core/tempo';
 import { skirmishLevel } from '../../src/core/skirmish';
 import type { Difficulty } from '../../src/core/types';
 import { World } from '../../src/core/world';
@@ -74,7 +77,8 @@ const harcele = Number(args.harcele ?? 0);
 if (args.rayon) GARRISON.radius = Number(args.rayon);
 if (args.laisse) GARRISON.leash = Number(args.laisse);
 if (args.armure) GARRISON.armor = Number(args.armure);
-const reaction = Number(args.reaction ?? 3);
+const vitesse = Number(args.vitesse ?? 1);
+const reaction = Number(args.reaction ?? 3) * (vitesse > 0 ? vitesse : 1);
 const aiOverride = args.ia ? (JSON.parse(args.ia) as Partial<AiProfile>) : undefined;
 const avant = args.avant === '1';
 const garde = Number(args.garde ?? 0);
@@ -90,7 +94,7 @@ if (args.retranche !== undefined) (SQUAD as { entrenched: boolean }).entrenched 
 if (args.casesennemies) (SQUAD as { enemyTiles: boolean }).enemyTiles = args.casesennemies === '1';
 if (args.pause) (SQUAD as { pause: number }).pause = Number(args.pause);
 const aiAttention: Partial<AiAttention> | undefined = avant ? UNLIMITED_ATTENTION : args.attention ? (JSON.parse(args.attention) as Partial<AiAttention>) : undefined;
-const temoinAttention: AiAttention = avant ? UNLIMITED_ATTENTION : HUMAN_ATTENTION;
+const temoinAttention: AiAttention = avant ? UNLIMITED_ATTENTION : attentionAtSpeed(HUMAN_ATTENTION, vitesse);
 if (args.valeurs) Object.assign(STAT_POINT_VALUES, JSON.parse(args.valeurs) as Partial<Record<TeamStat, number[]>>);
 
 const NC = TEAM_NAMES.length;

@@ -8,6 +8,8 @@ export type SfxName =
   | 'conquer'
   | 'defend'
   | 'follow'
+  | 'freeze'
+  | 'unfreeze'
   | 'punch'
   | 'hit'
   | 'ko'
@@ -171,6 +173,16 @@ export class Sfx {
         this.noise(t + 0.1, 0.035, 2600, 0.3);
         this.tone(t + 0.2, 587, 587, 0.09, 'triangle', 0.24);
         this.tone(t + 0.3, 740, 745, 0.16, 'triangle', 0.26);
+        break;
+      case 'freeze':
+        // Pause tactique : « Un, deux, trois, soleil ! », trois notes qui descendent et se figent.
+        [880, 740, 587].forEach((f, i) => this.tone(t + i * 0.07, f, f, 0.08, 'triangle', 0.22));
+        this.tone(t + 0.22, 440, 438, 0.28, 'sine', 0.2);
+        break;
+      case 'unfreeze':
+        // Reprise : petit glissando qui remonte et un claquement de mains.
+        this.tone(t, 440, 880, 0.14, 'triangle', 0.22);
+        this.noise(t + 0.14, 0.035, 2600, 0.28);
         break;
       case 'defeat':
         [440, 415, 392, 330].forEach((f, i) => this.tone(t + i * 0.22, f, f * 0.9, 0.3, 'sawtooth', 0.3));

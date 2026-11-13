@@ -224,5 +224,6 @@ export const HOW_TO: ReadonlyArray<[string, string]> = [
   ['Les IA', 'Comme toi, les équipes de l’ordinateur ont une attention limitée : un nombre d’ordres par minute selon la difficulté, et une ou deux cases secourues à la fois (le menu donne les chiffres). Attaque sur deux fronts pour les déborder.'],
   ['Alliances', 'Touche la puce d’une équipe, en haut, pour lui proposer une alliance… ou la rompre. Une rupture est annoncée 30\u00a0s à l’avance\u00a0: le compte à rebours s’affiche sous la puce, et un rappel tombe 10\u00a0s avant.'],
   ['Mode Équipes', 'En escarmouche, « Équipes fixes » forme des équipes dès le départ (2 contre 2, 3 contre 3, 2 contre 2 contre 2…). Tes coéquipiers IA ont les camps voisins du tien ; l’alliance tient toute la partie et vous gagnez ensemble.'],
+  ['Rythme', 'En Facile et Normal, le sablier en haut à droite déclenche la pause tactique : la cour se fige (liseré bleu), mais tu peux sélectionner, donner tes ordres, acheter et poser tes consignes ; touche ▶ ou le bandeau « Reprendre » pour relancer. Dans la pause, « Rythme » règle la vitesse (Normale ou Lente ×0,75) et peut masquer le sablier. En Difficile et Expert, la cour tourne toujours à pleine vitesse.'],
   ['Abandonner', 'Dans la pause, « Abandonner » termine la partie en défaite, mais affiche quand même ses statistiques.'],
 ];

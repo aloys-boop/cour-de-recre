@@ -1,0 +1,148 @@
+/* Rythme réglable (v5.14) : pause tactique et réglages de vitesse. */
+
+.icon-btn.tactical-btn.on {
+  background: #9fdcff;
+  border-color: #fff;
+  box-shadow: 0 0 0 3px rgba(159, 220, 255, 0.45);
+  animation: tactical-glow 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes tactical-glow {
+  from {
+    box-shadow: 0 0 0 2px rgba(159, 220, 255, 0.35);
+  }
+  to {
+    box-shadow: 0 0 0 6px rgba(159, 220, 255, 0.6);
+  }
+}
+
+/* Liseré « givré » autour de la cour figée. */
+#hud.tactical::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 4px rgba(159, 220, 255, 0.95),
+    inset 0 0 46px rgba(159, 220, 255, 0.5);
+  animation: tactical-in 0.25s ease-out;
+}
+
+@keyframes tactical-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+#hud .tactical-badge {
+  position: absolute;
+  left: 50%;
+  top: calc(62px + var(--sat));
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  max-width: calc(100% - 300px);
+  padding: 4px 6px 4px 12px;
+  border: 2px solid #fff;
+  border-radius: 14px;
+  background: #9fdcff;
+  color: #0d2a40;
+  font: inherit;
+  font-size: 14px;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.25);
+  animation: alert-in 0.28s cubic-bezier(0.2, 1.4, 0.4, 1);
+  /* Sous le panneau de diplomatie (z-index 5) : il reste lisible si on l'ouvre pendant la pause. */
+  z-index: 4;
+}
+
+#hud .tactical-badge.hidden {
+  display: none;
+}
+
+.tactical-badge svg {
+  flex: none;
+}
+
+.tactical-badge .tb-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tactical-badge .tb-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.7);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Bloc « Rythme » du menu pause. */
+.tempo-block {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 2px dashed rgba(0, 0, 0, 0.12);
+}
+
+.tempo-title {
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.tempo-note {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+.tempo-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 6px 0;
+}
+
+.tempo-label {
+  font-size: 14px;
+  text-align: left;
+}
+
+.tempo-seg {
+  display: inline-flex;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.08);
+  padding: 3px;
+  gap: 3px;
+}
+
+.tempo-opt {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tempo-opt.on {
+  background: #2c6fb7;
+  color: #fff;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+.tempo-opt:active {
+  transform: scale(0.96);
+}
