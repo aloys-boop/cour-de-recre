@@ -188,6 +188,11 @@ export class TutorialUi {
       const t = g.powerDragTarget();
       return t ? world(t.at) : null;
     }
+    // « Conquérir » : d'abord les trois recrues, tant qu'aucune n'est sélectionnée.
+    if (step.id === 'conquer' && !t.recruits.some((u) => g.selected.has(u.id))) {
+      const p = t.recruitsPoint();
+      if (p) return world(p);
+    }
     if (step.target.kind === 'button') return button(step.target.selector);
     if (step.id === 'attack' && g.selected.size === 0) {
       const mine = g.world.units.find((u) => u.team === g.playerTeam && u.alive && !u.pion);

@@ -20,7 +20,7 @@ describe('tutoriel : logique', () => {
     expect(TUTORIAL_MAP.w).toBeLessThanOrEqual(12);
     expect(LEVELS.map((l) => l.id)).not.toContain('tutoriel');
     expect(decodeMapCode('222222')).toEqual({ spec: { kind: 'campagne', level: 0 }, seed: 0 });
-    expect(TUTORIAL_STEPS.map((s) => s.id)).toEqual(['select', 'box', 'move', 'capture', 'attack', 'rally', 'camera', 'merits', 'guard', 'upgrade', 'powerHelp', 'power', 'win']);
+    expect(TUTORIAL_STEPS.map((s) => s.id)).toEqual(['select', 'box', 'move', 'capture', 'attack', 'rally', 'camera', 'merits', 'guard', 'conquer', 'upgrade', 'powerHelp', 'power', 'win']);
     for (const s of TUTORIAL_STEPS) expect(s.text.length).toBeLessThanOrEqual(90);
   });
 
@@ -81,7 +81,17 @@ describe('tutoriel : logique', () => {
     tick(w, 12, t);
     expect(t.step.id).toBe('guard');
     t.onAction({ kind: 'guard', count: 3 });
+    // v5.15 : trois recrues sortent du camp pour l'étape « Conquérir ».
+    expect(t.step.id).toBe('conquer');
+    const before = w.units.filter((u) => u.team === 0 && u.alive).length;
+    expect(t.recruits.length).toBe(3);
+    expect(t.recruits.every((u) => u.team === 0 && u.alive)).toBe(true);
+    expect(t.recruitsPoint()).not.toBeNull();
+    t.onAction({ kind: 'guard', count: 1 });
+    expect(t.step.id).toBe('conquer');
+    t.onAction({ kind: 'conquer', count: 3 });
     expect(t.step.id).toBe('upgrade');
+    expect(w.units.filter((u) => u.team === 0 && u.alive).length).toBe(before);
     expect(meritsOf(w, 0)).toBeGreaterThanOrEqual(30);
     t.onAction({ kind: 'upgrade' });
     expect(t.step.id).toBe('powerHelp');

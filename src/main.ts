@@ -226,7 +226,7 @@ function launch(opts: GameOptions, code: MapCode | null): void {
         hud.closeCounts();
         overlay.end(win, o.map.name, {
           nextAvailable: false,
-          stats: game ? endStats(game.stats, game.world, game.playerTeam) : undefined,
+          stats: game ? endStats(game.stats, game.world, game.playerTeam, game.tactical.count) : undefined,
           onReplay: () => startTutorial(),
           onNext: () => undefined,
           onMenu: () => backToMenu(),
@@ -258,7 +258,7 @@ function launch(opts: GameOptions, code: MapCode | null): void {
       overlay.end(win, o.map.name, {
         alliance,
         nextAvailable,
-        stats: game ? endStats(game.stats, game.world, game.playerTeam) : undefined,
+        stats: game ? endStats(game.stats, game.world, game.playerTeam, game.tactical.count) : undefined,
         // Rejouer et carte suivante : nouvelle disposition tirée au sort.
         onReplay: () => (code ? play({ spec: code.spec, seed: randomSeed() }, o) : backToMenu()),
         onNext: () => play({ spec: { kind: 'campagne', level: o.mapIndex + 1 }, seed: randomSeed() }, o),

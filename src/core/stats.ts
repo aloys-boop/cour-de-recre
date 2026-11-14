@@ -75,15 +75,24 @@ export interface EndStats {
   rows: EndStatsRow[];
   /** Option « Surveillants » active : une colonne de plus (surveillants mis KO). */
   supervisors?: boolean;
+  /** Pauses tactiques prises par le joueur (v5.15, affichées seulement s'il y en a eu). */
+  tacticalPauses?: number;
 }
 
-export function endStats(stats: GameStats, world: World, playerTeam: number): EndStats {
+export function endStats(stats: GameStats, world: World, playerTeam: number, tacticalPauses = 0): EndStats {
   const rows: EndStatsRow[] = [];
   for (let t = 0; t < world.numTeams; t++) {
     const tally = stats.teams[t] ?? { produced: 0, koDealt: 0, koTaken: 0, captured: 0 };
     rows.push({ ...tally, team: t, color: world.teamColors[t] ?? t, isPlayer: t === playerTeam });
   }
-  return { duration: world.time, rows, supervisors: !!world.rules.supervisors };
+  return { duration: world.time, rows, supervisors: !!world.rules.supervisors, ...(tacticalPauses > 0 ? { tacticalPauses } : {}) };
+}
+
+/** Ligne de durée de l'écran de fin, avec les pauses tactiques s'il y en a eu (v5.15). */
+export function durationLine(stats: Pick<EndStats, 'duration' | 'tacticalPauses'>): string {
+  const n = stats.tacticalPauses ?? 0;
+  const pauses = n > 0 ? `, ${n} pause${n > 1 ? 's' : ''} tactique${n > 1 ? 's' : ''}` : '';
+  return `Durée de la partie : ${formatDuration(stats.duration)}${pauses}`;
 }
 
 /** Durée lisible : « 45 s », « 3 min 05 s ». */

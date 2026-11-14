@@ -6,8 +6,10 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
 
 ## Tutoriel et « Comment jouer »
 
-- **Tutoriel.** Proposé automatiquement au premier lancement (« Faire le tutoriel » ou « Plus tard »), puis rejouable à tout moment : il est en tête de l'onglet « Campagne » du menu. Petite cour de 11 × 11 contre une autre équipe (les Verts, ou les Noirs si tu joues les Verts : la bulle nomme toujours le vrai adversaire, v5.9), IA passive (ses élèves restent chez eux et ne sont pas produits) jusqu'à la dernière étape, où elle se réveille en Facile avec des coups adoucis. Treize étapes guidées par une bulle de texte et une main animée qui montre où toucher ; chacune n'avance que sur l'action réelle du joueur : sélectionner un élève, sélection rectangle, déplacer, capturer une case, attaquer (deux adversaires approchent), poser un point de ralliement, bouger la caméra (glisser, pincer ou mini-carte), gagner des bons points en prenant une case, la confier à une garnison (bouton « Garder »), améliorer l'équipe, lire l'aide d'un pouvoir (appui long sur le Goûter), le lancer par glisser-déposer (ou l'ancien mode), gagner la partie en prenant le camp adverse. La bulle se place d'elle-même là où elle ne cache ni la main, ni ce qu'elle montre, ni le bon bouton d'un panneau ouvert (en haut au centre par défaut, sinon en bas ou sur un côté, v5.9) ; panneau du camp ouvert, elle dit quel bouton toucher. Le directeur complète au besoin les bons points pour essayer l'amélioration et le pouvoir. Le bouton « Passer » reste toujours visible et ramène au menu. Le tutoriel ne fait pas partie de la liste des niveaux : les codes de carte et la progression de la campagne sont inchangés.
-- **Comment jouer.** Les règles en rubriques courtes (but, sélection, déplacement et attaque, cases et camps, effectifs, bons points, améliorations, classes, garnisons, pouvoirs, pion, caméra, ralliement, les IA, alliances), depuis le bouton « Comment jouer » du menu et du menu pause.
+- **Tutoriel.** Proposé automatiquement au premier lancement (« Faire le tutoriel » ou « Plus tard »), puis rejouable à tout moment : il est en tête de l'onglet « Campagne » du menu. Petite cour de 11 × 11 contre une autre équipe (les Verts, ou les Noirs si tu joues les Verts : la bulle nomme toujours le vrai adversaire, v5.9), IA passive (ses élèves restent chez eux et ne sont pas produits) jusqu'à la dernière étape, où elle se réveille en Facile avec des coups adoucis. Quatorze étapes guidées par une bulle de texte et une main animée qui montre où toucher ; chacune n'avance que sur l'action réelle du joueur : sélectionner un élève, sélection rectangle, déplacer, capturer une case, attaquer (deux adversaires approchent), poser un point de ralliement, bouger la caméra (glisser, pincer ou mini-carte), gagner des bons points en prenant une case, la confier à une garnison (bouton « Garder »), envoyer trois recrues en conquête (bouton « Conquérir », v5.15 : la main montre d'abord les recrues sorties du camp, puis le drapeau), améliorer l'équipe, lire l'aide d'un pouvoir (appui long sur le Goûter), le lancer par glisser-déposer (ou l'ancien mode), gagner la partie en prenant le camp adverse. La bulle se place d'elle-même là où elle ne cache ni la main, ni ce qu'elle montre, ni le bon bouton d'un panneau ouvert (en haut au centre par défaut, sinon en bas ou sur un côté, v5.9) ; panneau du camp ouvert, elle dit quel bouton toucher. Le directeur complète au besoin les bons points pour essayer l'amélioration et le pouvoir. Le bouton « Passer » reste toujours visible et ramène au menu. Le tutoriel ne fait pas partie de la liste des niveaux : les codes de carte et la progression de la campagne sont inchangés.
+- **Comment jouer.** Les règles en rubriques courtes, depuis le bouton « Comment jouer » du menu et du menu pause. Depuis la v5.15, rangées en quatre chapitres, avec une barre d'onglets collée en haut (boutons de 44 px) qui y saute et suit le défilement : « Bases » (but, sélection, déplacement et attaque, cases et camps, caméra, effectifs), « Progresser » (bons points, améliorations, classes, pouvoirs, pion, ralliement), « Tes outils » (synthèse « Quel outil pour quoi ? », puis garnisons, défense, conquête, escorte, renforts, alertes, rythme) et « Adversaires » (les IA, alliances, mode Équipes, abandonner). Espaces insécables dans les guillemets et devant « : ; ! ? », dans ces textes comme dans les bulles du tutoriel.
+- **Fin du tutoriel.** L'écran « Tutoriel réussi ! » renvoie vers le chapitre « Tes outils » pour « Défendre », « Suivre », les renforts « Auto » et le sablier, qui ne sont pas enseignés pas à pas.
+- **Écran de fin.** Sous le tableau, la ligne de durée compte aussi les pauses tactiques prises (« 4 min 05 s, 3 pauses tactiques »), seulement s'il y en a eu (v5.15).
 
 ## Règles du jeu
 
@@ -413,6 +415,32 @@ La vitesse lente vaut environ 4 points au témoin : une aide réelle mais mesur�
 
 `perf240` : la boucle de simulation ne change pas (le rythme n'agit que sur la boucle d'images de l'application) ; partie 0,111 à 0,194 ms par pas, dans le bruit des mesures précédentes.
 
+### Bilan de la saison 1 (v5.15)
+
+Point 1.7. La saison 1 (« moins de micro, plus de stratégie ») a apporté l'attention limitée des IA, les garnisons, les alertes, les renforts automatiques, les trois consignes d'escouade et le rythme réglable. Mesures d'ensemble, code de la v5.14 (rien n'a changé dans la simulation ce soir) :
+
+| Témoin humain contre 3 IA (800 parties) | victoires | ordres/min IA | ordres/min témoin |
+| --- | --- | --- | --- |
+| Facile | 98,0 % (± 1,0) | 8,4 | 20,0 |
+| **Normal** | **49,9 %** (± 3,5) | 14,8 | 16,9 |
+| Difficile | 13,5 % (± 2,4) | 22,2 | 14,8 |
+| Expert | 3,4 % (± 1,3) | 31,5 | 13,6 |
+
+Témoin « outillé » en Normal (style humain plus une escouade de 4 en « Conquérir » et une de 6 en « Défendre ») : **52,8 %** (± 3,5, 800 parties) : les outils réunis restent un confort, pas un passe-droit.
+
+Objectif de la saison atteint : en Normal, un témoin qui ne secourt que ses camps, avec 15 à 20 ordres par minute, gagne une partie sur deux. Les IA restent sous les budgets annoncés (Normal 14,8 ordres par minute pour 18 de budget). Aucun réglage changé ce soir : Normal est dans la cible et l'échelle Facile, Normal, Difficile, Expert reste nette.
+
+Couleurs, 4 IA Normal entre elles, 2 000 parties par graine (± 2,7 par couleur environ) :
+
+| Graine | Noir | Vert | Jaune | Violet | Rouge | Bleu | Orange | Rose |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 26,4 % | 25,8 % | 21,3 % | 25,9 % | 23,7 % | 26,5 % | 21,4 % | 29,1 % |
+| 2 | 26,9 % | 25,0 % | 23,2 % | 22,4 % | 26,3 % | 26,1 % | 20,9 % | 29,2 % |
+
+Les valeurs d'un point ont été réglées en Difficile ; en Normal, la Rose (4, 3, 3, 2 : résistante) sort deux fois un peu au-dessus de la cible de 22 à 28 %, et l'Orange (2, 2, 4, 4) un peu en dessous. Écart modeste, mais régulier : à reprendre dans une prochaine session (valeur d'un point, budget de 12 points inchangé). Les Noirs, couleur la plus jouée par Aloys, sont dans la cible.
+
+`perf240` : partie 0,225 ms par pas, mêlée 0,123, ordres 0,194, rendu 1,8 à 2,1 ms par image : pas de régression (la simulation n'a pas changé).
+
 ## Contrôles tactiles
 
 | Geste | Effet |
@@ -516,6 +544,8 @@ Le dépôt contient un workflow GitHub Actions (`.github/workflows/deploy.yml`) 
 | `v5.13` | 1.5, troisième tranche : consigne « Suivre » (escorte d'un groupe désigné par un tap ou un bouton 1-2-3, chasse des ennemis qui l'approchent, écusson vert sur le protégé et sur le groupe) ; fin du point 1.5 Escouades |
 | `avant-2026-11-13` | état avant la v5.14 (point de retour) |
 | `v5.14` | 1.6 Rythme réglable : pause tactique (sablier, cour figée, ordres possibles) et vitesse lente ×0,75, en Facile et Normal, réglées dans la pause et mémorisées |
+| `avant-2026-11-14` | état avant la v5.15 (point de retour) |
+| `v5.15` | 1.7 Bilan saison 1 : simulations d'ensemble des quatre difficultés et des couleurs ; tutoriel en 14 étapes (« Conquérir ») ; « Comment jouer » en quatre chapitres à onglets avec la synthèse « Quel outil pour quoi ? » ; pauses tactiques comptées sur l'écran de fin ; espaces insécables dans les textes |
 
 ## Architecture
 

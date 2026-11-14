@@ -6,6 +6,7 @@ import { awardMerit, meritsOf } from './merits';
 import { POWERS } from './powers';
 import { UPGRADES } from './upgrades';
 import type { Tile } from './tile';
+import type { Unit } from './unit';
 import { NO_TEAM, type MapDef, type Vec2 } from './types';
 import type { WorldEvent } from './world';
 import type { World } from './world';
@@ -72,6 +73,7 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
   { id: 'camera', text: 'Glisse un doigt pour bouger la vue, pince pour zoomer, ou touche la mini-carte.', target: { kind: 'button', selector: '#minimap' } },
   { id: 'merits', text: 'Chaque case prise rapporte des bons points ★. Prends une autre case !', target: { kind: 'tile', which: 'free' } },
   { id: 'guard', text: 'Tes élèves sont sur la case : touche « Garder », ils la défendront seuls.', target: { kind: 'button', selector: '#btn-guard' } },
+  { id: 'conquer', text: 'Sélectionne les 3 nouveaux et touche « Conquérir » : ils prennent seuls les cases libres.', target: { kind: 'button', selector: '#btn-conquer' } },
   { id: 'upgrade', text: 'Sans sélection, touche ton camp (ou la pastille ★) et améliore-le.', target: { kind: 'button', selector: '#merit-pill' } },
   { id: 'powerHelp', text: 'Garde le doigt posé sur le gâteau (Goûter) : son aide s’affiche.', target: { kind: 'button', selector: '#btn-power-gouter' } },
   { id: 'power', text: 'Glisse le gâteau jusqu’à tes élèves et lâche : c’est l’heure du goûter !', target: { kind: 'button', selector: '#btn-power-gouter' } },
@@ -83,11 +85,19 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
  * dernière couleur choisie, l'adversaire n'est donc pas toujours vert.
  */
 export function stepText(step: TutorialStep, enemyColor: number): string {
-  return step.text.replace(/\{ennemis\}/g, TEAM_PLURALS[enemyColor] ?? 'adversaires');
+  return insecables(step.text.replace(/\{ennemis\}/g, TEAM_PLURALS[enemyColor] ?? 'adversaires'));
+}
+
+/**
+ * Espaces insécables à l'intérieur des guillemets et devant « : ; ! ? » (v5.15) : sur un petit
+ * écran, un « ou un : ne se retrouve plus seul en bout ou en début de ligne.
+ */
+export function insecables(text: string): string {
+  return text.replace(/« /g, '«\u00a0').replace(/ »/g, '\u00a0»').replace(/ ([:;!?])/g, '\u00a0$1');
 }
 
 /** Consigne de l'étape « upgrade » une fois le panneau du camp ouvert (le bon bouton à toucher). */
-export const UPGRADE_BUY_TEXT = 'Touche le bouton jaune de « Production » : tous tes camps produiront plus vite.';
+export const UPGRADE_BUY_TEXT = insecables('Touche le bouton jaune de « Production » : tous tes camps produiront plus vite.');
 
 export type TutorialEvent = { kind: 'step'; index: number } | { kind: 'done' };
 
@@ -103,6 +113,8 @@ export class TutorialState {
   aiActive = false;
   private events: TutorialEvent[] = [];
   private earnedAtStart = 0;
+  /** Les trois recrues offertes à l'étape « conquer » (v5.15), pour que la main les montre. */
+  recruits: Unit[] = [];
 
   constructor(
     readonly world: World,
@@ -147,6 +159,7 @@ export class TutorialState {
       (id === 'rally' && a.kind === 'rally') ||
       (id === 'camera' && a.kind === 'camera') ||
       (id === 'guard' && a.kind === 'guard') ||
+      (id === 'conquer' && a.kind === 'conquer') ||
       (id === 'upgrade' && a.kind === 'upgrade') ||
       (id === 'powerHelp' && a.kind === 'powerHelp') ||
       (id === 'power' && a.kind === 'power');
@@ -210,9 +223,26 @@ export class TutorialState {
         w.orderMove([e], { x: c.x + 1.2, y: c.y - 0.8 }, true);
       }
     }
+    if (id === 'conquer') {
+      // Trois recrues sortent du camp : une escouade toute neuve, sans toucher aux gardes.
+      const home = this.targetTile('myCamp');
+      if (home) {
+        this.recruits = [0, 1, 2].map((i) => {
+          const a = -0.6 + i * 0.6;
+          return w.spawnUnit(this.player, home.cx + Math.cos(a) * 1.1, home.cy - 0.6 + Math.sin(a) * 1.1, false);
+        });
+      }
+    }
     if (id === 'upgrade') topUp(w, this.player, UPGRADES.prod.costs[0] + 5);
     if (id === 'powerHelp' || id === 'power') topUp(w, this.player, POWERS.gouter.cost + 5);
     if (id === 'win') this.aiActive = true;
+  }
+
+  /** Centre des recrues encore debout (étape « conquer »), ou null. */
+  recruitsPoint(): Vec2 | null {
+    const alive = this.recruits.filter((u) => u.alive);
+    if (!alive.length) return null;
+    return { x: alive.reduce((s, u) => s + u.x, 0) / alive.length, y: alive.reduce((s, u) => s + u.y, 0) / alive.length };
   }
 
   /** Point de la carte à montrer pour l'étape courante (grille), ou null. */

@@ -39,8 +39,8 @@ describe('v5.9 : tutoriel, nom de l’adversaire', () => {
   it('textes générés : « Des Rouges arrivent ! », « le camp des Rouges »', () => {
     const attack = TUTORIAL_STEPS.find((s) => s.id === 'attack')!;
     const win = TUTORIAL_STEPS.find((s) => s.id === 'win')!;
-    expect(stepText(attack, 4)).toMatch(/^Des Rouges arrivent !/);
-    expect(stepText(win, 4)).toBe('Dernière étape : prends le camp des Rouges pour gagner !');
+    expect(stepText(attack, 4)).toMatch(/^Des Rouges arrivent\u00a0!/);
+    expect(stepText(win, 4)).toBe('Dernière étape\u00a0: prends le camp des Rouges pour gagner\u00a0!');
     expect(stepText(win, 0)).toMatch(/camp des Noirs/);
     expect(UPGRADE_BUY_TEXT).toMatch(/Production/);
     expect(UPGRADE_BUY_TEXT.length).toBeLessThanOrEqual(90);

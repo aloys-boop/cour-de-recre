@@ -28,8 +28,10 @@ But mesurable : un joueur humain qui donne 15 à 25 ordres par minute doit pouvo
   - Idée (à valider) : apprendre aux IA à reprendre plus vite leurs cases éloignées ; ce n'est qu'ensuite qu'une conquête des cases ennemies (réservée à Facile ?) pourrait revenir.
 - [x] **1.6 Rythme réglable.** (v5.14, 13/11/2026) Sablier en haut à droite (Facile et Normal) : pause tactique, cour figée sous un liseré bleu, ordres, consignes, achats et pouvoirs possibles, ▶ ou bandeau « Reprendre » pour relancer. Rubrique « Rythme » dans la pause : vitesse Normale ou Lente ×0,75, sablier affiché ou masqué, mémorisés. Mesuré : la vitesse lente vaut environ 4 points au témoin (49,9 → 54,0 % et 52,0 → 56,3 %).
   - Idée : une rubrique « Rythme » aussi dans le menu principal, pour régler la vitesse avant la partie.
-  - Idée : statistiques de fin de partie « pauses tactiques : N » (déjà comptées par `TacticalPause`).
-- [ ] **1.7 Bilan saison 1.** Simulations, réglages fins, mise à jour du tutoriel et de « Comment jouer » pour tous les nouveaux gestes.
+  - [x] Statistiques de fin de partie : pauses tactiques comptées (v5.15).
+- [x] **1.7 Bilan saison 1.** (v5.15, 14/11/2026) Simulations d'ensemble (témoin humain : Facile 98,0 %, Normal 49,9 %, Difficile 13,5 %, Expert 3,4 % ; couleurs à 4 IA Normal) : aucun réglage à changer, objectif de la saison atteint. Tutoriel en 14 étapes (« Conquérir » avec trois recrues), « Comment jouer » en quatre chapitres à onglets avec la synthèse « Quel outil pour quoi ? », pauses tactiques sur l'écran de fin, espaces insécables dans les textes.
+  - Suite : la Rose sort un peu au-dessus de la cible (29,1 % à 4 IA Normal, graine 1) ; à confirmer sur d'autres graines puis, si besoin, retoucher la valeur d'un point dans sa caractéristique forte (le budget de 12 points ne bouge pas).
+  - Idée : une rubrique « Rythme » dans le menu principal, pour régler la vitesse avant la partie.
 
 ## Saison 2 : sensations et lisibilité
 

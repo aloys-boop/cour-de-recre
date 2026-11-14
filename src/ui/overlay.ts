@@ -1,6 +1,7 @@
 import { TEAM_COLORS, TEAM_NAMES, TEAM_PLURALS } from '../config';
 import { teamPlural } from '../core/diplomacy';
-import { formatDuration, type EndStats } from '../core/stats';
+import { durationLine, type EndStats } from '../core/stats';
+import { insecables } from '../core/tutorial';
 
 /** Fenêtres modales : pause, fin de partie, aide à l'installation. */
 export class Overlay {
@@ -47,23 +48,64 @@ export class Overlay {
     this.show(card);
   }
 
-  /** Écran « Comment jouer » : les règles en bref, consultable depuis le menu et la pause. */
+  /**
+   * Écran « Comment jouer » : les règles en bref, consultable depuis le menu et la pause.
+   * v5.15 : rangées en quatre chapitres ; une barre d'onglets collée en haut y saute
+   * directement et suit le défilement.
+   */
   howTo(onClose: () => void): void {
     const card = this.card('Comment jouer', '');
     card.classList.add('howto');
     card.querySelector('p')!.remove();
+    const tabs = document.createElement('nav');
+    tabs.className = 'howto-tabs';
+    tabs.setAttribute('aria-label', 'Chapitres');
     const body = document.createElement('div');
     body.className = 'howto-body';
-    for (const [title, text] of HOW_TO) {
-      const sec = document.createElement('section');
-      const h = document.createElement('h3');
-      h.textContent = title;
-      const p = document.createElement('p');
-      p.textContent = text;
-      sec.append(h, p);
-      body.append(sec);
+    const texts = new Map(HOW_TO);
+    const heads: { tab: HTMLButtonElement; head: HTMLElement }[] = [];
+    const select = (i: number) => heads.forEach((h, j) => h.tab.classList.toggle('on', i === j));
+    for (const ch of HOW_TO_CHAPTERS) {
+      const head = document.createElement('h2');
+      head.className = 'howto-chapter';
+      head.id = `howto-${ch.id}`;
+      head.textContent = ch.title;
+      body.append(head);
+      for (const title of ch.sections) {
+        const sec = document.createElement('section');
+        if (title === TOOLS_TITLE) sec.className = 'howto-tools';
+        const h = document.createElement('h3');
+        h.textContent = title;
+        const p = document.createElement('p');
+        p.textContent = insecables(texts.get(title) ?? '');
+        sec.append(h, p);
+        body.append(sec);
+      }
+      const tab = document.createElement('button');
+      tab.type = 'button';
+      tab.className = 'howto-tab';
+      tab.dataset.chapter = ch.id;
+      tab.textContent = ch.tab;
+      const i = heads.length;
+      tab.addEventListener('click', () => {
+        select(i);
+        // Défilement de la carte jusqu'au chapitre (sous la barre d'onglets collée).
+        card.scrollTo?.({ top: Math.max(0, head.offsetTop - tabs.offsetHeight - 6), behavior: 'smooth' });
+      });
+      tabs.append(tab);
+      heads.push({ tab, head });
     }
-    card.append(body, this.row([this.btn('Retour', onClose)]));
+    select(0);
+    card.addEventListener('scroll', () => {
+      const y = card.scrollTop + tabs.offsetHeight + 12;
+      let cur = 0;
+      heads.forEach((h, j) => {
+        if (h.head.offsetTop <= y) cur = j;
+      });
+      if (card.scrollTop + card.clientHeight >= card.scrollHeight - 4) cur = heads.length - 1;
+      select(cur);
+    });
+    card.append(tabs, body, this.row([this.btn('Retour', onClose)]));
     this.show(card);
   }
 
@@ -163,7 +205,7 @@ export class Overlay {
     }
     const dur = document.createElement('div');
     dur.className = 'end-duration';
-    dur.textContent = `Durée de la partie : ${formatDuration(stats.duration)}`;
+    dur.textContent = durationLine(stats);
     wrap.append(table, dur);
     return wrap;
   }
@@ -201,29 +243,41 @@ function listFr(items: string[]): string {
   return `${items.slice(0, -1).join(', ')} et ${items[items.length - 1]}`;
 }
 
-/** Rubriques de l'écran « Comment jouer » (textes courts). */
+/** Rubriques de l'écran « Comment jouer » (textes courts), dans l'ordre des chapitres. */
 export const HOW_TO: ReadonlyArray<[string, string]> = [
   ['Le but', 'Prends les cases et les camps des autres équipes. Tu gagnes quand tu es le dernier à avoir des élèves ou un camp, ou quand tu tiens tous les camps.'],
   ['Sélectionner', 'Touche un élève : lui et ses voisins sont choisis. Appui long puis glisse : rectangle de sélection. Double-tap : tous tes élèves à l’écran.'],
   ['Déplacer et attaquer', 'Touche le sol : tes élèves y courent sans se battre (mode Fuir) ; touché hors de la cour, l’ordre va au bord le plus proche. Touche un ennemi pour l’attaquer. La barre au-dessus d’une bagarre montre qui est le plus fort ; en haut, touche une mini-barre pour aller voir une bagarre hors de l’écran.'],
   ['Cases et camps', 'Reste sur une case blanche pour la capturer : ♥ vie, ♠ dégâts, ♣ production, ♦ vitesse. Ton camp produit des élèves, 30 au plus.'],
+  ['Caméra', 'Glisse un doigt pour bouger la vue, pince pour zoomer, touche la mini-carte pour y aller.'],
   ['Effectifs', 'En haut, chaque puce d’équipe donne son nombre d’élèves ; la tienne affiche « élèves / maximum » (en jaune quand ton camp ne peut plus produire). Brouillard activé : un œil devant le nombre, seuls les ennemis que tu vois en ce moment sont comptés. Touche ta puce pour le détail : élèves, cases et camps de chaque équipe.'],
   ['Bons points ★', '+2 par ennemi mis KO, +10 par case prise, +25 par camp pris, +1 toutes les 10 s par case tenue.'],
   ['Améliorations', 'Sans sélection, touche ton camp (ou la pastille ★). « Toute l’équipe » : Production, Uniformes, Entraînement, classes, pour tous tes camps. « Ce camp » : Défense, pion, élèves produits, ralliement, renforts. ‹ › : camp suivant.'],
   ['Classes', 'Une fois débloquées pour l’équipe, chaque camp choisit Costaud (solide), Sprinteur (rapide, capture vite) ou Infirmier (soigne). Chaque élève spécial coûte des bons points.'],
   ['Pouvoirs', 'Boutons en bas : Sonnerie (fige les ennemis), Boules de neige (dégâts), Goûter (soins). Doigt posé sur un bouton : son aide. Glisse un bouton jusqu’à la carte et lâche pour le lancer (lâche sur le bouton pour annuler). Ou : touche le bouton, vise, puis touche la zone.'],
-  ['Garnisons', 'Sélectionne des élèves puis touche « Garder » (à gauche) : s’ils sont sur une case, ils la gardent aussitôt, sinon touche la case voulue. Ils restent sur place, chassent les intrus du cercle pointillé sans les poursuivre loin et reprennent la case si elle tombe. Retranchés dans ce cercle, ils encaissent un quart de coups en moins (« Paré ! »). L’écusson de la case compte les gardes ; un nouvel ordre les libère.'],
-  ['Conquête', 'Sélectionne des élèves puis touche « Conquérir » (le drapeau, à gauche) : ils forment une escouade qui prend toute seule la case libre (sans propriétaire) la plus proche, puis la suivante, et ainsi de suite ; prendre les cases et les camps des autres reste ton affaire. Un drapeau planté montre la case visée. L’escouade ne voit que ce que tu vois et renonce à une case trop bien défendue pour sa taille. Un groupe 1, 2 ou 3 en conquête porte un petit drapeau. Retouche « Conquérir », ou donne un autre ordre, pour reprendre la main.'],
-  ['Défense', 'Amène des élèves près de tes cases, puis touche « Défendre » (le bouclier bleu, à côté de « Conquérir ») : ils forment une garnison mobile qui tient jusqu’à quatre de tes cases autour d’eux. Des tirets relient les cases du secteur à leur poste (le petit bouclier planté). Dès qu’un ennemi entre sur une de ces cases, ou qu’elle tombe, l’escouade y court (bouclier bleu « ! »), chasse les intrus, reprend la case, puis revient au poste. Elle ne poursuit personne hors du secteur et ne se jette pas sur une case trop défendue pour sa taille. Un groupe 1, 2 ou 3 en défense porte un petit bouclier bleu. Retouche « Défendre », ou donne un autre ordre, pour reprendre la main.'],
-  ['Escorte', 'Sélectionne des élèves, touche « Suivre » (le rond vert à double chevron, à droite de « Garder »), puis touche le groupe qu’ils doivent escorter : un de tes élèves (avec ses voisins, ou toute son escouade s’il est en conquête ou en défense), ou un bouton 1, 2, 3. L’escorte colle à ce groupe partout où il va, se jette sur les ennemis qui l’approchent, ne les poursuit pas loin, et l’aide à prendre les cases où il s’arrête. Un écusson vert flotte au-dessus du groupe escorté ; un groupe 1, 2 ou 3 en escorte porte un petit écusson vert. Quand il n’y a plus personne à suivre, l’escorte attend tes ordres. Retouche « Suivre », ou donne un autre ordre, pour reprendre la main.'],
-  ['Alertes', 'Quand une de tes cases est attaquée, tombe, ou que ton camp est en danger, un bandeau apparaît en haut avec un petit « ding-dong ». Touche-le pour y aller. Plusieurs attaques en même temps sont regroupées.'],
   ['Pion', 'Dans le panneau du camp : un surveillant à tes couleurs garde le camp et frappe les intrus. Il revient 60 s après un KO.'],
-  ['Caméra', 'Glisse un doigt pour bouger la vue, pince pour zoomer, touche la mini-carte pour y aller.'],
   ['Ralliement', 'Chaque camp a son drapeau, où vont ses nouveaux élèves. Glisse depuis un camp jusqu’au point voulu, ou utilise « Ralliement » dans son panneau. Appui long sur le sol : camp le plus proche.'],
+  ['Quel outil pour quoi ?', 'Une case à tenir : « Garder ». Les cases d’un coin de la cour : « Défendre ». Les cases libres à ramasser : « Conquérir ». Un groupe à protéger : « Suivre ». Des camps qui envoient seuls leurs élèves au front : renforts « Auto ». Les alertes te disent où regarder ; le sablier (Facile et Normal) fige la cour pour réfléchir. Tu donnes l’intention, tes élèves font le reste : garde tes doigts pour les grandes décisions.'],
+  ['Garnisons', 'Sélectionne des élèves puis touche « Garder » (à gauche) : s’ils sont sur une case, ils la gardent aussitôt, sinon touche la case voulue. Ils restent sur place, chassent les intrus du cercle pointillé sans les poursuivre loin et reprennent la case si elle tombe. Retranchés dans ce cercle, ils encaissent un quart de coups en moins (« Paré ! »). L’écusson de la case compte les gardes ; un nouvel ordre les libère.'],
+  ['Défense', 'Amène des élèves près de tes cases, puis touche « Défendre » (le bouclier bleu, à côté de « Conquérir ») : ils forment une garnison mobile qui tient jusqu’à quatre de tes cases autour d’eux. Des tirets relient les cases du secteur à leur poste (le petit bouclier planté). Dès qu’un ennemi entre sur une de ces cases, ou qu’elle tombe, l’escouade y court (bouclier bleu « ! »), chasse les intrus, reprend la case, puis revient au poste. Elle ne poursuit personne hors du secteur et ne se jette pas sur une case trop défendue pour sa taille. Un groupe 1, 2 ou 3 en défense porte un petit bouclier bleu. Retouche « Défendre », ou donne un autre ordre, pour reprendre la main.'],
+  ['Conquête', 'Sélectionne des élèves puis touche « Conquérir » (le drapeau, à gauche) : ils forment une escouade qui prend toute seule la case libre (sans propriétaire) la plus proche, puis la suivante, et ainsi de suite ; prendre les cases et les camps des autres reste ton affaire. Un drapeau planté montre la case visée. L’escouade ne voit que ce que tu vois et renonce à une case trop bien défendue pour sa taille. Un groupe 1, 2 ou 3 en conquête porte un petit drapeau. Retouche « Conquérir », ou donne un autre ordre, pour reprendre la main.'],
+  ['Escorte', 'Sélectionne des élèves, touche « Suivre » (le rond vert à double chevron, à droite de « Garder »), puis touche le groupe qu’ils doivent escorter : un de tes élèves (avec ses voisins, ou toute son escouade s’il est en conquête ou en défense), ou un bouton 1, 2, 3. L’escorte colle à ce groupe partout où il va, se jette sur les ennemis qui l’approchent, ne les poursuit pas loin, et l’aide à prendre les cases où il s’arrête. Un écusson vert flotte au-dessus du groupe escorté ; un groupe 1, 2 ou 3 en escorte porte un petit écusson vert. Quand il n’y a plus personne à suivre, l’escorte attend tes ordres. Retouche « Suivre », ou donne un autre ordre, pour reprendre la main.'],
   ['Renforts', 'Dans le panneau d’un camp, « Auto » : ses nouveaux élèves partent d’eux-mêmes secourir ta case la plus menacée (à 16 cases au plus), en se battant en chemin ; un pointillé à chevrons montre où ils vont. Si rien n’est menacé, ils vont au drapeau de ralliement ; si le camp lui-même est attaqué, ils restent le défendre. « Partout » : tous tes camps.'],
+  ['Alertes', 'Quand une de tes cases est attaquée, tombe, ou que ton camp est en danger, un bandeau apparaît en haut avec un petit « ding-dong ». Touche-le pour y aller. Plusieurs attaques en même temps sont regroupées.'],
+  ['Rythme', 'En Facile et Normal, le sablier en haut à droite déclenche la pause tactique : la cour se fige (liseré bleu), mais tu peux sélectionner, donner tes ordres, acheter et poser tes consignes ; touche ▶ ou le bandeau « Reprendre » pour relancer. Dans la pause, « Rythme » règle la vitesse (Normale ou Lente ×0,75) et peut masquer le sablier. En Difficile et Expert, la cour tourne toujours à pleine vitesse.'],
   ['Les IA', 'Comme toi, les équipes de l’ordinateur ont une attention limitée : un nombre d’ordres par minute selon la difficulté, et une ou deux cases secourues à la fois (le menu donne les chiffres). Attaque sur deux fronts pour les déborder.'],
   ['Alliances', 'Touche la puce d’une équipe, en haut, pour lui proposer une alliance… ou la rompre. Une rupture est annoncée 30\u00a0s à l’avance\u00a0: le compte à rebours s’affiche sous la puce, et un rappel tombe 10\u00a0s avant.'],
   ['Mode Équipes', 'En escarmouche, « Équipes fixes » forme des équipes dès le départ (2 contre 2, 3 contre 3, 2 contre 2 contre 2…). Tes coéquipiers IA ont les camps voisins du tien ; l’alliance tient toute la partie et vous gagnez ensemble.'],
-  ['Rythme', 'En Facile et Normal, le sablier en haut à droite déclenche la pause tactique : la cour se fige (liseré bleu), mais tu peux sélectionner, donner tes ordres, acheter et poser tes consignes ; touche ▶ ou le bandeau « Reprendre » pour relancer. Dans la pause, « Rythme » règle la vitesse (Normale ou Lente ×0,75) et peut masquer le sablier. En Difficile et Expert, la cour tourne toujours à pleine vitesse.'],
   ['Abandonner', 'Dans la pause, « Abandonner » termine la partie en défaite, mais affiche quand même ses statistiques.'],
+];
+
+/** Titre de la rubrique de synthèse des outils (mise en valeur dans l'écran). */
+export const TOOLS_TITLE = 'Quel outil pour quoi ?';
+
+/** Chapitres de « Comment jouer » (v5.15) : titre, onglet court et rubriques. */
+export const HOW_TO_CHAPTERS: ReadonlyArray<{ id: string; title: string; tab: string; sections: readonly string[] }> = [
+  { id: 'bases', title: 'Les bases', tab: 'Bases', sections: ['Le but', 'Sélectionner', 'Déplacer et attaquer', 'Cases et camps', 'Caméra', 'Effectifs'] },
+  { id: 'progresser', title: 'Progresser', tab: 'Progresser', sections: ['Bons points ★', 'Améliorations', 'Classes', 'Pouvoirs', 'Pion', 'Ralliement'] },
+  { id: 'outils', title: 'Moins de micro : tes outils', tab: 'Tes outils', sections: ['Quel outil pour quoi ?', 'Garnisons', 'Défense', 'Conquête', 'Escorte', 'Renforts', 'Alertes', 'Rythme'] },
+  { id: 'autres', title: 'Les autres équipes', tab: 'Adversaires', sections: ['Les IA', 'Alliances', 'Mode Équipes', 'Abandonner'] },
 ];

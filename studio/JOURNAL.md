@@ -2,6 +2,31 @@
 
 Une entrée par session, la plus récente en haut : date, version, ce qui a été fait, ce qui a été mesuré, ce qui reste ou ce qui inquiète.
 
+## 14/11/2026 : session de développement, v5.15 (1.7, bilan de la saison 1)
+
+**Fait**
+- Aucun retour d'Aloys par e-mail (les dix journaux des 14 derniers jours sont sans réponse). Travail du jour : 1.7 Bilan saison 1, en entier. Point de retour : branche `avant-2026-11-14`.
+- Simulations d'ensemble sur le code de la v5.14 : témoin humain contre les quatre difficultés, témoin « outillé » (conquête et défense), couleurs à 4 IA Normal sur deux graines. Aucun réglage changé : Normal est dans la cible.
+- Tutoriel : 14 étapes. Nouvelle étape « conquer » après « Garder » : trois recrues sortent du camp (`TutorialState.recruits`), la main les montre tant qu'aucune n'est sélectionnée, puis montre le drapeau ; les gardes restent à leur poste. L'écran « Tutoriel réussi ! » renvoie vers « Comment jouer », chapitre « Tes outils ».
+- « Comment jouer » : quatre chapitres (`HOW_TO_CHAPTERS`) avec une barre d'onglets collée en haut (44 px, violet allumé, suit le défilement) : Bases, Progresser, Tes outils, Adversaires. Nouvelle rubrique de synthèse « Quel outil pour quoi ? » dans un encadré jaune.
+- Écran de fin : « Durée de la partie : 4 min 05 s, 3 pauses tactiques » (`durationLine`), seulement s'il y en a eu.
+- Typographie : `insecables()` pose des espaces insécables dans les guillemets et devant « : ; ! ? » (bulles du tutoriel, « Comment jouer ») ; repéré en capture, un « « » restait seul en bout de ligne.
+- 8 nouveaux tests (`bilan-saison1.test.ts`), tests du tutoriel mis à jour (14 étapes, étape « Conquérir » au doigt dans l'application) ; 437 tests verts.
+
+**Mesuré**
+- Témoin humain, 800 parties par ligne : Facile 98,0 %, Normal 49,9 %, Difficile 13,5 %, Expert 3,4 %. Ordres par minute des IA : 8,4, 14,8, 22,2, 31,5 ; témoin 13,6 à 20,0.
+- Témoin outillé (conquête de 4, défense de 6) en Normal : 52,8 %.
+- Couleurs à 4 IA Normal, 2 000 parties : Rose 29,1 et 29,2 %, Orange 21,4 et 20,9 % sur les deux graines ; les six autres entre 21,3 et 26,9 %.
+- `perf240` : partie 0,225 ms par pas, mêlée 0,123, ordres 0,194, rendu 1,8 à 2,1 ms : inchangé.
+- Captures 844 × 390 : onglets lisibles, synthèse des outils sur toute la largeur, bulle de l'étape « Conquérir » qui ne cache ni les recrues ni le bouton.
+
+**Reste à faire, inquiétudes**
+- Rose un peu trop forte et Orange un peu faible en Normal (les valeurs d'un point ont été réglées en Difficile). Écart régulier mais modeste ; à reprendre avec plusieurs graines, sans toucher au budget de 12 points.
+- Dernier chapitre de « Comment jouer » : il ne peut pas remonter tout en haut (fin de la carte), son titre arrive juste sous les onglets. Lisible, mais à soigner si on ajoute un chapitre.
+- `escouades-suivre-app.test.ts` a échoué une fois pendant que les simulations chargeaient la machine, puis passé seul : test sensible au temps, à surveiller.
+- Les parties simulées durent 3 minutes en moyenne ; une vraie partie humaine dure plus, mais le pilier « 5 à 12 minutes » mériterait une mesure en vrai.
+- Prochaine session : la saison 1 est close. J'ouvre la saison 2 (sensations et lisibilité) par les coups qui « claquent » ; « Mode Équipes, suite » (spectateur quand on est éliminé) reste en attente juste derrière.
+
 ## 13/11/2026 : session de développement, v5.14 (1.6, rythme réglable)
 
 **Fait**

@@ -55,7 +55,7 @@ function pointer(type: string, x: number, y: number, id = 1): void {
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 describe('tutoriel dans l’application', () => {
-  it('premier lancement, 13 étapes au doigt, victoire, « Comment jouer » et « Passer »', async () => {
+  it('premier lancement, 14 étapes au doigt, victoire, « Comment jouer » et « Passer »', async () => {
     let seed = 777;
     Math.random = () => {
       seed = (seed + 0x6d2b79f5) >>> 0;
@@ -79,7 +79,7 @@ describe('tutoriel dans l’application', () => {
     const bubble = document.querySelector('.tuto-bubble')!;
     const text = () => bubble.querySelector('.tuto-text')!.textContent;
     const stepId = () => game.tutorial!.step.id;
-    expect(bubble.querySelector('.tuto-count')!.textContent).toBe('Étape 1 / 13');
+    expect(bubble.querySelector('.tuto-count')!.textContent).toBe('Étape 1 / 14');
     expect(document.getElementById('btn-tuto-skip')!.textContent).toBe('Passer');
 
     let now = performance.now();
@@ -107,7 +107,7 @@ describe('tutoriel dans l’application', () => {
     tap(p.x, p.y - 20);
     expect(stepId()).toBe('box');
     advance(0.1);
-    expect(bubble.querySelector('.tuto-count')!.textContent).toBe('Étape 2 / 13');
+    expect(bubble.querySelector('.tuto-count')!.textContent).toBe('Étape 2 / 14');
 
     // 2. Sélection rectangle : appui long, puis glisser.
     (document.getElementById('btn-cancel') as HTMLButtonElement).click();
@@ -171,7 +171,19 @@ describe('tutoriel dans l’application', () => {
     // 8 bis. « Garder » : les élèves posés sur la case la gardent aussitôt (sinon, on touche la case).
     (document.getElementById('btn-guard') as HTMLButtonElement).click();
     if (stepId() === 'guard') tap(k.x, k.y);
+    expect(stepId()).toBe('conquer');
+    expect(game.world.units.some((u) => u.team === 0 && u.guard === club)).toBe(true);
+
+    // 8 ter (v5.15). « Conquérir » : trois recrues au camp, la main les montre, puis le drapeau.
+    const recruits = game.tutorial!.recruits;
+    expect(recruits.length).toBe(3);
+    advance(0.05);
+    expect(text()).toMatch(/«\u00a0Conquérir\u00a0»/);
+    (document.getElementById('btn-cancel') as HTMLButtonElement).click();
+    for (const u of recruits) game.selected.add(u.id);
+    (document.getElementById('btn-conquer') as HTMLButtonElement).click();
     expect(stepId()).toBe('upgrade');
+    expect(recruits.every((u) => u.squad > 0)).toBe(true);
     expect(game.world.units.some((u) => u.team === 0 && u.guard === club)).toBe(true);
 
     // 9. Sans sélection, toucher son camp puis améliorer la Production.
@@ -183,7 +195,7 @@ describe('tutoriel dans l’application', () => {
     expect(panel.classList.contains('hidden')).toBe(false);
     // v5.9 : panneau ouvert, la bulle dit quel bouton toucher.
     advance(0.05);
-    expect(text()).toMatch(/bouton jaune de « Production »/);
+    expect(text()).toMatch(/bouton jaune de «\u00a0Production\u00a0»/);
     panel.querySelector<HTMLButtonElement>('.camp-row[data-branch="prod"] .camp-buy')!.click();
     expect(game.world.teamUpgrades[0].prod).toBe(1);
     expect(stepId()).toBe('powerHelp');
