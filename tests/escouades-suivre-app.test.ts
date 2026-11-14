@@ -105,8 +105,17 @@ describe('consigne « Suivre » dans l’application', () => {
     const esc = all.slice(0, half).map((id) => game.world.unitById(id)!);
     const c = (us: { x: number; y: number }[]) => ({ x: us.reduce((s, u) => s + u.x, 0) / us.length, y: us.reduce((s, u) => s + u.y, 0) / us.length });
     const dest = { x: game.world.map.w / 2, y: game.world.map.h / 2 };
+    // v5.15 : test rendu déterministe. Sans graine fixe, une rencontre au centre pouvait mettre
+    // tout un groupe KO (centre de groupe vide, NaN). On disperse les ennemis et on rend les
+    // deux groupes solides : seul le suivi est mesuré ici.
+    for (const u of game.world.units) if (u.team !== game.playerTeam && !u.pion) u.takeDamage(1e6, 0, 0);
+    for (const u of [...ward, ...esc]) {
+      u.maxHp = 1e6;
+      u.hp = 1e6;
+    }
     game.world.orderMove(ward, dest);
     advance(10);
+    expect(ward.some((u) => u.alive) && esc.some((u) => u.alive)).toBe(true);
     const cw = c(ward.filter((u) => u.alive));
     const ce = c(esc.filter((u) => u.alive));
     expect(Math.hypot(cw.x - ce.x, cw.y - ce.y)).toBeLessThan(4);

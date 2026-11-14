@@ -23,7 +23,7 @@ Une entrée par session, la plus récente en haut : date, version, ce qui a ét�
 **Reste à faire, inquiétudes**
 - Rose un peu trop forte et Orange un peu faible en Normal (les valeurs d'un point ont été réglées en Difficile). Écart régulier mais modeste ; à reprendre avec plusieurs graines, sans toucher au budget de 12 points.
 - Dernier chapitre de « Comment jouer » : il ne peut pas remonter tout en haut (fin de la carte), son titre arrive juste sous les onglets. Lisible, mais à soigner si on ajoute un chapitre.
-- `escouades-suivre-app.test.ts` a échoué une fois pendant que les simulations chargeaient la machine, puis passé seul : test sensible au temps, à surveiller.
+- Premier déploiement de la v5.15 en échec : `escouades-suivre-app.test.ts` (v5.13) dépendait du hasard (sans graine, une rencontre au centre mettait parfois tout un groupe KO, d'où un centre de groupe NaN). Corrigé dans le test (ennemis dispersés, groupes solides, seul le suivi est mesuré), puis redéployé.
 - Les parties simulées durent 3 minutes en moyenne ; une vraie partie humaine dure plus, mais le pilier « 5 à 12 minutes » mériterait une mesure en vrai.
 - Prochaine session : la saison 1 est close. J'ouvre la saison 2 (sensations et lisibilité) par les coups qui « claquent » ; « Mode Équipes, suite » (spectateur quand on est éliminé) reste en attente juste derrière.
 
