@@ -281,7 +281,7 @@ function teamModeRows(rules: GameRules, getTeams: () => number): HTMLElement[] {
     const label = k ? teamsLabel(n, k) : null;
     if (!k) desc.textContent = 'Libre : les alliances se font et se défont pendant la partie.';
     else if (!label) desc.textContent = `Impossible avec ${n} équipes : la partie sera libre. Choisis 4, 6 ou 8 équipes.`;
-    else desc.textContent = `${label} : tes coéquipiers IA ont les camps voisins du tien, alliance verrouillée, victoire partagée.`;
+    else desc.textContent = `${label} : tes coéquipiers IA ont les camps voisins du tien, alliance verrouillée, victoire partagée, même si tu es KO.`;
   };
   document.addEventListener('skirmish-change', sync);
   sync();

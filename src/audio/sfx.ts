@@ -18,6 +18,7 @@ export type SfxName =
   | 'order'
   | 'victory'
   | 'defeat'
+  | 'spectate'
   | 'spawn'
   | 'coin'
   | 'upgrade'
@@ -183,6 +184,14 @@ export class Sfx {
         // Reprise : petit glissando qui remonte et un claquement de mains.
         this.tone(t, 440, 880, 0.14, 'triangle', 0.22);
         this.noise(t + 0.14, 0.035, 2600, 0.28);
+        break;
+      case 'spectate':
+        // Éliminé, mais l'équipe tient : deux notes qui tombent, puis un appel qui remonte (« allez ! »).
+        this.tone(t, 523, 494, 0.16, 'triangle', 0.22);
+        this.tone(t + 0.18, 392, 370, 0.2, 'triangle', 0.2);
+        this.tone(t + 0.46, 392, 587, 0.18, 'square', 0.12);
+        this.noise(t + 0.62, 0.03, 2400, 0.22);
+        this.noise(t + 0.72, 0.03, 2400, 0.22);
         break;
       case 'defeat':
         [440, 415, 392, 330].forEach((f, i) => this.tone(t + i * 0.22, f, f * 0.9, 0.3, 'sawtooth', 0.3));

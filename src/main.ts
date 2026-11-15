@@ -27,6 +27,7 @@ import { PowersHud } from './ui/powers-hud';
 import { TutorialUi } from './ui/tutorial-ui';
 import { AlertBanner } from './ui/alert-banner';
 import { BrawlHud } from './ui/brawl-hud';
+import { SpectateHud } from './ui/spectate-hud';
 import { TUTORIAL_MAP } from './core/tutorial';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -106,6 +107,15 @@ const powersHud = new PowersHud(hudRoot, () => game, (text, ms) => hud.showHint(
 const tutorialUi = new TutorialUi(hudRoot, () => skipTutorial());
 const brawlHud = new BrawlHud(hudRoot, () => game);
 const alertBanner = new AlertBanner(hudRoot, (a) => game?.goToAlert(a));
+// Mode Équipes, suite (v5.16) : bandeau du spectateur quand on est éliminé.
+const spectateHud = new SpectateHud(hudRoot, {
+  onWatch: () => {
+    const t = game?.watchTeammate() ?? -1;
+    return t >= 0 && game ? game.world.teamColors[t] : -1;
+  },
+  onFast: () => game?.toggleSpectateFast() ?? false,
+  onLeave: () => void game?.leaveSpectating(),
+});
 
 const menu = new Menu(menuRoot, progress, {
   onPlay: (state) => startGame(state),
@@ -190,6 +200,14 @@ function launch(opts: GameOptions, code: MapCode | null): void {
     onHint: (text) => hud.showHint(text, 2800),
     onAlert: (a) => alertBanner.show(a),
     onTactical: (on) => tempoHud.set(on),
+    onSpectate: () => {
+      if (!game) return;
+      campPanel.close();
+      alertBanner.hide();
+      const f = game.watchTeammate(false);
+      spectateHud.show(f >= 0 ? game.world.teamColors[f] : -1);
+      hud.showHint('Tu es KO, mais ton équipe tient ! Si elle gagne, tu gagnes avec elle.', 4200);
+    },
     onPauseChange: (paused) => {
       if (paused) {
         hud.closeDiplomacy(); // le panneau ne doit pas recouvrir la pause
@@ -212,6 +230,8 @@ function launch(opts: GameOptions, code: MapCode | null): void {
     },
     onEnd: (result, o) => {
       alertBanner.hide();
+      const spectated = spectateHud.visible;
+      spectateHud.hide();
       const win = result === 'victoire';
       const surrendered = result === 'abandon';
       const extras: HTMLElement[] = [];
@@ -263,15 +283,22 @@ function launch(opts: GameOptions, code: MapCode | null): void {
         onReplay: () => (code ? play({ spec: code.spec, seed: randomSeed() }, o) : backToMenu()),
         onNext: () => play({ spec: { kind: 'campagne', level: o.mapIndex + 1 }, seed: randomSeed() }, o),
         onMenu: () => backToMenu(),
-        winText: campaign ? undefined : king?.winText ?? 'L’escarmouche est à toi !',
-        winTitle: king?.winTitle,
-        loseText: surrendered ? 'Tu as abandonné la partie. Voici où en était la cour.' : king?.loseText,
+        winText: game?.sharedWin ? 'Tu étais KO, mais tes coéquipiers ont tenu jusqu’au bout. Bravo à toute l’équipe !' : campaign ? undefined : king?.winText ?? 'L’escarmouche est à toi !',
+        winTitle: game?.sharedWin ? 'Victoire de l’équipe !' : king?.winTitle,
+        loseText: surrendered
+          ? 'Tu as abandonné la partie. Voici où en était la cour.'
+          : spectated
+            ? game?.leftSpectating
+              ? 'Tu as quitté la partie avant la fin. Voici où en était la cour.'
+              : 'Tes coéquipiers sont tombés à leur tour. Revanche ?'
+            : king?.loseText,
         loseTitle: surrendered ? 'Abandon' : undefined,
         extras,
       });
     },
   });
   campPanel.close();
+  spectateHud.hide();
   hud.update(game.world, 0, 0);
   kingHud.update(game.world, 0);
   campPanel.refresh();
@@ -317,6 +344,7 @@ function rhythmBlock(opts: GameOptions): HTMLElement {
 
 function backToMenu(): void {
   tempoHud.set(false);
+  spectateHud.hide();
   alertBanner.hide();
   campPanel.close();
   tutorialUi.hide();

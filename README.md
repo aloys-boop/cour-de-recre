@@ -182,7 +182,7 @@ Toutes les options sont désactivées par défaut, jamais actives en campagne, e
 - **Surveillants.** Deux à quatre adultes costauds, neutres et hostiles à toutes les équipes (alliances comprises), patrouillent comme des mini-boss : 600 points de vie (10 élèves), un coup de poing de 32 à 40 (environ 4 fois un élève, un peu plus lent) qui touche aussi les élèves collés à la cible (60 % des dégâts à moins de 0,6 case) et les fait reculer nettement. Un coup de sifflet annonce qu’ils attaquent un élève entré dans leur rayon (2,5 cases) ou qui les frappe ; ils le poursuivent jusqu’à 5 cases, puis reviennent patrouiller et se régénèrent lentement hors combat. Tes élèves inoccupés ripostent ; touche un surveillant (ou relâche la flèche dessus) pour l’attaquer. Il faut une dizaine d’élèves pour en venir à bout (4 à 6 se font battre). L’équipe qui porte le dernier coup est annoncée et gagne +25 % de dégâts pendant 30 s (affiché dans la ligne des bonus) ; le surveillant revient 45 s plus tard à un bord de la cour. Les IA les évitent avec de petits groupes et les attaquent à 8 élèves ou plus, ou quand l’un d’eux garde leur cible. Les KO de surveillants sont comptés sur l’écran de fin. Réglage par simulation : `npx tsx scripts/dev/supervisor-balance.ts`.
 - **Brouillard de guerre.** Tu ne vois que les abords de tes élèves, de tes cases et de ceux de tes alliés : chaque case ou camp possédé éclaire toujours 2,5 cases autour de lui, même sans élève dessus. Les zones déjà vues restent grisées avec le dernier propriétaire connu des cases ; les ennemis cachés ne s’affichent pas, ne se ciblent pas et leurs effectifs sont masqués dans les puces. Les IA jouent avec la même contrainte.
 - **Camps fantômes.** Un à trois camps sans propriétaire, placés équitablement : capturés, ils produisent des élèves comme un camp de départ et comptent pour la victoire.
-- **Équipes fixes (v5.6).** « Libre » (par défaut) ou « Par 2 », « Par 3 », « Par 4 » : les équipes sont formées dès le début (4 équipes : 2 contre 2 ; 6 : 3 contre 3 ou 2 contre 2 contre 2 ; 8 : 4 contre 4 ou 2 contre 2 contre 2 contre 2). Les tailles qui ne partagent pas le nombre d'équipes en groupes égaux sont grisées. Les coéquipiers ont des camps voisins (camps rangés dans l'ordre du tour de la cour, découpage qui rapproche le plus les coéquipiers) et sont alliés pour toute la partie : aucune proposition ni rupture, pas de diplomatie avec les autres équipes, victoire partagée par toute l'équipe. Les IA coéquipières défendent tes cases comme celles d'un allié. Si tu es éliminé, la partie est perdue pour toi, même si tes coéquipiers continuent. Se combine avec toutes les options (cadeaux et appel à l'aide entre coéquipiers, tribut avec l'adversaire).
+- **Équipes fixes (v5.6).** « Libre » (par défaut) ou « Par 2 », « Par 3 », « Par 4 » : les équipes sont formées dès le début (4 équipes : 2 contre 2 ; 6 : 3 contre 3 ou 2 contre 2 contre 2 ; 8 : 4 contre 4 ou 2 contre 2 contre 2 contre 2). Les tailles qui ne partagent pas le nombre d'équipes en groupes égaux sont grisées. Les coéquipiers ont des camps voisins (camps rangés dans l'ordre du tour de la cour, découpage qui rapproche le plus les coéquipiers) et sont alliés pour toute la partie : aucune proposition ni rupture, pas de diplomatie avec les autres équipes, victoire partagée par toute l'équipe. Les IA coéquipières défendent tes cases comme celles d'un allié. Si tu es éliminé alors qu'un coéquipier tient encore (v5.16), tu restes en **spectateur** : bandeau doré en bas (« Tu es KO : les Violets jouent pour l'équipe »), commandes de jeu masquées, plus d'alertes ; « Regarder » fait glisser la caméra sur le plus gros paquet d'élèves d'un coéquipier (le suivant à chaque tap), « ×2 » accélère la partie, « Terminer » quitte (défaite, avec l'écran de fin et ses statistiques). Si ton équipe gagne, l'écran de fin affiche « Victoire de l'équipe ! » : la victoire est aussi la tienne. En partie libre, rien ne change : éliminé, tu as perdu. Se combine avec toutes les options (cadeaux et appel à l'aide entre coéquipiers, tribut avec l'adversaire).
 - **Mode « Roi de la cour ».** Un trône doré 2 × 2 au centre : l’équipe qui le tient cumule du temps de règne (figé s’il est contesté) et gagne, avec ses alliés, à 2 minutes. Les victoires classiques restent valables.
 
 Le code de carte reproduit la disposition, pas les options : choisis-les à nouveau dans le menu.
@@ -441,6 +441,17 @@ Les valeurs d'un point ont été réglées en Difficile ; en Normal, la Rose (4,
 
 `perf240` : partie 0,225 ms par pas, mêlée 0,123, ordres 0,194, rendu 1,8 à 2,1 ms par image : pas de régression (la simulation n'a pas changé).
 
+### Mode Équipes : spectateur (v5.16)
+
+`equilibre.ts equipesfixes=2` (alliances verrouillées comme dans le jeu) mesure combien de fois le témoin humain est KO pendant que son équipe tient, et combien de ces parties son équipe gagne quand même. Témoin humain et IA en Normal :
+
+| Partie | parties | victoires du témoin | témoin spectateur | dont gagnées par l'équipe | ancienne règle |
+| --- | --- | --- | --- | --- | --- |
+| 2 contre 2 | 800 | 63,0 % (± 3,3) | 18,8 % | 3,3 % | 62,4 % |
+| 3 contre 3 | 400 | 48,5 % (± 4,9) | 32,8 % | 2,3 % | 47,8 % |
+
+Le spectateur change surtout l'expérience (une partie sur cinq à deux, une sur trois à trois ne s'arrête plus net), très peu le taux de victoire : une équipe qui perd un camp perd presque toujours. `perf240` inchangé (partie 0,233 ms par pas, rendu 1,2 à 1,9 ms par image).
+
 ## Contrôles tactiles
 
 | Geste | Effet |
@@ -468,6 +479,7 @@ Les valeurs d'un point ont été réglées en Difficile ; en Normal, la Rose (4,
 | Tap sur la puce d'une équipe (en haut) | Panneau « Diplomatie » : proposer ou rompre une alliance |
 | Tap sur ta propre puce (en haut) | Détail « Effectifs » : élèves, cases et camps de chaque équipe |
 | Sablier (en haut à droite, Facile et Normal) | Pause tactique : la cour se fige, les ordres restent possibles ; ▶ ou le bandeau « Reprendre » relance |
+| Bandeau « Spectateur » (mode Équipes, éliminé) | « Regarder » : caméra sur un coéquipier (le suivant à chaque tap) ; « ×2 » : partie accélérée ; « Terminer » : quitter avec l'écran de fin |
 | Boutons | « Tout sélectionner », « Annuler », « Fuir / Charger », pause tactique, pause (avec la rubrique « Rythme » : vitesse, sablier affiché ou masqué), son |
 
 À la souris : clic, clic maintenu pour le rectangle, glisser pour la caméra, molette pour zoomer.
@@ -546,6 +558,8 @@ Le dépôt contient un workflow GitHub Actions (`.github/workflows/deploy.yml`) 
 | `v5.14` | 1.6 Rythme réglable : pause tactique (sablier, cour figée, ordres possibles) et vitesse lente ×0,75, en Facile et Normal, réglées dans la pause et mémorisées |
 | `avant-2026-11-14` | état avant la v5.15 (point de retour) |
 | `v5.15` | 1.7 Bilan saison 1 : simulations d'ensemble des quatre difficultés et des couleurs ; tutoriel en 14 étapes (« Conquérir ») ; « Comment jouer » en quatre chapitres à onglets avec la synthèse « Quel outil pour quoi ? » ; pauses tactiques comptées sur l'écran de fin ; espaces insécables dans les textes |
+| `avant-2026-11-15` | état avant la v5.16 (point de retour) |
+| `v5.16` | Mode Équipes, suite : éliminé pendant que ton équipe tient, tu restes spectateur (Regarder, ×2, Terminer) et tu partages sa victoire ; mesure `equipesfixes` dans `equilibre.ts` |
 
 ## Architecture
 
@@ -574,6 +588,7 @@ src/
     ghosts.ts          option « Camps fantômes » : placement, carte d’une partie, intérêt des IA
     garrison.ts        garnisons : ordre « Garder », cercle défendu, laisse, reprise de la case, gardes retranchés
     squads.ts          escouades à consigne : « Conquérir » (choix de la case, renoncement, enchaînement des prises), « Défendre » (secteur, poste, secours, laisse, retranchement) et « Suivre » (protégé, menaces, laisse, dispersion)
+    spectate.ts        mode Équipes : fin de partie vue par le joueur (spectateur, victoire partagée), caméra sur un coéquipier
     tempo.ts           rythme réglable : vitesse lente, pause tactique, attention humaine en temps de jeu
     reinforce.ts       renforts automatiques : menace des cases, case secourue par chaque camp, envoi des nouveaux élèves
     save.ts            progression (localStorage)

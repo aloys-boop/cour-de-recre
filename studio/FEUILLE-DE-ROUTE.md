@@ -9,7 +9,8 @@ Une session = un point (ou deux petits) mené jusqu'au bout. On coche `[x]` avec
 ## Demandes d'Aloys du 05/11
 
 - [x] **Les cinq demandes « a minima ».** (v5.6, 06/11/2026) Normal un peu plus dur, « Abandonner » avec statistiques, tap hors de la cour ramené au bord, mode Équipes fixes, ruptures annoncées 30 s et trahisons de fin de partie plus rares.
-- [ ] **Mode Équipes, suite.** Quand le joueur est éliminé mais que ses coéquipiers tiennent encore : rester en spectateur jusqu'au bout et partager la victoire (aujourd'hui : défaite immédiate).
+- [x] **Mode Équipes, suite.** (v5.16, 15/11/2026) Éliminé pendant que ses coéquipiers tiennent : spectateur jusqu'au bout (bandeau « Spectateur », « Regarder » qui suit un coéquipier, « ×2 », « Terminer »), victoire partagée (« Victoire de l'équipe ! »). Mesuré : le témoin est spectateur dans 19 % des parties à 2 contre 2 et 33 % à 3 contre 3, mais son équipe n'en gagne que 2 à 3 %.
+  - Idée (15/11) : un « repêchage » pour le joueur KO, par exemple un coéquipier IA qui lui cède un camp ou quelques élèves, pour qu'il rejoue au lieu de regarder (à valider par Aloys : ça touche à la règle d'élimination).
 
 ## Saison 1 : moins de micro, plus de stratégie (priorité absolue, retour du 03/11)
 

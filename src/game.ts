@@ -9,6 +9,7 @@ import { World } from './core/world';
 import { rhythmAnnouncement } from './core/events';
 import { isKingMode, kingAnnouncement, withThrone } from './core/king';
 import { teamGroups } from './core/teams';
+import { endCheck, SPECTATE, spectateFocus } from './core/spectate';
 import { AlertWatcher, type Alert } from './core/alerts';
 import { Diplomacy, diploMessage, type BreakResult, type DiploView, type ProposeResult } from './core/diplomacy';
 import { MAX_TEAMS, TEAM_COLORS } from './config';
@@ -84,6 +85,8 @@ export interface GameHooks {
   onAlert?(alert: Alert): void;
   /** Petite aide en bas de l'écran (ordre « Garder »…). */
   onHint?(text: string): void;
+  /** Mode Équipes (v5.16) : le joueur est éliminé, ses coéquipiers continuent ; il regarde. */
+  onSpectate?(): void;
 }
 
 /** Actions du joueur observées par le tutoriel. */
@@ -169,6 +172,16 @@ export class Game {
   guardArmed = false;
   /** Consigne « Suivre » armée (v5.13) : le prochain tap sur un de ses élèves (ou un groupe 1-2-3) désigne le protégé. */
   followArmed = false;
+  /** Mode Équipes (v5.16) : joueur éliminé qui regarde ses coéquipiers finir la partie. */
+  spectating = false;
+  /** Spectateur : partie accélérée (×2). */
+  spectateFast = false;
+  /** Fin de partie : victoire de l'équipe obtenue pendant que le joueur était éliminé. */
+  sharedWin = false;
+  /** Le spectateur a quitté avant la fin (« Terminer »). */
+  leftSpectating = false;
+  /** Spectateur : coéquipier suivi par le bouton « Coéquipier » (tours successifs). */
+  private spectateTurn = 0;
   /** Défis : le camp de départ du joueur a-t-il été pris au moins une fois ? */
   homeCampLost = false;
   private homeCamp?: Tile;
@@ -315,6 +328,58 @@ export class Game {
     return true;
   }
 
+  /** Mode Équipes : le joueur vient d'être éliminé, ses coéquipiers tiennent encore. */
+  private startSpectating(): void {
+    this.spectating = true;
+    this.selected.clear();
+    this.guardArmed = false;
+    this.followArmed = false;
+    this.armedPower = null;
+    this.powerAim = null;
+    if (this.tactical.active) {
+      this.tactical.set(false);
+      this.hooks.onTactical?.(false);
+    }
+    this.sfx.play('spectate');
+    navigator.vibrate?.([40, 80, 40]);
+    this.watchTeammate(false);
+    this.hooks.onSpectate?.();
+    this.hooks.onHud(this.world, 0);
+  }
+
+  /**
+   * Spectateur : la caméra glisse vers le plus gros paquet d'élèves d'un coéquipier ; touché
+   * de nouveau, passe au coéquipier suivant. Renvoie l'équipe regardée (ou -1).
+   */
+  watchTeammate(next = true): number {
+    if (!this.spectating || this.over) return -1;
+    if (next) this.spectateTurn++;
+    const f = spectateFocus(this.world, this.teamGroups, this.playerTeam, this.spectateTurn);
+    if (!f) return -1;
+    this.cam.glideTo(f.at.x, f.at.y);
+    if (next) this.sfx.play('select');
+    return f.team;
+  }
+
+  /** Spectateur : bascule la vitesse ×2. Renvoie le nouvel état. */
+  toggleSpectateFast(): boolean {
+    if (!this.spectating || this.over) return false;
+    this.spectateFast = !this.spectateFast;
+    this.sfx.play(this.spectateFast ? 'unfreeze' : 'order');
+    return this.spectateFast;
+  }
+
+  /** Spectateur : quitter sans attendre la fin ; défaite, avec l'écran de fin et ses statistiques. */
+  leaveSpectating(): boolean {
+    if (!this.spectating || this.over) return false;
+    this.over = true;
+    this.leftSpectating = true;
+    this.victors = [];
+    this.sfx.play('defeat');
+    this.hooks.onEnd('defaite', this.opts);
+    return true;
+  }
+
   /** Bandeau d'alerte touché : la caméra glisse jusqu'à la case. */
   goToAlert(a: Alert | null = this.lastAlert): void {
     if (!a || this.over) return;
@@ -381,7 +446,8 @@ export class Game {
       }
     } else if (!this.paused && !this.over) {
       // Vitesse lente (Facile, Normal) : moins de temps de jeu par seconde réelle.
-      dt *= this.speed;
+      // Spectateur accéléré : deux fois plus de temps de jeu (jusqu'à 4 pas par image).
+      dt *= this.spectating && this.spectateFast ? SPECTATE.fastSpeed : this.speed;
       this.acc += dt;
       let steps = 0;
       while (this.acc >= STEP && steps < 4) {
@@ -468,7 +534,8 @@ export class Game {
     }
     for (const m of this.extras.drainMessages()) this.announce(m.text, m.important);
     // Alertes : bandeau, son discret et petite vibration.
-    const alert = this.alerts?.update(dt);
+    // Spectateur : plus rien à défendre, plus d'alertes.
+    const alert = this.spectating ? null : this.alerts?.update(dt);
     if (alert) {
       this.lastAlert = alert;
       this.sfx.play('alert');
@@ -494,13 +561,15 @@ export class Game {
       this.hooks.onHud(w, this.selected.size);
     }
     if (this.homeCamp && this.homeCamp.owner !== this.playerTeam) this.homeCampLost = true;
-    // Fin de partie.
+    // Fin de partie (mode Équipes : un joueur éliminé regarde ses coéquipiers jusqu'au bout).
     const victors = w.victors();
-    const me = w.stats()[this.playerTeam];
-    if (victors.length > 0 || !me.alive) {
+    const end = endCheck(victors, w.stats().map((s) => s.alive), this.playerTeam, this.teamGroups);
+    if (end.kind === 'spectate' && !this.spectating) this.startSpectating();
+    if (end.kind === 'over') {
       this.over = true;
       this.victors = victors;
-      const result: GameResult = me.alive && victors.includes(this.playerTeam) ? 'victoire' : 'defaite';
+      this.sharedWin = end.shared;
+      const result: GameResult = end.result;
       if (this.tutorial && result === 'victoire') {
         this.tutorial.onVictory();
         for (const ev of this.tutorial.drainEvents()) this.hooks.onTutorial?.(ev);
@@ -992,7 +1061,7 @@ export class Game {
    * l'écran ; un tap sur la carte déplace la visée, un tap dans la zone lance le pouvoir.
    */
   armPower(id: PowerId | null): 'arme' | 'desarme' | 'recharge' | 'pas-assez' {
-    if (id === null || this.armedPower === id) {
+    if (id === null || this.armedPower === id || this.spectating) {
       this.armedPower = null;
       this.powerAim = null;
       return 'desarme';
@@ -1035,7 +1104,7 @@ export class Game {
 
   /** Début du glisser : faux (et la raison) si le pouvoir n'est pas disponible. */
   beginPowerDrag(id: PowerId): 'ok' | 'recharge' | 'pas-assez' {
-    if (this.paused || this.over) return 'recharge';
+    if (this.paused || this.over || this.spectating) return 'recharge';
     if (powerCooldown(this.world, this.playerTeam, id) > 0) return 'recharge';
     if (meritsOf(this.world, this.playerTeam) < POWERS[id].cost) return 'pas-assez';
     this.armedPower = null;

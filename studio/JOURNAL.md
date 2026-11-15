@@ -2,6 +2,27 @@
 
 Une entrée par session, la plus récente en haut : date, version, ce qui a été fait, ce qui a été mesuré, ce qui reste ou ce qui inquiète.
 
+## 15/11/2026 : session de développement, v5.16 (Mode Équipes, suite)
+
+**Fait**
+- Aucun retour d'Aloys par e-mail (les onze journaux des 14 derniers jours sont sans réponse). Travail du jour : « Mode Équipes, suite », premier point non coché de la feuille de route (il venait de sa demande du 05/11 et attendait derrière la saison 1) ; les coups qui « claquent » passent à la prochaine session. Point de retour : branche `avant-2026-11-15`.
+- `src/core/spectate.ts` : `endCheck` (en cours, spectateur, ou fin avec victoire partagée ou non), `teammatesOf`, `spectateFocus` (centre du plus gros paquet d'élèves d'un coéquipier, à défaut son camp, tour à tour), `SPECTATE.fastSpeed` (×2). En partie libre, rien ne change.
+- `Game` : `spectating`, `spectateFast`, `sharedWin`, `leftSpectating`, `watchTeammate`, `toggleSpectateFast`, `leaveSpectating`. En spectateur : sélection vidée, consignes et pouvoirs désarmés, pause tactique levée, plus d'alertes, caméra sur le coéquipier ; son « spectate » (deux notes qui tombent puis un appel qui remonte et deux claquements), vibration.
+- Interface : bandeau « Spectateur » en bas au centre (liseré doré, « Tu es KO : les Violets jouent pour l'équipe »), boutons de 44 px « Regarder » (à la couleur du coéquipier), « ×2 » (bleu glacé allumé), « Terminer » ; commandes de jeu masquées, halo doré discret. Écran de fin « Victoire de l'équipe ! » ou « Tes coéquipiers sont tombés à leur tour. Revanche ? », ou « Tu as quitté la partie avant la fin ».
+- « Comment jouer » (rubrique « Mode Équipes »), description du menu d'escarmouche (« victoire partagée, même si tu es KO »), README. Pas d'étape de tutoriel (le tutoriel n'a pas d'équipes).
+- `equilibre.ts` : `equipesfixes=N` (alliances verrouillées, mesure du spectateur et de l'ancienne règle).
+- 13 nouveaux tests (`equipes-spectateur.test.ts`, `equipes-spectateur-app.test.ts` qui met le joueur KO dans l'application, accélère, regarde, fait gagner le coéquipier, rejoue et quitte, puis vérifie la partie libre) ; 450 tests verts.
+
+**Mesuré**
+- Témoin humain et IA en Normal, 2 contre 2 (800 parties) : le témoin gagne 63,0 % (62,4 % avec l'ancienne règle) ; il est spectateur dans 18,8 % des parties, et son équipe n'en gagne que 3,3 %. 3 contre 3 (400 parties) : 48,5 % (47,8 %), spectateur 32,8 %, dont 2,3 % gagnées.
+- `perf240` : partie 0,233 ms par pas, mêlée 0,113, ordres 0,178, rendu 1,2 à 1,9 ms : inchangé (la simulation n'est pas touchée).
+- Captures 844 × 390 : bandeau lisible sur une ligne, boutons nets, aide sur une ligne au-dessus ; repéré et corrigé : une alerte « Camp perdu ! » restait affichée au passage en spectateur, et la description du menu laissait un mot seul en dernière ligne.
+
+**Reste à faire, inquiétudes**
+- Le spectateur rend la fin moins brutale, mais l'équipe d'un joueur KO perd presque toujours : regarder trois minutes une défaite annoncée peut lasser. « ×2 » et « Terminer » sont là pour ça ; piste (à valider par Aloys) : un « repêchage » où un coéquipier IA cède un camp au joueur KO.
+- En 2 contre 2, le témoin gagne 63 % en Normal : l'IA coéquipière porte beaucoup. Le mode Équipes est plus facile que la partie libre ; à surveiller si Aloys trouve ça trop simple.
+- Prochaine session : la saison 2, par les coups qui « claquent » (impact, recul, étoiles de KO, petit tremblement désactivable).
+
 ## 14/11/2026 : session de développement, v5.15 (1.7, bilan de la saison 1)
 
 **Fait**

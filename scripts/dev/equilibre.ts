@@ -34,6 +34,9 @@
 //     vitesse=1        vitesse de jeu du témoin (v5.14) : à 0.75, un humain garde ses ordres par minute
 //                      réelle, donc 1/0.75 fois plus d'ordres par minute de jeu et des réactions plus courtes
 //     avant=1          IA et témoin sans limite d'attention (comportement d'avant la v5.4)
+//     equipesfixes=0   mode Équipes (v5.6) : taille des équipes fixes (2, 3, 4), alliances verrouillées.
+//                      Avec temoin=1, compte aussi les parties où le témoin est KO pendant que son
+//                      équipe tient (spectateur, v5.16) et celles que son équipe gagne quand même.
 // Affiche aussi les ordres par minute moyens des IA et du témoin.
 // Une partie sans vainqueur au temps limite est attribuée à l'équipe en tête (élèves + cases + camps).
 //
@@ -53,6 +56,9 @@ import { attentionAtSpeed } from '../../src/core/tempo';
 import { skirmishLevel } from '../../src/core/skirmish';
 import type { Difficulty } from '../../src/core/types';
 import { World } from '../../src/core/world';
+import { Diplomacy } from '../../src/core/diplomacy';
+import { teamGroups } from '../../src/core/teams';
+import { endCheck } from '../../src/core/spectate';
 
 const args = Object.fromEntries(
   process.argv.slice(2).map((a) => {
@@ -78,6 +84,7 @@ if (args.rayon) GARRISON.radius = Number(args.rayon);
 if (args.laisse) GARRISON.leash = Number(args.laisse);
 if (args.armure) GARRISON.armor = Number(args.armure);
 const vitesse = Number(args.vitesse ?? 1);
+const equipesFixes = Number(args.equipesfixes ?? 0);
 const reaction = Number(args.reaction ?? 3) * (vitesse > 0 ? vitesse : 1);
 const aiOverride = args.ia ? (JSON.parse(args.ia) as Partial<AiProfile>) : undefined;
 const avant = args.avant === '1';
@@ -122,6 +129,11 @@ interface Result {
   aiMinutes: number;
   temoinOrders: number;
   temoinMinutes: number;
+  /** Mode Équipes : parties où le témoin a été spectateur, et victoires de son équipe dans ces parties. */
+  spect: number;
+  spectWins: number;
+  /** Mode Équipes : victoires du témoin avec l'ancienne règle (KO = défaite immédiate). */
+  temoinWinsOld: number;
 }
 
 function score(w: World, t: number): number {
@@ -139,6 +151,9 @@ interface Game {
   aiMinutes: number;
   temoinOrders: number;
   temoinMinutes: number;
+  spect: number;
+  spectWins: number;
+  temoinWonOld: number;
 }
 
 function playGame(index: number): Game {
@@ -155,6 +170,9 @@ function playGame(index: number): Game {
   const colors = pool.slice(0, teams);
   const world = new World(map, teams, Math.floor(rng.next() * 1e9), colors);
   const slot = Math.floor(rng.next() * teams); // position du témoin
+  const groups = equipesFixes ? teamGroups(map, equipesFixes) : null;
+  if (groups) new Diplomacy(world, diff, colors.map((_, t) => t), seed0, groups);
+  let spectated = false;
   const ais = colors.map((_, t) => {
     if (!temoin || t !== slot) {
       const ai = new TeamAi(world, t, diff, aiOverride, aiAttention);
@@ -219,6 +237,7 @@ function playGame(index: number): Game {
     world.update(step);
     world.drainEvents();
     t += step;
+    if (groups && temoin && !spectated && k % 30 === 0 && endCheck([], world.stats().map((s) => s.alive), slot, groups).kind === 'spectate') spectated = true;
   }
   // Ordres par minute : chaque équipe compte sur la durée de la partie.
   let aiOrders = 0;
@@ -236,14 +255,26 @@ function playGame(index: number): Game {
   });
   const m = { aiOrders, aiMinutes, temoinOrders, temoinMinutes };
   const v = world.victors();
-  if (v.length) return { colors, winners: v.map((w) => colors[w]), finished: true, time: t, temoinWon: temoin && v.includes(slot) ? 1 / v.length : 0, ...m };
+  if (groups && temoin) {
+    // Mode Équipes : l'équipe du témoin gagne ou perd en bloc (une partie = une victoire à partager entre groupes).
+    let win = v.some((w) => groups[w] === groups[slot]);
+    if (!v.length) {
+      let best = 0;
+      for (let k = 1; k < teams; k++) if (score(world, k) > score(world, best)) best = k;
+      win = groups[best] === groups[slot];
+    }
+    const old = win && !spectated;
+    return { colors, winners: v.length ? v.map((w) => colors[w]) : [], finished: v.length > 0, time: t, temoinWon: win ? 1 : 0, temoinWonOld: old ? 1 : 0, spect: spectated ? 1 : 0, spectWins: spectated && win ? 1 : 0, ...m };
+  }
+  const z = { spect: 0, spectWins: 0, temoinWonOld: 0 };
+  if (v.length) return { colors, winners: v.map((w) => colors[w]), finished: true, time: t, temoinWon: temoin && v.includes(slot) ? 1 / v.length : 0, ...z, ...m };
   let best = 0;
   for (let k = 1; k < teams; k++) if (score(world, k) > score(world, best)) best = k;
-  return { colors, winners: [colors[best]], finished: false, time: t, temoinWon: temoin && best === slot ? 1 : 0, ...m };
+  return { colors, winners: [colors[best]], finished: false, time: t, temoinWon: temoin && best === slot ? 1 : 0, ...z, ...m };
 }
 
 function runRange(from: number, to: number): Result {
-  const r: Result = { wins: new Array(NC).fill(0), games: new Array(NC).fill(0), unfinished: 0, time: 0, temoinWins: 0, aiOrders: 0, aiMinutes: 0, temoinOrders: 0, temoinMinutes: 0 };
+  const r: Result = { wins: new Array(NC).fill(0), games: new Array(NC).fill(0), unfinished: 0, time: 0, temoinWins: 0, aiOrders: 0, aiMinutes: 0, temoinOrders: 0, temoinMinutes: 0, spect: 0, spectWins: 0, temoinWinsOld: 0 };
   for (let i = from; i < to; i++) {
     const g = playGame(i);
     for (const c of g.colors) r.games[c]++;
@@ -251,6 +282,9 @@ function runRange(from: number, to: number): Result {
     if (!g.finished) r.unfinished++;
     r.time += g.time;
     r.temoinWins += g.temoinWon;
+    r.spect += g.spect;
+    r.spectWins += g.spectWins;
+    r.temoinWinsOld += g.temoinWonOld;
     r.aiOrders += g.aiOrders;
     r.aiMinutes += g.aiMinutes;
     r.temoinOrders += g.temoinOrders;
@@ -276,7 +310,7 @@ if (args.tranche) {
       });
     }),
   );
-  const total: Result = { wins: new Array(NC).fill(0), games: new Array(NC).fill(0), unfinished: 0, time: 0, temoinWins: 0, aiOrders: 0, aiMinutes: 0, temoinOrders: 0, temoinMinutes: 0 };
+  const total: Result = { wins: new Array(NC).fill(0), games: new Array(NC).fill(0), unfinished: 0, time: 0, temoinWins: 0, aiOrders: 0, aiMinutes: 0, temoinOrders: 0, temoinMinutes: 0, spect: 0, spectWins: 0, temoinWinsOld: 0 };
   for (const p of parts) {
     for (let c = 0; c < NC; c++) {
       total.wins[c] += p.wins[c];
@@ -285,6 +319,9 @@ if (args.tranche) {
     total.unfinished += p.unfinished;
     total.time += p.time;
     total.temoinWins += p.temoinWins;
+    total.spect += p.spect;
+    total.spectWins += p.spectWins;
+    total.temoinWinsOld += p.temoinWinsOld;
     total.aiOrders += p.aiOrders;
     total.aiMinutes += p.aiMinutes;
     total.temoinOrders += p.temoinOrders;
@@ -301,6 +338,12 @@ if (args.tranche) {
     const style = `secours ${secours}, garde ${garde}${garde ? ` (part ${part})` : ''}, renforts ${renforts ? 'oui' : 'non'}, harcèlement ${harcele || 'non'}, conquête ${conquete || 'non'}, escorte ${suivre || 'non'}, défense ${defense ? `${defense} (${defenseOu}, seuil ${defenseSeuil}, retranchée ${SQUAD.entrenched ? 'oui' : 'non'})` : 'non'}, garnisons rayon ${GARRISON.radius} laisse ${GARRISON.leash} armure ${GARRISON.armor}`;
     console.log(`témoin : ${style}`);
     console.log(`joueur témoin (réaction ${reaction} s) : ${total.temoinWins.toFixed(1)} victoires / ${nGames} = ${(r * 100).toFixed(1)} % (± ${(196 * se).toFixed(1)})`);
+    if (equipesFixes)
+      console.log(
+        `équipes de ${equipesFixes} : témoin spectateur dans ${total.spect} parties (${((100 * total.spect) / nGames).toFixed(1)} %), ` +
+          `son équipe en gagne ${total.spectWins} (${total.spect ? ((100 * total.spectWins) / total.spect).toFixed(1) : '0'} %) ; ` +
+          `victoires du témoin avec l'ancienne règle : ${((100 * total.temoinWinsOld) / nGames).toFixed(1)} %`,
+      );
   }
   const rows: Array<Record<string, string | number>> = [];
   for (let c = 0; c < NC; c++) {
