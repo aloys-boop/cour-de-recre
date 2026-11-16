@@ -2,6 +2,27 @@
 
 Une entrée par session, la plus récente en haut : date, version, ce qui a été fait, ce qui a été mesuré, ce qui reste ou ce qui inquiète.
 
+## 16/11/2026 : session de développement, v5.17 (saison 2, coups qui « claquent »)
+
+**Fait**
+- Aucun retour d'Aloys par e-mail (les douze journaux des 14 derniers jours sont sans réponse). Travail du jour : premier point de la saison 2, « Coups qui claquent », en entier. Point de retour : branche `avant-2026-11-16`.
+- `src/core/impact.ts` : `impactPose` (éclair blanc de 0,11 s, recul de 0,16 s dans le sens du coup projeté en isométrie, 3,5 px ou 9 px sur un KO, écrasement de 14 %), `koStars` (trois étoiles en ronde, fondu d'entrée et de sortie, déphasées par élève), `BrawlHeat` (chaleur des bagarres visibles : +0,035 par coup, +0,22 par KO, retombe de 0,55 par seconde ; tremblement d'un KO de 1,2 à 5 px, plus long au-delà de 0,6), `noteImpact`.
+- Le monde note `hitAt`, `hitDx`, `hitDy` sur l'élève touché (coups de poing, surveillants, boules de neige), sans tirage au hasard : la simulation est strictement la même.
+- Rendu : éclair par une silhouette blanche calculée une fois par planche, recul et écrasement au tracé du sprite (le pion encaisse : recul réduit, pas d'écrasement), étoiles jaunes cernées au-dessus de la tête. Effets : tremblement dosé par la chaleur, « Mêlée ! » rose quand une grosse bagarre éclate (une fois toutes les 4 s au plus), son « melee » (trois voix « Ouuuh ! » et un tambour).
+- Pause : rubrique « Sensations », « Tremblement : Activé / Coupé » (boutons de 44 px), mémorisé dans la sauvegarde (champ facultatif `shake`, anciennes sauvegardes intactes), disponible partout, y compris en Difficile, Expert et dans le tutoriel.
+- « Comment jouer » : rubrique « Bagarres » dans le chapitre des bases. README (règle, contrôles, mesures, versions, architecture). Pas d'étape de tutoriel : aucun geste nouveau.
+- 16 nouveaux tests (`impact.test.ts`, `impact-app.test.ts` qui fait se battre deux élèves dans l'application puis coupe et rallume le tremblement dans la pause) ; 466 tests verts.
+
+**Mesuré**
+- Témoin humain, Normal, 4 équipes, 800 parties, graine 1 : 49,9 % (± 3,5), identique à la v5.15 ; ordres par minute IA 14,8, témoin 16,9. Confirme que rien ne touche à la partie.
+- `perf240` : partie 0,228 ms par pas, mêlée 0,125, ordres 0,176 ; rendu à 240 élèves 2,14 et 2,27 ms par image contre 2,02 et 2,42 avant (même machine, en alternance) : pas de régression.
+- Captures 844 × 390 (×3) : éclair blanc net, « Mêlée ! » lisible, rubrique « Sensations » propre sous « Rythme ». Repéré et corrigé : les premières étoiles des KO étaient de petites croix de 6 px confondues avec les étincelles de coup et l'étoile des bons points ; ce sont maintenant des étoiles à cinq branches plus grandes, citron, au-dessus de la tête.
+
+**Reste à faire, inquiétudes**
+- Le ressenti se juge sur un vrai iPhone : l'amplitude du tremblement en grosse mêlée (5 px) peut sembler forte en zoom serré. Le réglage permet de le couper ; à réduire si Aloys le trouve trop.
+- Les onomatopées existantes deviennent floues en fin de fondu dans les captures (déjà le cas en v5.16) ; idée notée dans la feuille de route.
+- Prochaine session : saison 2, musique synthétisée qui s'intensifie avec les bagarres (la chaleur des bagarres de ce soir pourra la piloter).
+
 ## 15/11/2026 : session de développement, v5.16 (Mode Équipes, suite)
 
 **Fait**

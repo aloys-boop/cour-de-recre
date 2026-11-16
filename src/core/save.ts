@@ -28,6 +28,8 @@ export interface Progress {
   speed?: GameSpeed;
   /** Bouton de pause tactique affiché en Facile et Normal (v5.14, facultatif : absent = affiché). */
   tacticalPause?: boolean;
+  /** Tremblement de la caméra (v5.17, facultatif : absent = activé). */
+  shake?: boolean;
 }
 
 /** Échelle de difficulté actuelle (Facile, Normal, Difficile, Expert). */
@@ -77,6 +79,7 @@ export function loadProgress(store: StorageLike | null = storage()): Progress {
       tutorialDone: !!parsed.tutorialDone,
       speed: sanitizeSpeed(parsed.speed),
       tacticalPause: parsed.tacticalPause !== false,
+      shake: parsed.shake !== false,
     };
   } catch {
     return { ...DEFAULT, wins: {} };

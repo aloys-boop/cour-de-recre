@@ -1,13 +1,14 @@
 import type { WorldEvent } from '../core/world';
 import type { Camera } from './camera';
 import { COLORS } from './renderer';
+import { BrawlHeat } from '../core/impact';
 
 /**
  * Effets de « ressenti » : tremblement d'écran et onomatopées pixel.
  * Pool fixe, aucune allocation lourde par image ; les mots sont pré-rendus une fois.
  */
 
-const WORDS = ['Paf !', 'Bam !', 'Pif !', 'Aïe !', 'Boum !', 'Paré !'] as const;
+const WORDS = ['Paf !', 'Bam !', 'Pif !', 'Aïe !', 'Boum !', 'Paré !', 'Mêlée !'] as const;
 const W_PAF = 0;
 const W_BAM = 1;
 const W_PIF = 2;
@@ -15,7 +16,9 @@ const W_AIE = 3;
 const W_BOUM = 4;
 /** Coup amorti par un garde retranché (v5.10). */
 const W_PARE = 5;
-const WORD_COLORS = ['#ffe066', '#ff8a3d', '#ffffff', '#ff5a4a', '#ffd23f', '#4cc9ff'];
+/** Grosse mêlée (v5.17) : la chaleur des bagarres vient de passer le seuil. */
+const W_MELEE = 6;
+const WORD_COLORS = ['#ffe066', '#ff8a3d', '#ffffff', '#ff5a4a', '#ffd23f', '#4cc9ff', '#ff4fd8'];
 /** Un coup amorti sur 4 affiche « Paré ! » : le joueur voit que ses gardes tiennent. */
 const PARRY_CHANCE = 1 / 4;
 
@@ -47,6 +50,11 @@ export class Effects {
   private popups: Popup[] = [];
   private sprites: WordSprite[] | null = null;
   private rand: () => number;
+  /** Chaleur des bagarres visibles : dose le tremblement (v5.17). */
+  readonly heat = new BrawlHeat();
+  private meleeCooldown = 0;
+  /** Une grosse mêlée vient d'éclater (le jeu joue le son « Ouuuh ! » et remet le drapeau à faux). */
+  meleeStarted = false;
 
   constructor(rand: () => number = Math.random) {
     this.rand = rand;
@@ -61,6 +69,7 @@ export class Effects {
   onEvent(ev: WorldEvent, cam: Camera): void {
     switch (ev.kind) {
       case 'hit':
+        if (this.visible(ev.x, ev.y, cam)) this.heat.hit();
         if (ev.parried) {
           if (this.rand() < PARRY_CHANCE && this.visible(ev.x, ev.y, cam)) this.spawn(W_PARE, ev.x, ev.y, false);
           break;
@@ -72,18 +81,29 @@ export class Effects {
         break;
       case 'ko':
         if (this.visible(ev.x, ev.y, cam)) {
-          this.spawn(this.rand() < 0.7 ? W_AIE : W_BOUM, ev.x, ev.y, true);
-          this.shake(2.5, 0.15);
+          const wasBig = this.heat.big;
+          const s = this.heat.ko();
+          if (!wasBig && this.heat.big && this.meleeCooldown <= 0) {
+            this.spawn(W_MELEE, ev.x, ev.y, true);
+            this.meleeCooldown = 4;
+            this.meleeStarted = true;
+          } else this.spawn(this.rand() < 0.7 ? W_AIE : W_BOUM, ev.x, ev.y, true);
+          if (s) this.shake(s.amp, s.dur);
         }
         break;
       case 'captured':
-        if (ev.camp) this.shake(4, 0.18);
+        if (ev.camp) {
+          const s = this.heat.shake(4, 0.18);
+          if (s) this.shake(s.amp, s.dur);
+        }
         break;
     }
   }
 
   update(dt: number): void {
     this.sinceLast += dt;
+    this.heat.update(dt);
+    if (this.meleeCooldown > 0) this.meleeCooldown -= dt;
     if (this.shakeT > 0) {
       this.shakeT = Math.max(0, this.shakeT - dt);
       const k = this.shakeT / this.shakeDur;

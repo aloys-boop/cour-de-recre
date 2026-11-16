@@ -32,6 +32,10 @@ export class Unit {
   /** Temps restant avant que le coup en cours ne porte (0 si aucun). */
   pendingHit = 0;
   koTimer = 0;
+  /** Coups qui « claquent » (v5.17) : instant (temps du monde) et direction du dernier coup reçu, pour l'affichage seulement. */
+  hitAt = -1;
+  hitDx = 0;
+  hitDy = 0;
   /** Vitesse de recul. */
   kx = 0;
   ky = 0;

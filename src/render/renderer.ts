@@ -1,4 +1,5 @@
-import { TEAM_COLORS } from '../config';
+import { TEAM_COLORS, TUNING } from '../config';
+import { impactPose, koStars, type ImpactPose } from '../core/impact';
 import type { Tile } from '../core/tile';
 import { NO_TEAM, type Vec2 } from '../core/types';
 import type { Unit } from '../core/unit';
@@ -330,8 +331,10 @@ export class Renderer {
         ctx.ellipse(p.x, p.y, 15 * z, 7.5 * z, 0, 0, Math.PI * 2);
         ctx.stroke();
       }
-      if (u.pion) this.drawPion(u, world.teamColors[u.team], p, z);
-      else this.drawSprite(u, world.teamColors[u.team], p, z * CLASS_SCALE[u.cls]);
+      const pose = impactPose(world.time, u.hitAt, u.hitDx, u.hitDy, u.state === 'ko');
+      if (u.pion) this.drawPion(u, world.teamColors[u.team], p, z, pose);
+      else this.drawSprite(u, world.teamColors[u.team], p, z * CLASS_SCALE[u.cls], pose);
+      if (u.state === 'ko') drawKoStars(ctx, koStars(TUNING.koSeconds - u.koTimer, TUNING.koSeconds, u.id), p, z * (u.pion ? SUPERVISOR_SCALE : CLASS_SCALE[u.cls]));
       if (u.alive && u.frozenUntil > world.time) drawFrozenMark(ctx, u, p, z, world.time);
       // Barre de vie : fine ligne verte au-dessus de la tête.
       if (u.alive) {
@@ -439,7 +442,7 @@ export class Renderer {
   private pionSheets = new Map<number, SheetCanvas>();
 
   /** Pion : l'adulte des surveillants, en blouse aux couleurs de l'équipe, 1,45 fois plus grand. */
-  private drawPion(u: Unit, color: number, p: Vec2, z: number): void {
+  private drawPion(u: Unit, color: number, p: Vec2, z: number, pose: ImpactPose): void {
     let sheet = this.pionSheets.get(color);
     if (!sheet) {
       sheet = buildPionSheet(this.makeCanvas, TEAM_COLORS[color]);
@@ -449,17 +452,47 @@ export class Renderer {
     const dw = FRAME_W * k;
     const dh = FRAME_H * k;
     const frame = pionFrame(u.anim, u.animTime);
-    this.ctx.drawImage(sheet as CanvasImageSource, frame * FRAME_W, u.dir * FRAME_H, FRAME_W, FRAME_H, Math.round(p.x - dw / 2), Math.round(p.y - FEET_Y * k), dw, dh);
+    // Un adulte encaisse : recul réduit, pas d'écrasement, mais l'éclair blanc reste.
+    this.blit(sheet, frame * FRAME_W, u.dir * FRAME_H, p.x + pose.ox * 0.4 * z, p.y + pose.oy * 0.4 * z, dw, dh, FEET_Y * k, pose.flash);
   }
 
-  private drawSprite(u: Unit, color: number, p: Vec2, z: number): void {
+  private drawSprite(u: Unit, color: number, p: Vec2, z: number, pose: ImpactPose): void {
     const sheet = this.sheetFor(color, u.cls);
     const frame = frameFor(u.anim, u.animTime);
-    const sx = frame * FRAME_W;
-    const sy = u.dir * FRAME_H;
-    const dw = FRAME_W * z;
-    const dh = FRAME_H * z;
-    this.ctx.drawImage(sheet as CanvasImageSource, sx, sy, FRAME_W, FRAME_H, Math.round(p.x - dw / 2), Math.round(p.y - FEET_Y * z), dw, dh);
+    const dw = FRAME_W * z * pose.sx;
+    const dh = FRAME_H * z * pose.sy;
+    this.blit(sheet, frame * FRAME_W, u.dir * FRAME_H, p.x + pose.ox * z, p.y + pose.oy * z, dw, dh, FEET_Y * z * pose.sy, pose.flash);
+  }
+
+  /** Copie une image de planche, pieds en (`x`, `y`), puis l'éclair blanc d'un coup reçu par-dessus (v5.17). */
+  private blit(sheet: SheetCanvas, sx: number, sy: number, x: number, y: number, dw: number, dh: number, feet: number, flash: number): void {
+    const ctx = this.ctx;
+    const dx = Math.round(x - dw / 2);
+    const dy = Math.round(y - feet);
+    ctx.drawImage(sheet as CanvasImageSource, sx, sy, FRAME_W, FRAME_H, dx, dy, dw, dh);
+    if (flash <= 0) return;
+    const prev = ctx.globalAlpha;
+    ctx.globalAlpha = prev * flash * 0.9;
+    ctx.drawImage(this.whiteOf(sheet) as CanvasImageSource, sx, sy, FRAME_W, FRAME_H, dx, dy, dw, dh);
+    ctx.globalAlpha = prev;
+  }
+
+  private whiteSheets = new Map<SheetCanvas, SheetCanvas>();
+
+  /** Silhouette blanche d'une planche (éclair d'impact), calculée une fois par planche. */
+  private whiteOf(sheet: SheetCanvas): SheetCanvas {
+    let w = this.whiteSheets.get(sheet);
+    if (w) return w;
+    w = this.makeCanvas(sheet.width, sheet.height);
+    const g = w.getContext('2d') as CanvasRenderingContext2D | null;
+    if (g) {
+      g.drawImage(sheet as CanvasImageSource, 0, 0);
+      g.globalCompositeOperation = 'source-in';
+      g.fillStyle = '#ffffff';
+      g.fillRect(0, 0, sheet.width, sheet.height);
+    }
+    this.whiteSheets.set(sheet, w);
+    return w;
   }
 
   // ---------------------------------------------------------------- marqueurs
@@ -513,6 +546,36 @@ export class Renderer {
     ctx.lineWidth = 1.5;
     ctx.strokeRect(x, y, w, h);
   }
+}
+
+/** Étoiles jaunes qui tournent au-dessus de la tête d'un élève KO (v5.17). */
+function drawKoStars(ctx: CanvasRenderingContext2D, stars: ReturnType<typeof koStars>, p: Vec2, z: number): void {
+  if (stars.length === 0) return;
+  const prev = ctx.globalAlpha;
+  const cy = p.y - 50 * z;
+  const r = Math.max(5, 6.2 * z);
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = Math.max(1.2, 1.4 * z);
+  ctx.strokeStyle = '#1b1b24';
+  for (const s of stars) {
+    // Celles de derrière, plus petites et plus pâles : la ronde se lit en relief.
+    const k = s.front ? 1 : 0.75;
+    ctx.globalAlpha = prev * s.alpha * (s.front ? 1 : 0.7);
+    const x = p.x + s.dx * 1.6 * z;
+    const y = cy + s.dy * 1.6 * z;
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const a = -Math.PI / 2 + (i * Math.PI) / 5;
+      const rr = (i % 2 === 0 ? r : r * 0.45) * k;
+      if (i === 0) ctx.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+      else ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    ctx.fillStyle = s.front ? '#fff27a' : '#ffd84a';
+    ctx.fill();
+    ctx.stroke();
+  }
+  ctx.globalAlpha = prev;
 }
 
 /** Petit losange bleu clair qui distingue les élèves alliés des ennemis. */

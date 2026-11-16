@@ -36,7 +36,9 @@ But mesurable : un joueur humain qui donne 15 à 25 ordres par minute doit pouvo
 
 ## Saison 2 : sensations et lisibilité
 
-- [ ] Coups qui « claquent » : impact, petit recul, étoiles de KO, tremblement léger de caméra sur les grosses bagarres (désactivable).
+- [x] **Coups qui « claquent ».** (v5.17, 16/11/2026) Éclair blanc, recul dans le sens du coup et écrasement de l'élève touché (recul plus fort sur un KO), trois étoiles qui tournent au-dessus des KO, tremblement dosé par la « chaleur » des bagarres visibles (un KO isolé vibre à peine, une mêlée secoue), « Mêlée ! » et un « Ouuuh ! » quand une grosse bagarre éclate, rubrique « Sensations » de la pause (tremblement coupé, mémorisé). Purement visuel : témoin inchangé à 49,9 %.
+  - Idée (16/11) : un léger « temps d'arrêt » (quelques centièmes de seconde) sur le KO d'un élève sélectionné, et un petit élan de l'attaquant quand son coup porte ; à doser en vrai sur iPhone avant de les ajouter.
+  - Idée (16/11) : les onomatopées montent en fondu et deviennent floues en fin de vie ; les garder franches jusqu'au bout.
 - [ ] Musique synthétisée par Web Audio qui s'intensifie avec les bagarres, thèmes de menu et de victoire.
 - [ ] Lisibilité : motifs en plus des couleurs (daltonisme), contours d'équipe, contraste des cases.
 - [ ] Interface : transitions, retours tactiles visuels, menus plus vivants, écran de fin avec statistiques et ralenti du dernier coup.

@@ -27,7 +27,8 @@ export type SfxName =
   | 'snow'
   | 'snack'
   | 'guard'
-  | 'parry';
+  | 'parry'
+  | 'melee';
 
 /** Timbre des coups par couleur d'uniforme : hauteur et coupure du filtre. */
 const TEAM_PITCH = [1, 1.14, 1.3, 0.84];
@@ -192,6 +193,16 @@ export class Sfx {
         this.tone(t + 0.46, 392, 587, 0.18, 'square', 0.12);
         this.noise(t + 0.62, 0.03, 2400, 0.22);
         this.noise(t + 0.72, 0.03, 2400, 0.22);
+        break;
+      case 'melee':
+        // Grosse mêlée (v5.17) : la cour fait « Ouuuh ! » (trois voix qui montent puis retombent) et un tambour.
+        [196, 247, 294].forEach((f, i) => {
+          this.tone(t + i * 0.015, f * 0.82, f * 1.12, 0.22, 'sawtooth', 0.07);
+          this.tone(t + 0.22 + i * 0.015, f * 1.12, f * 0.9, 0.3, 'sawtooth', 0.06);
+        });
+        this.tone(t, 90, 45, 0.18, 'sine', 0.7);
+        this.noise(t + 0.02, 0.08, 1200, 0.4);
+        this.tone(t + 0.16, 90, 45, 0.16, 'sine', 0.55);
         break;
       case 'defeat':
         [440, 415, 392, 330].forEach((f, i) => this.tone(t + i * 0.22, f, f * 0.9, 0.3, 'sawtooth', 0.3));

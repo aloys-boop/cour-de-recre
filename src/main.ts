@@ -14,7 +14,7 @@ import { DiplomacyExtrasHud } from './ui/diplomacy-extras';
 import { Menu, type MenuState } from './ui/menu';
 import { Overlay } from './ui/overlay';
 import { TacticsHud } from './ui/tactics-hud';
-import { TempoHud, tempoBlock } from './ui/tempo-hud';
+import { shakeBlock, TempoHud, tempoBlock } from './ui/tempo-hud';
 import { tempoAllowed } from './core/tempo';
 import { codeBlock, medalsBlock } from './ui/share';
 import { KingHud, kingEnd } from './ui/king-hud';
@@ -180,7 +180,7 @@ function launch(opts: GameOptions, code: MapCode | null): void {
   overlay.hide();
   menu.hide();
   hud.show();
-  opts = { ...opts, speed: progress.speed ?? 'normale' };
+  opts = { ...opts, speed: progress.speed ?? 'normale', shake: progress.shake !== false };
   game = new Game(canvas, minimapCanvas, sfx, opts, {
     onHud: (world, selected) => (hud.update(world, selected, 0), kingHud.update(world, 0), campPanel.refresh(), powersHud.refresh()),
     onCampTap: (camp) => campPanel.open(camp),
@@ -221,7 +221,7 @@ function launch(opts: GameOptions, code: MapCode | null): void {
               game?.setPaused(false);
             },
             () => backToMenu(),
-            [...(tutorial ? [] : [rhythmBlock(opts)]), ...(code ? [codeBlock(codeText)] : [])],
+            [...(tutorial ? [] : [rhythmBlock(opts)]), sensationsBlock(), ...(code ? [codeBlock(codeText)] : [])],
             () => overlay.howTo(showPause),
             tutorial ? undefined : () => game?.surrender(),
           );
@@ -340,6 +340,17 @@ function rhythmBlock(opts: GameOptions): HTMLElement {
       sfx.play('select');
     },
   );
+}
+
+/** Bloc « Sensations » du menu pause (v5.17) : tremblement de la caméra, mémorisé. */
+function sensationsBlock(): HTMLElement {
+  return shakeBlock(progress.shake !== false, (on) => {
+    progress = { ...progress, shake: on };
+    saveProgress(progress);
+    game?.setShake(on);
+    sfx.play('select');
+    if (on) navigator.vibrate?.(12);
+  });
 }
 
 function backToMenu(): void {

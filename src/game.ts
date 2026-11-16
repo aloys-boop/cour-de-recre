@@ -61,6 +61,8 @@ export interface GameOptions {
   tutorial?: boolean;
   /** Vitesse de jeu choisie (v5.14) : appliquée seulement en Facile et Normal. */
   speed?: GameSpeed;
+  /** Tremblement de la caméra sur les KO et les camps pris (v5.17, absent : activé). */
+  shake?: boolean;
 }
 
 export interface GameHooks {
@@ -199,6 +201,7 @@ export class Game {
     const rules = normalizeRules(opts.rules);
     this.tactical = new TacticalPause(tempoAllowed(opts.difficulty, !!opts.tutorial));
     this.speed = speedFactor(opts.speed ?? 'normale', opts.difficulty, !!opts.tutorial);
+    this.fx.heat.shakeEnabled = opts.shake !== false;
     // Roi de la cour : trône au centre (jamais en campagne : pas de règles passées).
     this.world = new World(isKingMode(rules) ? withThrone(opts.map) : opts.map, opts.map.teams, seed, [opts.playerColor, ...others]);
     this.world.rules = rules;
@@ -390,6 +393,15 @@ export class Game {
   }
 
   /** Vitesse changée en cours de partie (menu pause) ; sans effet en Difficile et Expert. */
+  /** Active ou coupe le tremblement de la caméra (réglage « Sensations » de la pause, v5.17). */
+  setShake(on: boolean): void {
+    this.fx.heat.shakeEnabled = on;
+  }
+
+  get shakeEnabled(): boolean {
+    return this.fx.heat.shakeEnabled;
+  }
+
   setSpeed(speed: GameSpeed): number {
     this.speed = speedFactor(speed, this.opts.difficulty, !!this.opts.tutorial);
     return this.speed;
@@ -481,6 +493,10 @@ export class Game {
       this.tutorial?.onWorldEvent(ev);
       if (!eventPerceived(w, this.playerTeam, ev)) continue; // brouillard : combat hors vue, ni son ni effet
       this.fx.onEvent(ev, this.cam);
+      if (this.fx.meleeStarted) {
+        this.fx.meleeStarted = false;
+        this.sfx.play('melee');
+      }
       switch (ev.kind) {
         case 'punch':
           this.sfx.play('punch', color);

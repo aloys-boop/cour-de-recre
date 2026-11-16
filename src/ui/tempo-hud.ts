@@ -93,6 +93,20 @@ export function tempoBlock(s: TempoSettings, onSpeed: (v: GameSpeed) => void, on
   return box;
 }
 
+/**
+ * Bloc « Sensations » du menu pause (v5.17) : tremblement de la caméra sur les KO et les camps
+ * pris, activé par défaut. Disponible dans toutes les difficultés et dans le tutoriel.
+ */
+export function shakeBlock(on: boolean, onPick: (v: boolean) => void): HTMLElement {
+  const box = document.createElement('div');
+  box.className = 'tempo-block sensations-block';
+  const title = document.createElement('div');
+  title.className = 'tempo-title';
+  title.textContent = 'Sensations';
+  box.append(title, segmented('Tremblement', 'shake-toggle', [['on', 'Activé'], ['off', 'Coupé']], on ? 'on' : 'off', (v) => onPick(v === 'on')));
+  return box;
+}
+
 function segmented(label: string, cls: string, options: Array<[string, string]>, value: string, onPick: (v: string) => void): HTMLElement {
   const row = document.createElement('div');
   row.className = `tempo-row ${cls}`;

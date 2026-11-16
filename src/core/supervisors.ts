@@ -1,3 +1,4 @@
+import { noteImpact } from './impact';
 import { TUNING } from '../config';
 import { dirFromVector, dist2 } from './math';
 import { findPath, smoothPath } from './pathfinding';
@@ -506,6 +507,7 @@ function strike(world: World, st: State, s: Supervisor): void {
 
 function hurt(world: World, s: Supervisor, u: Unit, dmg: number): void {
   const ko = u.takeDamage(dmg, s.x, s.y);
+  noteImpact(u, world.time, s.x, s.y);
   let dx = u.x - s.x;
   let dy = u.y - s.y;
   const d = Math.hypot(dx, dy);

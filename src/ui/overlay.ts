@@ -248,6 +248,7 @@ export const HOW_TO: ReadonlyArray<[string, string]> = [
   ['Le but', 'Prends les cases et les camps des autres équipes. Tu gagnes quand tu es le dernier à avoir des élèves ou un camp, ou quand tu tiens tous les camps.'],
   ['Sélectionner', 'Touche un élève : lui et ses voisins sont choisis. Appui long puis glisse : rectangle de sélection. Double-tap : tous tes élèves à l’écran.'],
   ['Déplacer et attaquer', 'Touche le sol : tes élèves y courent sans se battre (mode Fuir) ; touché hors de la cour, l’ordre va au bord le plus proche. Touche un ennemi pour l’attaquer. La barre au-dessus d’une bagarre montre qui est le plus fort ; en haut, touche une mini-barre pour aller voir une bagarre hors de l’écran.'],
+  ['Bagarres', 'Un élève touché clignote en blanc et recule ; mis KO, il voit trente-six chandelles (étoiles qui tournent) avant de quitter la cour. Quand une grosse mêlée éclate à l’écran, la cour crie « Mêlée\u00a0! » et la caméra tremble d’autant plus fort que les KO s’enchaînent. Dans la pause, « Sensations » coupe le tremblement.'],
   ['Cases et camps', 'Reste sur une case blanche pour la capturer : ♥ vie, ♠ dégâts, ♣ production, ♦ vitesse. Ton camp produit des élèves, 30 au plus.'],
   ['Caméra', 'Glisse un doigt pour bouger la vue, pince pour zoomer, touche la mini-carte pour y aller.'],
   ['Effectifs', 'En haut, chaque puce d’équipe donne son nombre d’élèves ; la tienne affiche « élèves / maximum » (en jaune quand ton camp ne peut plus produire). Brouillard activé : un œil devant le nombre, seuls les ennemis que tu vois en ce moment sont comptés. Touche ta puce pour le détail : élèves, cases et camps de chaque équipe.'],
@@ -276,7 +277,7 @@ export const TOOLS_TITLE = 'Quel outil pour quoi ?';
 
 /** Chapitres de « Comment jouer » (v5.15) : titre, onglet court et rubriques. */
 export const HOW_TO_CHAPTERS: ReadonlyArray<{ id: string; title: string; tab: string; sections: readonly string[] }> = [
-  { id: 'bases', title: 'Les bases', tab: 'Bases', sections: ['Le but', 'Sélectionner', 'Déplacer et attaquer', 'Cases et camps', 'Caméra', 'Effectifs'] },
+  { id: 'bases', title: 'Les bases', tab: 'Bases', sections: ['Le but', 'Sélectionner', 'Déplacer et attaquer', 'Bagarres', 'Cases et camps', 'Caméra', 'Effectifs'] },
   { id: 'progresser', title: 'Progresser', tab: 'Progresser', sections: ['Bons points ★', 'Améliorations', 'Classes', 'Pouvoirs', 'Pion', 'Ralliement'] },
   { id: 'outils', title: 'Moins de micro : tes outils', tab: 'Tes outils', sections: ['Quel outil pour quoi ?', 'Garnisons', 'Défense', 'Conquête', 'Escorte', 'Renforts', 'Alertes', 'Rythme'] },
   { id: 'autres', title: 'Les autres équipes', tab: 'Adversaires', sections: ['Les IA', 'Alliances', 'Mode Équipes', 'Abandonner'] },

@@ -1,3 +1,4 @@
+import { noteImpact } from './impact';
 // Pouvoirs de récré : payés en bons points, avec une recharge par équipe, lancés sur une zone.
 //  - Sonnerie : fige les ennemis dans le rayon (ils ne bougent ni ne frappent) ;
 //  - Boules de neige : dégâts de zone sur les ennemis ;
@@ -77,6 +78,7 @@ export function castPower(world: World, team: number, id: PowerId, x: number, y:
       hits++;
     } else if (id === 'neige') {
       const ko = u.takeDamage(info.power, x, y);
+      noteImpact(u, world.time, x, y);
       world.events.push({ kind: 'hit', x: u.x, y: u.y, team: u.team });
       hits++;
       if (ko) {

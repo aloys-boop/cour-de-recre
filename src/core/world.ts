@@ -1,3 +1,4 @@
+import { noteImpact } from './impact';
 import { MAX_TEAMS, SUIT_BONUS, TEAM_PROFILES, TUNING } from '../config';
 import { Grid } from './grid';
 import { dist2 } from './math';
@@ -490,6 +491,7 @@ export class World {
           const armor = target.squad > 0 ? Math.min(guardArmor(target), defenderArmor(this, target)) : guardArmor(target);
           const dmg = Math.max(1, Math.round(punchDamage(() => this.rng.next()) * scale * armor));
           const ko = target.takeDamage(dmg, u.x, u.y);
+          noteImpact(target, this.time, u.x, u.y);
           this.events.push(armor < 1 ? { kind: 'hit', x: target.x, y: target.y, team: target.team, parried: true } : { kind: 'hit', x: target.x, y: target.y, team: target.team });
           if (ko) {
             this.events.push({ kind: 'ko', x: target.x, y: target.y, team: target.team, by: u.team });
