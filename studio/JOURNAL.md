@@ -17,6 +17,7 @@ Une entrée par session, la plus récente en haut : date, version, ce qui a ét�
 - Chromium (analyseur branché sur la sortie, musique seule, intensité forcée par la chaleur) : partie au calme, crête 0,035 et moyenne quadratique 0,003 ; pleine intensité, crête 0,108 et 0,006 ; menu, crête 0,045 ; fanfare, crête 0,15. Bruitages d'une vraie mêlée : crête 0,61. La musique reste nettement sous les bruitages, aucune saturation, aucune erreur de console.
 - Vraie mêlée de 18 élèves à l'écran : intensité 1 en moins de 2 s.
 - `perf240` (inchangé par construction, la simulation n'est pas touchée) : partie 0,243 ms par pas, mêlée 0,144, ordres 0,218, rendu 2,18 ms ; mêmes valeurs à 10 % près que le code d'hier relancé à la suite (0,237, 0,134, 0,199, 2,52). Témoin non relancé : `World` et les IA ne bougent pas, l'humeur se calcule hors simulation et sans hasard.
+- Déploiement : run n° 48 « Déploiement GitHub Pages » réussi (tests, build, `deploy-pages`). Le site lui-même n'est pas joignable depuis le bac à sable de la session (proxy) : pas de vérification directe de la page.
 - Captures 844 × 390 (×3) : rubrique « Sensations » propre avec « Tremblement » et « Musique » alignés, boutons de 44 px ; partie en mêlée sans changement visuel.
 
 **Reste à faire, inquiétudes**
