@@ -2,6 +2,28 @@
 
 Une entrée par session, la plus récente en haut : date, version, ce qui a été fait, ce qui a été mesuré, ce qui reste ou ce qui inquiète.
 
+## 17/11/2026 : session de développement, v5.18 (saison 2, musique qui suit la bagarre)
+
+**Fait**
+- Aucun retour d'Aloys par e-mail (aucune réponse aux journaux des 14 derniers jours). Travail du jour : deuxième point de la saison 2, la musique, en entier. Point de retour : branche `avant-2026-11-17`.
+- `src/core/music-score.ts` : quatre thèmes originaux en partitions (doubles croches) : « Récré » (menu, do majeur, 108 battements par minute, clochettes, basse qui rebondit, écho), « Bagarre » (partie, la mineur, 132, quatre mesures la m, fa, do, sol), fanfare de victoire (roulement, arpège, envolée sur l'accord de do, cymbale, 3,9 s) et défaite (trois notes qui descendent, 4,6 s). « Bagarre » en six couches dosées par l'intensité : basse et accords syncopés toujours là, mélodie feutrée (45 %) qui chante à partir de 0,15, charleston à 0,2, batterie à 0,45, arpèges de mêlée, relance de basse et charleston en doubles croches à 0,72 ; filtre de 1 300 à 4 000 Hz, volume +30 %.
+- `MusicMood` : cible = chaleur des bagarres visibles ×1,6, plancher 0,5 pendant 8 s après une alerte, plancher 0,3 en fin de partie serrée (`isFinale` : deux survivants sur une carte à plusieurs, ou une équipe en vie sans camp) ; montée de 1,4 par seconde, retombée de 0,12 (environ 8 s) ; pause, pause tactique et fin de partie ramènent au calme.
+- `src/audio/music.ts` réécrit : thème courant, fondu de 0,18 s entre thèmes (un bus par thème), voix « ton », grosse caisse (sinus qui tombe de 140 à 42 Hz), caisse claire, charleston et cymbale (bruit blanc calculé une fois), jingles joués une fois puis silence.
+- Branchements : menu → « Récré », partie et tutoriel → « Bagarre » (intensité transmise à chaque image), fin → fanfare ou défaite (abandon compris), retour au menu → « Récré ». Pause : « Musique : Active / Coupée » dans « Sensations », même réglage que le bouton du menu (champ `musicMuted` existant, sauvegardes intactes).
+- « Comment jouer » (rubrique « Bagarres »), README (règle, contrôles, mesures, versions, architecture). Pas d'étape de tutoriel : aucun geste nouveau.
+- 14 nouveaux tests (`musique.test.ts` : partitions, tessiture, jingles finis, accords sur les temps forts, ordre d'entrée des couches, montée sans à-coup, humeur, finale ; `musique-app.test.ts` : menu, vraie mêlée qui fait monter l'intensité, musique coupée puis rallumée dans la pause et mémorisée, fanfare, retour au menu) ; 480 tests verts.
+
+**Mesuré**
+- Chromium (analyseur branché sur la sortie, musique seule, intensité forcée par la chaleur) : partie au calme, crête 0,035 et moyenne quadratique 0,003 ; pleine intensité, crête 0,108 et 0,006 ; menu, crête 0,045 ; fanfare, crête 0,15. Bruitages d'une vraie mêlée : crête 0,61. La musique reste nettement sous les bruitages, aucune saturation, aucune erreur de console.
+- Vraie mêlée de 18 élèves à l'écran : intensité 1 en moins de 2 s.
+- `perf240` (inchangé par construction, la simulation n'est pas touchée) : partie 0,243 ms par pas, mêlée 0,144, ordres 0,218, rendu 2,18 ms ; mêmes valeurs à 10 % près que le code d'hier relancé à la suite (0,237, 0,134, 0,199, 2,52). Témoin non relancé : `World` et les IA ne bougent pas, l'humeur se calcule hors simulation et sans hasard.
+- Captures 844 × 390 (×3) : rubrique « Sensations » propre avec « Tremblement » et « Musique » alignés, boutons de 44 px ; partie en mêlée sans changement visuel.
+
+**Reste à faire, inquiétudes**
+- Je n'ai pas pu écouter : les niveaux sont mesurés, pas le goût. Le thème de partie tourne en boucle de 7,3 s ; sur une partie de 8 minutes, il peut lasser. Prochaine étape possible : une seconde phrase (variation B) qui alterne avec la première.
+- Le haut-parleur d'iPhone rend mal les basses : la grosse caisse (42 à 140 Hz) sera surtout entendue au casque. La caisse claire et le charleston portent le rythme sur le haut-parleur.
+- Prochaine session : saison 2, lisibilité (motifs en plus des couleurs pour le daltonisme, contours d'équipe, contraste des cases).
+
 ## 16/11/2026 : session de développement, v5.17 (saison 2, coups qui « claquent »)
 
 **Fait**

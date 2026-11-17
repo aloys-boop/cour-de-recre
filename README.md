@@ -47,6 +47,7 @@ De deux à huit équipes d'élèves en uniforme (Noir, Vert, Jaune, Violet, Roug
 - **Barre de bagarre.** Le jeu repère les bagarres (élèves d'équipes ennemies au contact, regroupés de proche en proche, recalculé 4 fois par seconde). Au-dessus de chacune, une petite barre partagée en segments aux couleurs des équipes impliquées, proportionnels à leur force dans la bagarre : somme des PV restants × dégâts (profil, cases ♠, améliorations, classe, bonus de surveillant compris). Un petit chevron blanc, au-dessus du segment de l'équipe qui gagne du terrain (sa part a monté d'au moins 3 points sur les 3 dernières secondes), montre la tendance. La barre se place au-dessus des têtes et disparaît en fondu à la fin de la bagarre ; elle n'est pas affichée pour une bagarre cachée par le brouillard. Une bagarre de ton équipe hors de l'écran apparaît en haut de l'écran sous forme de mini-barre avec une flèche dans sa direction (3 au plus) : touche-la pour que la caméra glisse jusqu'à elle.
 - **Combat.** Les élèves se battent à coups de poing au corps à corps. Un élève inoccupé engage de lui-même les ennemis qui s'approchent. À zéro point de vie, il s'assoit, KO, puis disparaît.
 - **Coups qui claquent (v5.17).** Un élève touché clignote en blanc, recule dans le sens du coup et s'écrase un instant ; mis KO, il recule plus fort et trois étoiles tournent au-dessus de sa tête jusqu'à ce qu'il quitte la cour. La caméra tremble sur les KO à l'écran, d'autant plus fort que la bagarre chauffe : un KO isolé la fait à peine vibrer, une mêlée où les KO s'enchaînent la secoue plus longtemps et fait crier la cour (« Mêlée ! » en rose, un « Ouuuh ! » et un tambour). Rubrique **Sensations** de la pause : « Tremblement » Activé ou Coupé, mémorisé (le réglage « réduire les animations » de l'iPhone le coupe aussi). Purement visuel : la simulation ne change pas.
+- **Musique (v5.18).** Toute la musique est synthétisée en direct (Web Audio, aucun fichier), sur quatre thèmes originaux : « Récré » au menu (sautillant, clochettes), « Bagarre » en partie, une fanfare de victoire et trois notes tristes pour la défaite. « Bagarre » suit la cour : au calme, basse, accords et mélodie feutrée ; quand ça cogne à l'écran, le charleston entre, puis la batterie, puis les arpèges de mêlée, le son s'éclaircit et monte un peu. Une alerte maintient la tension 8 s, et une fin de partie serrée (deux équipes encore debout, ou un dernier carré sans camp) garde un fond de tension. L'intensité monte en une seconde et retombe en huit, sans faire le yoyo ; la pause et la pause tactique la ramènent au calme. Bouton « Musique » du menu, ou rubrique **Sensations** de la pause : « Musique » Active ou Coupée, mémorisé. Le bouton son coupe tout.
 - **Repli.** Un ordre de déplacement est un rappel : les élèves cessent le combat et courent sans riposter jusqu'à destination (ils peuvent se faire frapper en fuyant). Arrivés, ils se défendent à nouveau. Pour attaquer, touche un ennemi. Le bouton **Fuir / Charger** (en haut à droite) change ce comportement : en mode Charger, les élèves se battent contre tout ce qu'ils croisent en chemin (marqueur orange).
 - **Effectifs (v5.9).** En haut, chaque puce d'équipe donne son nombre d'élèves en jeu ; la tienne affiche « élèves / maximum » (par exemple 18/30), en jaune quand le plafond est atteint et que tes camps ne produisent plus. Avec le brouillard de guerre, un œil précède le nombre des équipes ennemies : seuls les élèves que tu vois en ce moment sont comptés (les tiens et ceux de tes alliés le sont toujours en entier). Touche ta propre puce : le détail « Effectifs » donne, pour chaque équipe, ses élèves, ses cases et ses camps (sous le brouillard, tels que tu les as vus). Recompté 4 fois par seconde.
 - **Alertes (v5.7).** Quand une de tes cases est menacée (un ennemi à moins de 2,6 cases depuis plus de 2 s, ou une jauge ennemie qui monte), qu'elle tombe, ou que ton camp est en danger, un bandeau apparaît en haut au centre (jaune : case attaquée ; rouge pulsant : camp ; bordeaux : case perdue), avec un « ding-dong » discret et une petite vibration pour le camp et les pertes. Touche le bandeau (« Y aller ») : la caméra glisse jusqu'à la case. Pour ne pas noyer le joueur, une case n'est signalée qu'une fois par attaque (puis après 12 s de calme), deux alertes sont séparées d'au moins 6 s, et ce qui arrive entre-temps est regroupé (« 3 cases attaquées », « Ton camp est attaqué, et 2 autres cases ! »), en pointant la plus urgente. Pas d'alerte pendant le tutoriel.
@@ -453,6 +454,10 @@ Les valeurs d'un point ont été réglées en Difficile ; en Normal, la Rose (4,
 
 Le spectateur change surtout l'expérience (une partie sur cinq à deux, une sur trois à trois ne s'arrête plus net), très peu le taux de victoire : une équipe qui perd un camp perd presque toujours. `perf240` inchangé (partie 0,233 ms par pas, rendu 1,2 à 1,9 ms par image).
 
+### Musique qui suit la bagarre (v5.18)
+
+Partitions et humeur dans `core/music-score.ts` (sans navigateur, testées), synthèse dans `audio/music.ts`. L'humeur se calcule à l'affichage, hors simulation et sans hasard : la partie est inchangée (témoin humain 49,9 % en Normal, comme en v5.15 à v5.17). Niveaux mesurés dans Chromium (analyseur sur la sortie, musique seule) : thème de partie au calme, crête 0,035 et moyenne 0,003 ; à pleine intensité, crête 0,108 et moyenne 0,006 ; fanfare, crête 0,15 ; bruitages d'une mêlée, crête 0,61. La musique reste sous les bruitages. Environ 55 notes synthétisées par seconde en pleine mêlée. `perf240` inchangé (la simulation n'est pas touchée).
+
 ### Coups qui claquent (v5.17)
 
 Tout se passe à l'affichage (`core/impact.ts`) : le monde note seulement l'instant et la direction du dernier coup reçu par chaque élève, sans tirage au hasard. La partie est donc inchangée : témoin humain en Normal, 800 parties, graine 1 : 49,9 % (± 3,5), exactement comme en v5.15 ; ordres par minute IA 14,8, témoin 16,9. `perf240` : partie 0,228 ms par pas, mêlée 0,125, ordres 0,176 ; rendu à 240 élèves 2,1 à 2,3 ms par image contre 2,0 à 2,4 avant (dans le bruit : l'éclair blanc réutilise une silhouette calculée une fois par planche).
@@ -485,7 +490,7 @@ Tout se passe à l'affichage (`core/impact.ts`) : le monde note seulement l'inst
 | Tap sur ta propre puce (en haut) | Détail « Effectifs » : élèves, cases et camps de chaque équipe |
 | Sablier (en haut à droite, Facile et Normal) | Pause tactique : la cour se fige, les ordres restent possibles ; ▶ ou le bandeau « Reprendre » relance |
 | Bandeau « Spectateur » (mode Équipes, éliminé) | « Regarder » : caméra sur un coéquipier (le suivant à chaque tap) ; « ×2 » : partie accélérée ; « Terminer » : quitter avec l'écran de fin |
-| Boutons | « Tout sélectionner », « Annuler », « Fuir / Charger », pause tactique, pause (avec la rubrique « Rythme » : vitesse, sablier affiché ou masqué ; et « Sensations » : tremblement activé ou coupé), son |
+| Boutons | « Tout sélectionner », « Annuler », « Fuir / Charger », pause tactique, pause (avec la rubrique « Rythme » : vitesse, sablier affiché ou masqué ; et « Sensations » : tremblement activé ou coupé, musique active ou coupée), son |
 
 À la souris : clic, clic maintenu pour le rectangle, glisser pour la caméra, molette pour zoomer.
 
@@ -567,6 +572,8 @@ Le dépôt contient un workflow GitHub Actions (`.github/workflows/deploy.yml`) 
 | `v5.16` | Mode Équipes, suite : éliminé pendant que ton équipe tient, tu restes spectateur (Regarder, ×2, Terminer) et tu partages sa victoire ; mesure `equipesfixes` dans `equilibre.ts` |
 | `avant-2026-11-16` | état avant la v5.17 (point de retour) |
 | `v5.17` | Saison 2, coups qui claquent : éclair blanc, recul et écrasement de l'élève touché, étoiles des KO, tremblement dosé par la chaleur des bagarres, « Mêlée ! », réglage « Sensations » dans la pause |
+| `avant-2026-11-17` | état avant la v5.18 (point de retour) |
+| `v5.18` | Saison 2, musique : thèmes « Récré » (menu), « Bagarre » (partie, par couches qui s'ajoutent avec la chaleur des bagarres, les alertes et la fin de partie), fanfare de victoire, défaite ; « Musique » dans « Sensations » |
 
 ## Architecture
 
@@ -596,6 +603,7 @@ src/
     garrison.ts        garnisons : ordre « Garder », cercle défendu, laisse, reprise de la case, gardes retranchés
     squads.ts          escouades à consigne : « Conquérir » (choix de la case, renoncement, enchaînement des prises), « Défendre » (secteur, poste, secours, laisse, retranchement) et « Suivre » (protégé, menaces, laisse, dispersion)
     spectate.ts        mode Équipes : fin de partie vue par le joueur (spectateur, victoire partagée), caméra sur un coéquipier
+    music-score.ts     partitions des quatre thèmes, couches, humeur de la partie (intensité)
     impact.ts          coups qui claquent : pose de l'élève touché, étoiles des KO, chaleur des bagarres et tremblement
     tempo.ts           rythme réglable : vitesse lente, pause tactique, attention humaine en temps de jeu
     reinforce.ts       renforts automatiques : menace des cases, case secourue par chaque camp, envoi des nouveaux élèves
@@ -623,6 +631,7 @@ src/
     escort.ts          escortes : tirets vers le protégé, écusson vert au-dessus de lui
   input/touch.ts       gestes tactiles et souris
   audio/sfx.ts         sons synthétisés (Web Audio)
+  audio/music.ts       musique synthétisée : thème courant, couches dosées par l'intensité
   ui/                  menu, HUD, fenêtres (pause, fin, installation, accueil, « Comment jouer »)
     camp-panel.ts      pastille des bons points et panneau d'amélioration d'un camp
     class-section.ts   rubrique « Ce camp produit » (classes d'élèves)

@@ -39,7 +39,9 @@ But mesurable : un joueur humain qui donne 15 à 25 ordres par minute doit pouvo
 - [x] **Coups qui « claquent ».** (v5.17, 16/11/2026) Éclair blanc, recul dans le sens du coup et écrasement de l'élève touché (recul plus fort sur un KO), trois étoiles qui tournent au-dessus des KO, tremblement dosé par la « chaleur » des bagarres visibles (un KO isolé vibre à peine, une mêlée secoue), « Mêlée ! » et un « Ouuuh ! » quand une grosse bagarre éclate, rubrique « Sensations » de la pause (tremblement coupé, mémorisé). Purement visuel : témoin inchangé à 49,9 %.
   - Idée (16/11) : un léger « temps d'arrêt » (quelques centièmes de seconde) sur le KO d'un élève sélectionné, et un petit élan de l'attaquant quand son coup porte ; à doser en vrai sur iPhone avant de les ajouter.
   - Idée (16/11) : les onomatopées montent en fondu et deviennent floues en fin de vie ; les garder franches jusqu'au bout.
-- [ ] Musique synthétisée par Web Audio qui s'intensifie avec les bagarres, thèmes de menu et de victoire.
+- [x] **Musique qui s'intensifie avec les bagarres.** (v5.18, 17/11/2026) Quatre thèmes synthétisés : « Récré » (menu), « Bagarre » (partie), fanfare de victoire, défaite. « Bagarre » par couches (basse, accords, mélodie feutrée ; puis charleston, batterie, arpèges de mêlée), filtre qui s'ouvre, pilotée par la chaleur des bagarres visibles, les alertes et la fin de partie serrée. « Musique » dans « Sensations ». La partie n'est pas touchée.
+  - Idée (17/11) : un thème « Défi » plus rapide pour les dernières minutes du Roi de la cour, et un léger « duck » de la musique pendant la sonnerie et les annonces importantes.
+  - Idée (17/11) : un réglage de volume de la musique (trois crans) si Aloys la trouve trop présente ou trop discrète sur iPhone.
 - [ ] Lisibilité : motifs en plus des couleurs (daltonisme), contours d'équipe, contraste des cases.
 - [ ] Interface : transitions, retours tactiles visuels, menus plus vivants, écran de fin avec statistiques et ralenti du dernier coup.
 - [ ] Performances : 60 images par seconde garanties à 240 élèves sur iPhone, mesurées.

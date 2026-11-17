@@ -181,10 +181,13 @@ function launch(opts: GameOptions, code: MapCode | null): void {
   menu.hide();
   hud.show();
   opts = { ...opts, speed: progress.speed ?? 'normale', shake: progress.shake !== false };
+  // Musique (v5.18) : thème « Bagarre », qui s'intensifie avec la partie.
+  music.setIntensity(0);
+  music.setTheme('partie');
   game = new Game(canvas, minimapCanvas, sfx, opts, {
     onHud: (world, selected) => (hud.update(world, selected, 0), kingHud.update(world, 0), campPanel.refresh(), powersHud.refresh()),
     onCampTap: (camp) => campPanel.open(camp),
-    onFrame: () => (tutorialUi.refresh(), brawlHud.refresh()),
+    onFrame: () => (tutorialUi.refresh(), brawlHud.refresh(), music.setIntensity(game?.mood.level ?? 0)),
     onTutorial: (ev) => {
       if (ev.kind === 'step') {
         sfx.play('upgrade');
@@ -233,6 +236,7 @@ function launch(opts: GameOptions, code: MapCode | null): void {
       const spectated = spectateHud.visible;
       spectateHud.hide();
       const win = result === 'victoire';
+      music.setTheme(win ? 'victoire' : 'defaite');
       const surrendered = result === 'abandon';
       const extras: HTMLElement[] = [];
       tutorialUi.hide();
@@ -342,18 +346,33 @@ function rhythmBlock(opts: GameOptions): HTMLElement {
   );
 }
 
-/** Bloc « Sensations » du menu pause (v5.17) : tremblement de la caméra, mémorisé. */
+/** Bloc « Sensations » du menu pause (v5.17) : tremblement de la caméra et musique (v5.18), mémorisés. */
 function sensationsBlock(): HTMLElement {
-  return shakeBlock(progress.shake !== false, (on) => {
-    progress = { ...progress, shake: on };
-    saveProgress(progress);
-    game?.setShake(on);
-    sfx.play('select');
-    if (on) navigator.vibrate?.(12);
-  });
+  return shakeBlock(
+    progress.shake !== false,
+    (on) => {
+      progress = { ...progress, shake: on };
+      saveProgress(progress);
+      game?.setShake(on);
+      sfx.play('select');
+      if (on) navigator.vibrate?.(12);
+    },
+    {
+      on: !progress.musicMuted,
+      onPick: (on) => {
+        progress = { ...progress, musicMuted: !on };
+        saveProgress(progress);
+        menu.setProgress(progress);
+        music.setEnabled(on);
+        music.start();
+        sfx.play('select');
+      },
+    },
+  );
 }
 
 function backToMenu(): void {
+  music.setTheme('menu');
   tempoHud.set(false);
   spectateHud.hide();
   alertBanner.hide();
@@ -415,4 +434,9 @@ if (!progress.tutorialSeen) {
 /** Accès à la partie en cours (tests d'intégration). */
 export function __game(): Game | null {
   return game;
+}
+
+/** Accès à la musique (tests d'intégration). */
+export function __music(): Music {
+  return music;
 }

@@ -38,6 +38,7 @@ import { meritsOf } from './core/merits';
 import { drawPowerAim, PowerEffects } from './render/powers';
 import { BrawlBars } from './render/brawls';
 import type { Vec2 } from './core/types';
+import { isFinale, MusicMood } from './core/music-score';
 import { TutorialState, type TutorialEvent } from './core/tutorial';
 import { assignGuards, canGuard, guardCounts } from './core/garrison';
 import { assignConquest, assignDefence, assignEscort, releaseSquad, squadMembers, squadMode, type SquadMode } from './core/squads';
@@ -136,6 +137,10 @@ export class Game {
   readonly teamGroups: number[] | null;
   private importantUntil = 0;
   private fx = new Effects();
+  /** Humeur de la partie (v5.18) : intensité de la musique, lissée (chaleur des bagarres, alertes, finale). */
+  readonly mood = new MusicMood();
+  /** Fin de partie serrée (recalculée 4 fois par seconde). */
+  private finale = false;
   /** Gains de bons points du joueur (« +10 ★ » qui s'envolent). */
   private gains = new MeritPopups();
   /** Tutoriel en cours (null hors tutoriel). */
@@ -475,6 +480,7 @@ export class Game {
       this.markers = this.markers.filter((m) => m.t < 1);
       if (this.flash && this.flash.t >= 0) this.flash.t += dt;
     }
+    this.mood.update(this.frameDt, { heat: this.fx.heat.heat, finale: this.finale, calm: this.paused || this.over || frozen });
     this.render();
   }
 
@@ -554,6 +560,7 @@ export class Game {
     const alert = this.spectating ? null : this.alerts?.update(dt);
     if (alert) {
       this.lastAlert = alert;
+      this.mood.danger();
       this.sfx.play('alert');
       if (alert.kind !== 'attaque') navigator.vibrate?.(alert.kind === 'camp' ? [30, 60, 30] : 25);
       this.hooks.onAlert?.(alert);
@@ -574,6 +581,7 @@ export class Game {
     this.hudTimer += dt;
     if (this.hudTimer > 0.25) {
       this.hudTimer = 0;
+      this.finale = isFinale(w.stats());
       this.hooks.onHud(w, this.selected.size);
     }
     if (this.homeCamp && this.homeCamp.owner !== this.playerTeam) this.homeCampLost = true;
