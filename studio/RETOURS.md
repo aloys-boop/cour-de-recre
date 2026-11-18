@@ -2,6 +2,12 @@
 
 Le plus récent en haut. Chaque session lit ce fichier, recopie ici les nouveaux retours reçus par e-mail (réponses au « journal du jour »), et indique en dessous de chaque retour ce qui en a été fait.
 
+## 18/11/2026 (transmis par la conversation avec Claude)
+
+> « ne me fais plus de newsletter. ameliore le jeu juste »
+
+**Ce qui en a été fait (18/11) :** l'e-mail quotidien est supprimé de la tâche planifiée (ni e-mail, ni brouillon, ni notification quand tout va bien ; une notification courte seulement en cas de blocage). Décision ajoutée à `VISION.md`. Les sessions continuent chaque nuit sur la feuille de route, journal dans `JOURNAL.md`.
+
 ## 07/11/2026 (transmis par la conversation avec Claude, à traiter EN PRIORITÉ la nuit du 07 au 08/11)
 
 > « Suggestion d'amélioration :

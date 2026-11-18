@@ -29,6 +29,7 @@ Un jeu de stratégie en temps réel de poche, où l'on gagne par les **décision
 - Pas de bulletin de fin de partie (refusé le 26/10/2026).
 - Jeu personnel et non commercial : nom, graphismes et sons 100 % originaux, rien repris de School Wars.
 - Aloys joue souvent les Noirs, sur iPhone, en paysage.
+- Plus aucun e-mail ni « journal du jour » (demandé le 18/11/2026) : le studio améliore le jeu, le journal reste dans `JOURNAL.md`. Seul un blocage fait l'objet d'une notification courte.
 
 ## Règles techniques
 
