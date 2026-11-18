@@ -15,6 +15,7 @@ Une entrée par session, la plus récente en haut : date, version, ce qui a ét�
 **Mesuré**
 - `perf240` (napi, 240 élèves, `perf240.ts` mesure maintenant aussi les motifs) : rendu ×1 2,82 ms par image sans et avec motifs, ×2 1,31 et 1,70 ms. Première version sans cache : +1,5 ms à ×1, d'où le cache. Simulation inchangée (0,249, 0,143 et 0,207 ms par pas). Témoin non relancé : rien ne touche à la partie.
 - Captures 844 × 390 (×3) : puces lisibles (rond blanc des Noirs, triangle vert, carré jaune, étoile violette…), rubrique « Lisibilité » propre sous « Sensations » avec boutons de 44 px, rond blanc peint sur le camp noir, hexagones bleus au bout des barres de vie, cœur jaune cerné sur une case prise. Aucune erreur de console.
+- Déploiement : run n° 50 « Déploiement GitHub Pages » réussi (tests, build, `deploy-pages`). Le site n'est pas joignable depuis le bac à sable de la session (proxy) : pas de vérification directe de la page.
 
 **Reste à faire, inquiétudes**
 - L'emblème des Noirs (rond gris clair) est le moins frappant au bout des barres de vie ; à revoir avec la tranche b (contour des élèves).
