@@ -1339,3 +1339,16 @@ button {
     box-shadow: 0 0 0 6px rgba(226, 70, 42, 0.35), 0 3px 10px rgba(0, 0, 0, 0.45);
   }
 }
+
+/* Pastilles d'équipe en emblèmes (v5.19, lisibilité) : la forme dit l'équipe autant que la couleur. */
+.team-mark {
+  display: inline-flex;
+  flex: 0 0 auto;
+  line-height: 0;
+}
+
+.counts-table .team-mark,
+.end-stats .team-mark {
+  margin-right: 6px;
+  vertical-align: -2px;
+}

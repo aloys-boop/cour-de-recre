@@ -64,6 +64,8 @@ export interface GameOptions {
   speed?: GameSpeed;
   /** Tremblement de la caméra sur les KO et les camps pris (v5.17, absent : activé). */
   shake?: boolean;
+  /** Motifs d'équipe affichés (v5.19, réglage « Lisibilité »). */
+  patterns?: boolean;
 }
 
 export interface GameHooks {
@@ -239,6 +241,7 @@ export class Game {
       c.height = h;
       return c;
     });
+    this.renderer.patterns = opts.patterns === true;
     this.minimap = new Minimap(minimapCanvas, 132, 76);
     this.minimap.setMap(opts.map.w, opts.map.h);
     this.cam.setMap(opts.map.w, opts.map.h);
@@ -398,6 +401,15 @@ export class Game {
   }
 
   /** Vitesse changée en cours de partie (menu pause) ; sans effet en Difficile et Expert. */
+  /** Affiche ou masque les motifs d'équipe (réglage « Lisibilité » de la pause, v5.19). */
+  setPatterns(on: boolean): void {
+    this.renderer.patterns = on;
+  }
+
+  get patternsShown(): boolean {
+    return this.renderer.patterns;
+  }
+
   /** Active ou coupe le tremblement de la caméra (réglage « Sensations » de la pause, v5.17). */
   setShake(on: boolean): void {
     this.fx.heat.shakeEnabled = on;

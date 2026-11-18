@@ -1,3 +1,4 @@
+import { teamMarkEl } from './team-mark';
 import { TEAM_COLORS, TEAM_NAMES, TEAM_PLURALS } from '../config';
 import { teamPlural } from '../core/diplomacy';
 import { durationLine, type EndStats } from '../core/stats';
@@ -189,10 +190,7 @@ export class Overlay {
       const tr = document.createElement('tr');
       if (r.isPlayer) tr.className = 'me';
       const name = document.createElement('td');
-      const dot = document.createElement('span');
-      dot.className = 'dot';
-      dot.style.background = TEAM_COLORS[r.color]?.ui ?? '#888';
-      name.append(dot, document.createTextNode(`${TEAM_NAMES[r.color] ?? '?'}${r.isPlayer ? ' (toi)' : ''}`));
+      name.append(teamMarkEl(r.color, 13, false), document.createTextNode(`${TEAM_NAMES[r.color] ?? '?'}${r.isPlayer ? ' (toi)' : ''}`));
       tr.append(name);
       const values = [r.produced, r.koDealt, r.koTaken, r.captured];
       if (stats.supervisors) values.push(r.supKo ?? 0);
@@ -252,6 +250,7 @@ export const HOW_TO: ReadonlyArray<[string, string]> = [
   ['Cases et camps', 'Reste sur une case blanche pour la capturer : ♥ vie, ♠ dégâts, ♣ production, ♦ vitesse. Ton camp produit des élèves, 30 au plus.'],
   ['Caméra', 'Glisse un doigt pour bouger la vue, pince pour zoomer, touche la mini-carte pour y aller.'],
   ['Effectifs', 'En haut, chaque puce d’équipe donne son nombre d’élèves ; la tienne affiche « élèves / maximum » (en jaune quand ton camp ne peut plus produire). Brouillard activé : un œil devant le nombre, seuls les ennemis que tu vois en ce moment sont comptés. Touche ta puce pour le détail : élèves, cases et camps de chaque équipe.'],
+  ['Lisibilité', 'Chaque équipe a sa forme en plus de sa couleur\u00a0: Noirs rond, Verts triangle, Jaunes carré, Violets étoile, Rouges croix, Bleus hexagone, Oranges lune, Roses éclair. Les puces du haut la montrent toujours. Dans la pause, «\u00a0Lisibilité\u00a0» affiche aussi les motifs dans la cour\u00a0: grand emblème peint sur chaque camp, petit emblème sur les cases prises, au début des jauges de capture et au bout de la barre de vie de chaque élève. Pratique si deux couleurs se confondent pour toi.'],
   ['Bons points ★', '+2 par ennemi mis KO, +10 par case prise, +25 par camp pris, +1 toutes les 10 s par case tenue.'],
   ['Améliorations', 'Sans sélection, touche ton camp (ou la pastille ★). « Toute l’équipe » : Production, Uniformes, Entraînement, classes, pour tous tes camps. « Ce camp » : Défense, pion, élèves produits, ralliement, renforts. ‹ › : camp suivant.'],
   ['Classes', 'Une fois débloquées pour l’équipe, chaque camp choisit Costaud (solide), Sprinteur (rapide, capture vite) ou Infirmier (soigne). Chaque élève spécial coûte des bons points.'],
@@ -277,7 +276,7 @@ export const TOOLS_TITLE = 'Quel outil pour quoi ?';
 
 /** Chapitres de « Comment jouer » (v5.15) : titre, onglet court et rubriques. */
 export const HOW_TO_CHAPTERS: ReadonlyArray<{ id: string; title: string; tab: string; sections: readonly string[] }> = [
-  { id: 'bases', title: 'Les bases', tab: 'Bases', sections: ['Le but', 'Sélectionner', 'Déplacer et attaquer', 'Bagarres', 'Cases et camps', 'Caméra', 'Effectifs'] },
+  { id: 'bases', title: 'Les bases', tab: 'Bases', sections: ['Le but', 'Sélectionner', 'Déplacer et attaquer', 'Bagarres', 'Cases et camps', 'Caméra', 'Effectifs', 'Lisibilité'] },
   { id: 'progresser', title: 'Progresser', tab: 'Progresser', sections: ['Bons points ★', 'Améliorations', 'Classes', 'Pouvoirs', 'Pion', 'Ralliement'] },
   { id: 'outils', title: 'Moins de micro : tes outils', tab: 'Tes outils', sections: ['Quel outil pour quoi ?', 'Garnisons', 'Défense', 'Conquête', 'Escorte', 'Renforts', 'Alertes', 'Rythme'] },
   { id: 'autres', title: 'Les autres équipes', tab: 'Adversaires', sections: ['Les IA', 'Alliances', 'Mode Équipes', 'Abandonner'] },

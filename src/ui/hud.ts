@@ -5,6 +5,7 @@ import { chipCount, headcount, type Headcount } from '../core/headcount';
 import type { Suit } from '../core/types';
 import type { World } from '../core/world';
 import { SUPERVISOR_BUFF, supervisorBuffLeft } from '../core/supervisors';
+import { teamMarkHtml } from './team-mark';
 
 const SUIT_GLYPH: Record<Suit, string> = { heart: '\u2665', spade: '\u2660', club: '\u2663', diamond: '\u2666' };
 
@@ -167,7 +168,7 @@ export class Hud {
       b.className = 'chip';
       b.dataset.team = String(t);
       b.innerHTML =
-        `<span class="dot" style="background:${TEAM_COLORS[c].ui}"></span>` +
+        `<span class="team-mark">${teamMarkHtml(c, 15)}</span>` +
         `<span class="chip-name">${TEAM_NAMES[c]}</span>` +
         `<span class="chip-eye" aria-hidden="true">${eyeIcon()}</span>` +
         `<span class="chip-count"></span><span class="chip-camps"></span>` +
@@ -321,7 +322,7 @@ export class Hud {
       const units = r.known ? String(r.units) : `<span class="counts-eye" aria-label="en vue">${eyeIcon()}</span>${r.units}`;
       const cls = [r.isPlayer ? 'me' : '', r.ally ? 'ally' : '', r.alive ? '' : 'dead'].filter(Boolean).join(' ');
       html +=
-        `<tr${cls ? ` class="${cls}"` : ''}><th scope="row"><span class="dot" style="background:${TEAM_COLORS[r.color].ui}"></span>${name}</th>` +
+        `<tr${cls ? ` class="${cls}"` : ''}><th scope="row"><span class="team-mark">${teamMarkHtml(r.color, 13)}</span>${name}</th>` +
         `<td>${units}</td><td>${r.tiles}</td><td>${r.camps}</td></tr>`;
     }
     if (body.innerHTML !== html) body.innerHTML = html;

@@ -155,3 +155,18 @@ function hourglassIcon(color: string): string {
 function playIcon(color: string): string {
   return `<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M5 3l10 6-10 6z" fill="${color}" stroke="${color}" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
 }
+
+/**
+ * Bloc « Lisibilité » du menu pause (v5.19) : motifs d'équipe, un emblème par équipe (rond,
+ * triangle, carré…) sur les camps, les cases, les jauges et au bout de la barre de vie des élèves,
+ * pour jouer sans se fier aux seules couleurs. Masqués par défaut.
+ */
+export function readabilityBlock(on: boolean, onPick: (v: boolean) => void): HTMLElement {
+  const box = document.createElement('div');
+  box.className = 'tempo-block readability-block';
+  const title = document.createElement('div');
+  title.className = 'tempo-title';
+  title.textContent = 'Lisibilité';
+  box.append(title, segmented('Motifs d\u2019équipe', 'patterns-toggle', [['on', 'Affichés'], ['off', 'Masqués']], on ? 'on' : 'off', (v) => onPick(v === 'on')));
+  return box;
+}

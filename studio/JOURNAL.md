@@ -2,6 +2,25 @@
 
 Une entrée par session, la plus récente en haut : date, version, ce qui a été fait, ce qui a été mesuré, ce qui reste ou ce qui inquiète.
 
+## 18/11/2026 : session de développement, v5.19 (saison 2, lisibilité : motifs et contraste)
+
+**Fait**
+- Aucun retour d'Aloys par e-mail (aucune réponse aux journaux des 14 derniers jours). Travail du jour : le point « Lisibilité » de la saison 2, découpé en deux tranches ; ce soir la première (motifs d'équipe et contraste des symboles). Point de retour : branche `avant-2026-11-18`.
+- `src/core/emblems.ts` : huit emblèmes, un par couleur (rond, triangle, carré, étoile, croix, hexagone, lune, éclair ; aucun symbole de carte, déjà portés par les cases), contours en polygones, icône SVG en ligne ; rapport de contraste WCAG, `inkOn` (symbole cerné de sa teinte sombre si la couleur seule n'atteint pas 3:1 sur le blanc), `emblemInkOnCamp` (teinte la plus contrastée sur le camp).
+- Toujours actif : puces du haut, détail « Effectifs » et statistiques de fin en emblèmes au lieu de disques ; symboles des cases prises par les Jaunes (1,75:1 seul), Oranges (2,76) et Roses (2,82) cernés.
+- Réglage « Motifs d'équipe » (rubrique « Lisibilité » de la pause, masqués par défaut, champ facultatif `patterns` : anciennes sauvegardes intactes) : grand emblème peint sur chaque camp, petit au coin droit des cases prises, au début des jauges de capture et au bout de la barre de vie de chaque élève (petites images en cache par couleur et par zoom).
+- « Comment jouer » : rubrique « Lisibilité » dans les bases, qui nomme la forme de chaque équipe. README (règle, contrôles, mesures, versions, architecture). Pas d'étape de tutoriel : aucun geste nouveau.
+- 11 nouveaux tests (`lisibilite.test.ts` : formes distinctes, bornes, aires, SVG sans ressource externe, contrastes, sauvegarde, « Comment jouer » ; `lisibilite-app.test.ts` : puces en emblèmes, réglage dans la pause, rendu avec motifs, mémorisé) ; 491 tests verts.
+
+**Mesuré**
+- `perf240` (napi, 240 élèves, `perf240.ts` mesure maintenant aussi les motifs) : rendu ×1 2,82 ms par image sans et avec motifs, ×2 1,31 et 1,70 ms. Première version sans cache : +1,5 ms à ×1, d'où le cache. Simulation inchangée (0,249, 0,143 et 0,207 ms par pas). Témoin non relancé : rien ne touche à la partie.
+- Captures 844 × 390 (×3) : puces lisibles (rond blanc des Noirs, triangle vert, carré jaune, étoile violette…), rubrique « Lisibilité » propre sous « Sensations » avec boutons de 44 px, rond blanc peint sur le camp noir, hexagones bleus au bout des barres de vie, cœur jaune cerné sur une case prise. Aucune erreur de console.
+
+**Reste à faire, inquiétudes**
+- L'emblème des Noirs (rond gris clair) est le moins frappant au bout des barres de vie ; à revoir avec la tranche b (contour des élèves).
+- Les motifs sont masqués par défaut : un joueur daltonien doit les trouver dans la pause. Prochaine tranche : les proposer aussi dans le menu principal.
+- Prochaine session : lisibilité b (contours d'équipe sous les élèves, teinte légère des cases prises, emblèmes sur la mini-carte, réglage au menu).
+
 ## 17/11/2026 : session de développement, v5.18 (saison 2, musique qui suit la bagarre)
 
 **Fait**

@@ -13,6 +13,8 @@ import { drawGhostCamp } from './ghost';
 import { drawThroneTile } from './king';
 import { buildSheet, FEET_Y, FRAME_H, FRAME_W, frameFor, type SheetCanvas } from './sprites';
 import { drawSuit } from './suits';
+import { drawCampEmblem, drawTileEmblem, UnitEmblems, drawEmblem } from './emblems';
+import { emblemFor, inkOn } from '../core/emblems';
 import { buildPionSheet, drawSupervisor, drawSupervisorBar, lazySupervisorSheet, pionFrame, pushSupervisorItems } from './supervisors';
 import { drawFrozenMark } from './powers';
 import { SUPERVISOR_SCALE } from '../core/supervisors';
@@ -64,6 +66,9 @@ export class Renderer {
   private classSheets = new Map<string, SheetCanvas>();
   /** Équipe dont on montre le point de vue (brouillard de guerre). */
   private viewTeam = 0;
+  /** Motifs d'équipe (v5.19, réglage « Lisibilité ») : un emblème par équipe en plus de sa couleur. */
+  patterns = false;
+  private unitEmblems: UnitEmblems;
   private supSheet: () => SheetCanvas;
 
   constructor(
@@ -72,6 +77,7 @@ export class Renderer {
   ) {
     for (let t = 0; t < TEAM_COLORS.length; t++) this.sheets.push(buildSheet(t, makeCanvas));
     this.supSheet = lazySupervisorSheet(makeCanvas);
+    this.unitEmblems = new UnitEmblems(makeCanvas as never);
   }
 
   draw(
@@ -201,6 +207,7 @@ export class Renderer {
       ctx.lineWidth = Math.max(1, 1.2 * z);
       ctx.stroke();
       if (t.ghost && t.owner === NO_TEAM) drawGhostCamp(ctx, cam, t, time);
+      if (this.patterns && ownerColor !== NO_TEAM) drawCampEmblem(ctx, cam, t, ownerColor);
     } else {
       // Case bonus : blanche, avec un grand symbole gris qui prend la couleur du propriétaire.
       ctx.fillStyle = COLORS.tile;
@@ -212,10 +219,12 @@ export class Renderer {
         ctx.save();
         ctx.translate(center.x, center.y);
         ctx.scale(1, 0.5);
-        const color = ownerColor === NO_TEAM ? COLORS.suitNeutral : TEAM_COLORS[ownerColor].main;
-        drawSuit(ctx, t.suit, 0, 0, 48 * z, color);
+        // Encre contrastée (v5.19) : Jaune, Orange et Rose cernés de leur teinte sombre sur le blanc.
+        const ink = ownerColor === NO_TEAM ? { fill: COLORS.suitNeutral, outline: null } : inkOn(COLORS.tile, TEAM_COLORS[ownerColor]);
+        drawSuit(ctx, t.suit, 0, 0, 48 * z, ink.fill, ink.outline ? { color: ink.outline, width: Math.max(1.5, 2.4 * z) } : undefined);
         ctx.restore();
       }
+      if (this.patterns && ownerColor !== NO_TEAM) drawTileEmblem(ctx, cam, t, ownerColor);
     }
     if (t.contested && view.visible) {
       ctx.save();
@@ -238,6 +247,11 @@ export class Renderer {
       ctx.fillRect(bx - 1, by - 1, bw + 2, bh + 2);
       ctx.fillStyle = TEAM_COLORS[world.teamColors[t.capTeam]].ui;
       ctx.fillRect(bx, by, bw * t.cap, bh);
+      // Qui prend la case : son emblème au début de la jauge.
+      if (this.patterns) {
+        const c = world.teamColors[t.capTeam];
+        drawEmblem(ctx, emblemFor(c), bx - 7 * z, by + bh / 2, Math.max(3, 5 * z), TEAM_COLORS[c].light, TEAM_COLORS[c].dark, Math.max(1, 1.2 * z));
+      }
     }
   }
 
@@ -350,6 +364,7 @@ export class Renderer {
         const r = u.hp / u.maxHp;
         ctx.fillStyle = r > 0.5 ? '#3ee05a' : r > 0.25 ? '#f2c22e' : '#e5453c';
         ctx.fillRect(bx, by, bw * r, bh);
+        if (this.patterns) this.unitEmblems.draw(ctx, world.teamColors[u.team], bx + bw + 5 * z, by + bh / 2, z);
         drawHealHeart(ctx, u, p, z, world.time);
         drawStarvingBar(ctx, world, u.team, bx, by, bw, bh);
       }

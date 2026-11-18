@@ -117,10 +117,11 @@ function fill(world: World): void {
   for (let team = 0; team < 8; team++) world.orderMove(world.units.filter((u) => u.team === team), { x: map.w / 2, y: map.h / 2 }, true);
   for (let i = 0; i < 120; i++) world.update(step);
   const make = (w: number, h: number) => createCanvas(w, h) as unknown as HTMLCanvasElement;
-  for (const zoom of [1, 2]) {
+  for (const [zoom, patterns] of [[1, false], [2, false], [1, true], [2, true]] as const) {
     const cv = createCanvas(1170, 540);
     const ctx = cv.getContext('2d') as unknown as CanvasRenderingContext2D;
     const r = new Renderer(ctx, make);
+    r.patterns = patterns;
     const cam = new Camera();
     cam.setMap(map.w, map.h);
     cam.setView(585, 270);
@@ -132,6 +133,6 @@ function fill(world: World): void {
     const t0 = performance.now();
     const N = 30;
     for (let i = 0; i < N; i++) r.draw(world, cam, opts);
-    console.log(`rendu ×${zoom} ${((performance.now() - t0) / N).toFixed(2)} ms/image, ${world.units.length} élèves`);
+    console.log(`rendu ×${zoom}${patterns ? ' motifs' : ''} ${((performance.now() - t0) / N).toFixed(2)} ms/image, ${world.units.length} élèves`);
   }
 }

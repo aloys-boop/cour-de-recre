@@ -42,7 +42,9 @@ But mesurable : un joueur humain qui donne 15 à 25 ordres par minute doit pouvo
 - [x] **Musique qui s'intensifie avec les bagarres.** (v5.18, 17/11/2026) Quatre thèmes synthétisés : « Récré » (menu), « Bagarre » (partie), fanfare de victoire, défaite. « Bagarre » par couches (basse, accords, mélodie feutrée ; puis charleston, batterie, arpèges de mêlée), filtre qui s'ouvre, pilotée par la chaleur des bagarres visibles, les alertes et la fin de partie serrée. « Musique » dans « Sensations ». La partie n'est pas touchée.
   - Idée (17/11) : un thème « Défi » plus rapide pour les dernières minutes du Roi de la cour, et un léger « duck » de la musique pendant la sonnerie et les annonces importantes.
   - Idée (17/11) : un réglage de volume de la musique (trois crans) si Aloys la trouve trop présente ou trop discrète sur iPhone.
-- [ ] Lisibilité : motifs en plus des couleurs (daltonisme), contours d'équipe, contraste des cases.
+- [ ] **Lisibilité.** Découpé en deux tranches :
+  - [x] **Lisibilité a : motifs et contraste.** (v5.19, 18/11/2026) Un emblème par équipe (Noirs rond, Verts triangle, Jaunes carré, Violets étoile, Rouges croix, Bleus hexagone, Oranges lune, Roses éclair) sur les puces, le détail « Effectifs » et les statistiques de fin ; rubrique « Lisibilité » de la pause, « Motifs d'équipe » : grand emblème peint sur les camps, petit sur les cases prises, les jauges de capture et au bout de la barre de vie des élèves. Symboles des cases Jaunes, Oranges et Roses cernés (contraste ≥ 3:1 sur le blanc).
+  - [ ] **Lisibilité b : contours et cases.** Liseré d'équipe sous les élèves (ou contour de la silhouette) pour distinguer les mêlées serrées, cases bonus prises légèrement teintées de la couleur du propriétaire, emblèmes sur la mini-carte ; réglage aussi proposé dans le menu principal (avant la première partie).
 - [ ] Interface : transitions, retours tactiles visuels, menus plus vivants, écran de fin avec statistiques et ralenti du dernier coup.
 - [ ] Performances : 60 images par seconde garanties à 240 élèves sur iPhone, mesurées.
 

@@ -14,7 +14,7 @@ import { DiplomacyExtrasHud } from './ui/diplomacy-extras';
 import { Menu, type MenuState } from './ui/menu';
 import { Overlay } from './ui/overlay';
 import { TacticsHud } from './ui/tactics-hud';
-import { shakeBlock, TempoHud, tempoBlock } from './ui/tempo-hud';
+import { readabilityBlock, shakeBlock, TempoHud, tempoBlock } from './ui/tempo-hud';
 import { tempoAllowed } from './core/tempo';
 import { codeBlock, medalsBlock } from './ui/share';
 import { KingHud, kingEnd } from './ui/king-hud';
@@ -180,7 +180,7 @@ function launch(opts: GameOptions, code: MapCode | null): void {
   overlay.hide();
   menu.hide();
   hud.show();
-  opts = { ...opts, speed: progress.speed ?? 'normale', shake: progress.shake !== false };
+  opts = { ...opts, speed: progress.speed ?? 'normale', shake: progress.shake !== false, patterns: progress.patterns === true };
   // Musique (v5.18) : thème « Bagarre », qui s'intensifie avec la partie.
   music.setIntensity(0);
   music.setTheme('partie');
@@ -224,7 +224,7 @@ function launch(opts: GameOptions, code: MapCode | null): void {
               game?.setPaused(false);
             },
             () => backToMenu(),
-            [...(tutorial ? [] : [rhythmBlock(opts)]), sensationsBlock(), ...(code ? [codeBlock(codeText)] : [])],
+            [...(tutorial ? [] : [rhythmBlock(opts)]), sensationsBlock(), lisibiliteBlock(), ...(code ? [codeBlock(codeText)] : [])],
             () => overlay.howTo(showPause),
             tutorial ? undefined : () => game?.surrender(),
           );
@@ -369,6 +369,17 @@ function sensationsBlock(): HTMLElement {
       },
     },
   );
+}
+
+/** Bloc « Lisibilité » du menu pause (v5.19) : motifs d'équipe, mémorisés. */
+function lisibiliteBlock(): HTMLElement {
+  return readabilityBlock(progress.patterns === true, (on) => {
+    progress = { ...progress, patterns: on };
+    saveProgress(progress);
+    game?.setPatterns(on);
+    sfx.play('select');
+    if (on) navigator.vibrate?.(12);
+  });
 }
 
 function backToMenu(): void {

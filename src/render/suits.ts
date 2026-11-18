@@ -4,7 +4,12 @@ import type { Suit } from '../core/types';
  * Symboles de cartes à jouer tracés en vectoriel (chemins canvas), centrés en (cx, cy),
  * inscrits dans un carré de côté `size`.
  */
-export function drawSuit(ctx: CanvasRenderingContext2D, suit: Suit, cx: number, cy: number, size: number, color: string): void {
+export function drawSuit(ctx: CanvasRenderingContext2D, suit: Suit, cx: number, cy: number, size: number, color: string, outline?: { color: string; width: number }): void {
+  // Contour (v5.19) : le symbole est d'abord tracé un peu plus gros dans la teinte sombre.
+  if (outline) {
+    const k = 1 + (outline.width * 2) / size;
+    drawSuit(ctx, suit, cx, cy, size * k, outline.color);
+  }
   const s = size / 2;
   ctx.save();
   ctx.translate(cx, cy);

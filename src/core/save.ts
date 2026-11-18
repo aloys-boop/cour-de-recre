@@ -30,6 +30,8 @@ export interface Progress {
   tacticalPause?: boolean;
   /** Tremblement de la caméra (v5.17, facultatif : absent = activé). */
   shake?: boolean;
+  /** Motifs d'équipe : un emblème par équipe sur les cases et les élèves (v5.19, facultatif : absent = masqués). */
+  patterns?: boolean;
 }
 
 /** Échelle de difficulté actuelle (Facile, Normal, Difficile, Expert). */
@@ -80,6 +82,7 @@ export function loadProgress(store: StorageLike | null = storage()): Progress {
       speed: sanitizeSpeed(parsed.speed),
       tacticalPause: parsed.tacticalPause !== false,
       shake: parsed.shake !== false,
+      patterns: parsed.patterns === true,
     };
   } catch {
     return { ...DEFAULT, wins: {} };
