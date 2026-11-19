@@ -17,6 +17,7 @@ Une entrée par session, la plus récente en haut : date, version, ce qui a ét�
 - Les tests ont attrapé deux vrais défauts avant livraison : symbole Jaune à 2,95:1 sur sa case teintée et liseré Jaune à 2,16:1 sur le sol ; corrigés par `deepen`.
 - `perf240` (napi, 240 élèves) : rendu ×1 2,51 ms sans motifs, 2,12 avec (liserés compris) ; ×2 0,89 et 1,24 ms (v5.19 : 2,82 / 2,82 et 1,31 / 1,70). Simulation 0,178, 0,097 et 0,148 ms par pas. Aucune régression. Témoin non relancé : purement visuel.
 - Captures 844 × 390 (×3) : bouton d'accueil propre sur la deuxième rangée (44 px et plus) ; en partie, anneaux jaunes, verts et violets nets sous une mêlée à trois, cœur violet sur case teintée lilas ; mini-carte avec rond blanc, triangle, carré et étoile lisibles sur les camps. Aucune erreur de console.
+- Déploiement : run n° 53 « Déploiement GitHub Pages » réussi (tests, build, `deploy-pages`).
 
 **Reste à faire, inquiétudes**
 - Les motifs restent masqués par défaut : un joueur qui ne regarde ni l'accueil ni la pause ne les découvrira pas (idée ajoutée : les proposer au premier lancement).
