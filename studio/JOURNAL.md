@@ -2,6 +2,27 @@
 
 Une entrée par session, la plus récente en haut : date, version, ce qui a été fait, ce qui a été mesuré, ce qui reste ou ce qui inquiète.
 
+## 19/11/2026 : session de développement, v5.20 (saison 2, lisibilité b : cases teintées, liserés, mini-carte)
+
+**Fait**
+- Aucun retour d'Aloys (aucune réponse par e-mail sur 14 jours ; consigne du 18/11 respectée : aucun e-mail envoyé). Travail du jour : seconde tranche de « Lisibilité », en entier, ce qui clôt le point. Point de retour : branche `avant-2026-11-19`.
+- `src/core/emblems.ts` : `mixHex`, `bonusTileFill` (blanc + 18 % de la couleur de l'équipe, en cache), `suitContrast`, `deepen` (assombrit un contour par crans de 10 % jusqu'au contraste voulu), `TEAM_RING` et `ringInk` (liseré cerné, contour à 2,5:1 au moins sur le sol), `minimapEmblemRadius`. `inkOn` passe par `deepen` : seul le contour Jaune change, et seulement sur sa case teintée.
+- Pour tout le monde : cases bonus prises légèrement teintées de leur propriétaire (vue du brouillard respectée).
+- Avec « Motifs d'équipe » : liseré d'équipe aux pieds de chaque élève vivant (images en cache par couleur et zoom, `TeamRings`), emblème de chaque camp possédé sur la mini-carte, dessiné par-dessus les élèves qui s'y massent.
+- Accueil : bouton « Motifs d'équipe : affichés / masqués » (même réglage que la pause, `aria-pressed`, son et vibration). Au passage, correction d'un défaut ancien : après avoir touché Son ou Musique, un redessin du menu (choix d'une équipe) remettait l'ancien libellé ; le menu reçoit maintenant la progression à jour.
+- « Comment jouer » (rubrique « Lisibilité ») et README (règle, contrôles, mesures, versions). Pas d'étape de tutoriel : aucun geste nouveau.
+- 7 nouveaux tests (`lisibilite-b.test.ts` : mélange, teintes distinctes, contraste 3:1 du symbole sur case teintée pour les 8 équipes, liseré sur le sol, anneau creux de la bonne couleur en vrai canvas, rayon mini-carte ; `lisibilite-b-app.test.ts` : bouton d'accueil, mémorisé, qui survit au redessin du menu, appliqué à la cour et à la mini-carte, mêlée rendue sans erreur) ; 498 tests verts.
+
+**Mesuré**
+- Les tests ont attrapé deux vrais défauts avant livraison : symbole Jaune à 2,95:1 sur sa case teintée et liseré Jaune à 2,16:1 sur le sol ; corrigés par `deepen`.
+- `perf240` (napi, 240 élèves) : rendu ×1 2,51 ms sans motifs, 2,12 avec (liserés compris) ; ×2 0,89 et 1,24 ms (v5.19 : 2,82 / 2,82 et 1,31 / 1,70). Simulation 0,178, 0,097 et 0,148 ms par pas. Aucune régression. Témoin non relancé : purement visuel.
+- Captures 844 × 390 (×3) : bouton d'accueil propre sur la deuxième rangée (44 px et plus) ; en partie, anneaux jaunes, verts et violets nets sous une mêlée à trois, cœur violet sur case teintée lilas ; mini-carte avec rond blanc, triangle, carré et étoile lisibles sur les camps. Aucune erreur de console.
+
+**Reste à faire, inquiétudes**
+- Les motifs restent masqués par défaut : un joueur qui ne regarde ni l'accueil ni la pause ne les découvrira pas (idée ajoutée : les proposer au premier lancement).
+- Sur iPhone, vérifier que le liseré et l'ellipse blanche de sélection ne font pas double emploi.
+- Prochaine session : saison 2, « Interface » (transitions, retours tactiles visuels, menus plus vivants, écran de fin), à découper.
+
 ## 18/11/2026 : session de développement, v5.19 (saison 2, lisibilité : motifs et contraste)
 
 **Fait**

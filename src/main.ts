@@ -51,6 +51,7 @@ function toggleSound(): boolean {
   music.refresh();
   saveProgress(progress);
   hud.setSoundIcon(progress.muted);
+  menu.setProgress(progress);
   return progress.muted;
 }
 
@@ -126,7 +127,17 @@ const menu = new Menu(menuRoot, progress, {
     sfx.unlock();
     music.setEnabled(!progress.musicMuted);
     music.start();
+    menu.setProgress(progress);
     return !!progress.musicMuted;
+  },
+  onTogglePatterns: () => {
+    progress = { ...progress, patterns: progress.patterns !== true };
+    saveProgress(progress);
+    sfx.unlock();
+    sfx.play('select');
+    if (progress.patterns) navigator.vibrate?.(12);
+    menu.setProgress(progress);
+    return progress.patterns === true;
   },
   onInstallHelp: () => overlay.installHelp(() => overlay.hide()),
   onHowTo: () => overlay.howTo(() => overlay.hide()),

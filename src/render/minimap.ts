@@ -10,6 +10,8 @@ import { drawFogMini } from './fog';
 import { drawSupervisorsMinimap } from './supervisors';
 import { drawGhostMinimap } from './ghost';
 import { drawKingMinimap } from './king';
+import { drawEmblem } from './emblems';
+import { emblemFor, emblemInkOnCamp, minimapEmblemRadius } from '../core/emblems';
 
 /** Mini-carte : vue d'ensemble de la cour, des cases et des élèves, plus le cadre de la caméra. */
 export class Minimap {
@@ -19,6 +21,8 @@ export class Minimap {
   private oy = 0;
   private w: number;
   private h: number;
+  /** Motifs d'équipe (v5.20) : l'emblème de l'équipe sur chaque camp possédé. */
+  patterns = false;
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -110,6 +114,19 @@ export class Minimap {
       const p = this.toMini(u.x, u.y);
       ctx.fillStyle = TEAM_COLORS[world.teamColors[u.team]].ui;
       ctx.fillRect(p.x - 1, p.y - 1, 2.5, 2.5);
+    }
+    // Motifs d'équipe (v5.20) : emblème de chaque camp possédé, par-dessus les élèves qui s'y massent.
+    if (this.patterns) {
+      for (const t of world.tiles) {
+        if (!t.isCamp) continue;
+        const seenOwner = tileView(world, playerTeam, t).owner;
+        if (seenOwner === NO_TEAM) continue;
+        const color = world.teamColors[seenOwner];
+        const pal = TEAM_COLORS[color];
+        const p = this.toMini(t.cx, t.cy);
+        const s = Math.max(2.5, (TILE_W / 2) * this.scale * 0.9 * t.size);
+        drawEmblem(ctx, emblemFor(color), p.x, p.y, minimapEmblemRadius(s / 2), emblemInkOnCamp(pal), pal.dark, 1);
+      }
     }
     drawFogMini(ctx, world, playerTeam, this.scale, this.ox, this.oy);
     drawSupervisorsMinimap(ctx, world, (gx, gy) => this.toMini(gx, gy), (x, y) => pointVisible(world, playerTeam, x, y));

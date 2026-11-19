@@ -13,8 +13,8 @@ import { drawGhostCamp } from './ghost';
 import { drawThroneTile } from './king';
 import { buildSheet, FEET_Y, FRAME_H, FRAME_W, frameFor, type SheetCanvas } from './sprites';
 import { drawSuit } from './suits';
-import { drawCampEmblem, drawTileEmblem, UnitEmblems, drawEmblem } from './emblems';
-import { emblemFor, inkOn } from '../core/emblems';
+import { drawCampEmblem, drawTileEmblem, TeamRings, UnitEmblems, drawEmblem } from './emblems';
+import { bonusTileFill, emblemFor, inkOn } from '../core/emblems';
 import { buildPionSheet, drawSupervisor, drawSupervisorBar, lazySupervisorSheet, pionFrame, pushSupervisorItems } from './supervisors';
 import { drawFrozenMark } from './powers';
 import { SUPERVISOR_SCALE } from '../core/supervisors';
@@ -69,6 +69,7 @@ export class Renderer {
   /** Motifs d'équipe (v5.19, réglage « Lisibilité ») : un emblème par équipe en plus de sa couleur. */
   patterns = false;
   private unitEmblems: UnitEmblems;
+  private teamRings: TeamRings;
   private supSheet: () => SheetCanvas;
 
   constructor(
@@ -78,6 +79,7 @@ export class Renderer {
     for (let t = 0; t < TEAM_COLORS.length; t++) this.sheets.push(buildSheet(t, makeCanvas));
     this.supSheet = lazySupervisorSheet(makeCanvas);
     this.unitEmblems = new UnitEmblems(makeCanvas as never);
+    this.teamRings = new TeamRings(makeCanvas as never);
   }
 
   draw(
@@ -209,8 +211,10 @@ export class Renderer {
       if (t.ghost && t.owner === NO_TEAM) drawGhostCamp(ctx, cam, t, time);
       if (this.patterns && ownerColor !== NO_TEAM) drawCampEmblem(ctx, cam, t, ownerColor);
     } else {
-      // Case bonus : blanche, avec un grand symbole gris qui prend la couleur du propriétaire.
-      ctx.fillStyle = COLORS.tile;
+      // Case bonus : blanche, avec un grand symbole gris qui prend la couleur du propriétaire ;
+      // prise, son fond se teinte légèrement de l'équipe (v5.20), pour la lire même dézoomé.
+      const tileBg = ownerColor === NO_TEAM ? COLORS.tile : bonusTileFill(TEAM_COLORS[ownerColor], COLORS.tile);
+      ctx.fillStyle = tileBg;
       ctx.fill();
       ctx.strokeStyle = COLORS.tileEdge;
       ctx.lineWidth = Math.max(1, 1 * z);
@@ -220,7 +224,7 @@ export class Renderer {
         ctx.translate(center.x, center.y);
         ctx.scale(1, 0.5);
         // Encre contrastée (v5.19) : Jaune, Orange et Rose cernés de leur teinte sombre sur le blanc.
-        const ink = ownerColor === NO_TEAM ? { fill: COLORS.suitNeutral, outline: null } : inkOn(COLORS.tile, TEAM_COLORS[ownerColor]);
+        const ink = ownerColor === NO_TEAM ? { fill: COLORS.suitNeutral, outline: null } : inkOn(tileBg, TEAM_COLORS[ownerColor]);
         drawSuit(ctx, t.suit, 0, 0, 48 * z, ink.fill, ink.outline ? { color: ink.outline, width: Math.max(1.5, 2.4 * z) } : undefined);
         ctx.restore();
       }
@@ -338,6 +342,8 @@ export class Renderer {
       // Ombre portée, décalée vers le bas-droite comme dans les rendus 3D d'époque (image en cache).
       const sh = this.shadow(z);
       ctx.drawImage(sh as CanvasImageSource, Math.round(p.x + 4 * z - sh.width / 2), Math.round(p.y + 1 * z - sh.height / 2));
+      // Liseré d'équipe aux pieds (v5.20, motifs d'équipe) : démêle les mêlées serrées.
+      if (this.patterns && u.alive) this.teamRings.draw(ctx, world.teamColors[u.team], p.x, p.y, z * (u.pion ? SUPERVISOR_SCALE : CLASS_SCALE[u.cls]));
       if (selected.has(u.id)) {
         ctx.strokeStyle = u.team === playerTeam ? '#ffffff' : '#ff6a4a';
         ctx.lineWidth = Math.max(1.5, 2 * z);

@@ -244,6 +244,7 @@ export class Game {
     this.renderer.patterns = opts.patterns === true;
     this.minimap = new Minimap(minimapCanvas, 132, 76);
     this.minimap.setMap(opts.map.w, opts.map.h);
+    this.minimap.patterns = opts.patterns === true;
     this.cam.setMap(opts.map.w, opts.map.h);
     this.resize();
     this.cam.fit();
@@ -404,6 +405,7 @@ export class Game {
   /** Affiche ou masque les motifs d'équipe (réglage « Lisibilité » de la pause, v5.19). */
   setPatterns(on: boolean): void {
     this.renderer.patterns = on;
+    this.minimap.patterns = on;
   }
 
   get patternsShown(): boolean {

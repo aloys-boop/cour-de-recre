@@ -29,6 +29,8 @@ export interface MenuHooks {
   onPlay(state: MenuState): void;
   onToggleSound(): boolean; // retourne le nouvel état « coupé »
   onToggleMusic?(): boolean; // retourne le nouvel état « musique coupée »
+  /** Motifs d'équipe (v5.20, lisibilité) : retourne le nouvel état « affichés ». */
+  onTogglePatterns?(): boolean;
   onInstallHelp(): void;
   /** Écran « Comment jouer ». */
   onHowTo?(): void;
@@ -279,6 +281,18 @@ export class Menu {
       setMusicLabel(!!this.progress.musicMuted);
       music.addEventListener('click', () => setMusicLabel(this.hooks.onToggleMusic!()));
       actions.append(music);
+    }
+    if (this.hooks.onTogglePatterns) {
+      // Lisibilité (v5.20) : le réglage « Motifs d'équipe » se choisit dès l'accueil, avant la première partie.
+      const pat = document.createElement('button');
+      pat.className = 'btn btn-secondary btn-patterns';
+      const setPatLabel = (on: boolean) => {
+        pat.textContent = on ? 'Motifs d\u2019équipe : affichés' : 'Motifs d\u2019équipe : masqués';
+        pat.setAttribute('aria-pressed', on ? 'true' : 'false');
+      };
+      setPatLabel(this.progress.patterns === true);
+      pat.addEventListener('click', () => setPatLabel(this.hooks.onTogglePatterns!()));
+      actions.append(pat);
     }
     inner.append(actions);
 

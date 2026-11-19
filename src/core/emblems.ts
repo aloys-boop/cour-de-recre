@@ -124,7 +124,17 @@ export const MIN_SHAPE_CONTRAST = 3;
  */
 export function inkOn(background: string, palette: { main: string; dark: string }): { fill: string; outline: string | null } {
   if (contrastRatio(palette.main, background) >= MIN_SHAPE_CONTRAST) return { fill: palette.main, outline: null };
-  return { fill: palette.main, outline: palette.dark };
+  return { fill: palette.main, outline: deepen(palette.dark, background, MIN_SHAPE_CONTRAST) };
+}
+
+/**
+ * Assombrit une teinte vers l'encre presque noire, par crans de 10 %, jusqu'à atteindre le
+ * contraste voulu sur le fond (v5.20 : contour Jaune sur une case teintée de jaune, liseré sur le sol).
+ */
+export function deepen(color: string, background: string, min: number): string {
+  let c = color;
+  for (let t = 0.1; contrastRatio(c, background) < min && t <= 1.001; t += 0.1) c = mixHex(color, '#1d1d24', t);
+  return c;
 }
 
 /**
@@ -136,4 +146,71 @@ export function emblemInkOnCamp(palette: { main: string; light: string; dark: st
   let best = options[0];
   for (const o of options) if (contrastRatio(o, palette.main) > contrastRatio(best, palette.main)) best = o;
   return best;
+}
+
+/** Mélange linéaire de deux couleurs « #rrggbb » : t = 0 donne `a`, t = 1 donne `b`. */
+export function mixHex(a: string, b: string, t: number): string {
+  const k = Math.max(0, Math.min(1, t));
+  const pa = a.replace('#', '');
+  const pb = b.replace('#', '');
+  let out = '#';
+  for (let i = 0; i < 3; i++) {
+    const va = parseInt(pa.slice(i * 2, i * 2 + 2), 16);
+    const vb = parseInt(pb.slice(i * 2, i * 2 + 2), 16);
+    out += Math.round(va + (vb - va) * k)
+      .toString(16)
+      .padStart(2, '0');
+  }
+  return out;
+}
+
+/**
+ * Part de la couleur du propriétaire dans le fond d'une case bonus prise (v5.20) : assez pour
+ * voir d'un coup d'œil à qui elle est, même de loin ou dézoomé, sans gêner la lecture du symbole.
+ */
+export const BONUS_TILE_TINT = 0.18;
+
+/** Fond d'une case bonus possédée : le blanc des cases, légèrement teinté de l'équipe. */
+export function bonusTileFill(palette: { main: string }, base = '#ffffff'): string {
+  const key = base + palette.main;
+  let c = tintCache.get(key);
+  if (!c) {
+    c = mixHex(base, palette.main, BONUS_TILE_TINT);
+    tintCache.set(key, c);
+  }
+  return c;
+}
+
+const tintCache = new Map<string, string>();
+
+/**
+ * Contraste réellement obtenu par le symbole d'une case sur son fond : celui de sa couleur, ou
+ * celui de son contour sombre quand il est cerné (le contour seul doit alors ressortir).
+ */
+export function suitContrast(background: string, palette: { main: string; dark: string }): number {
+  const ink = inkOn(background, palette);
+  return ink.outline ? contrastRatio(ink.outline, background) : contrastRatio(ink.fill, background);
+}
+
+/**
+ * Liseré d'équipe sous un élève (v5.20, motifs d'équipe) : anneau de la couleur principale,
+ * cerné de la teinte sombre pour rester visible sur le sol gris comme sur les camps de même couleur.
+ * Dimensions en pixels au zoom 1 (demi-axes de l'ellipse et épaisseur de l'anneau).
+ */
+export const TEAM_RING = { rx: 12, ry: 5.6, width: 2.4, outline: 1 } as const;
+
+/** Encre du liseré : couleur de l'anneau et de son contour. */
+export function ringInk(palette: { main: string; dark: string }, floor = '#d2d2d4'): { ring: string; outline: string } {
+  return { ring: palette.main, outline: deepen(palette.dark, floor, RING_OUTLINE_CONTRAST) };
+}
+
+/** Contraste minimal du contour du liseré sur le sol de la cour. */
+export const RING_OUTLINE_CONTRAST = 2.5;
+
+/**
+ * Taille de l'emblème d'un camp sur la mini-carte (v5.20), à partir du demi-côté du losange du
+ * camp en pixels : jamais sous 3 px (sinon la forme ne se lit plus), jamais plus que le losange.
+ */
+export function minimapEmblemRadius(campHalf: number): number {
+  return Math.max(3, Math.min(campHalf, campHalf * 0.62 + 1));
 }
