@@ -14,6 +14,7 @@ Une entrée par session, la plus récente en haut : date, version, ce qui a ét�
 
 **Mesuré**
 - `perf240` : partie 0,195 ms par pas, mêlée 0,103, ordres 0,142 ; rendu ×1 1,65 ms (2,25 avec motifs), ×2 0,93 ms (1,64). Aucune régression. Témoin non relancé : purement visuel, après la fin de la partie.
+- Déploiement : run n° 55 « Déploiement GitHub Pages » réussi (tests, build, `deploy-pages`).
 - Captures 844 × 390 (×3) : première version, le tampon et les bandes passaient sous le HUD (puces, boutons, mini-carte) et le tampon couvrait la mêlée ; corrigé (interface effacée pendant le ralenti, tampon remonté à 27 % de la hauteur). Résultat : scène nette, « Victoire ! » doré au-dessus des élèves, écran de fin avec étoile sur le « 1 » des KO et la ligne « Dernier coup : tu mets KO un élève des Verts. » Aucune erreur de console.
 
 **Reste à faire, inquiétudes**
