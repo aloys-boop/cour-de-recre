@@ -77,15 +77,17 @@ export interface EndStats {
   supervisors?: boolean;
   /** Pauses tactiques prises par le joueur (v5.15, affichées seulement s'il y en a eu). */
   tacticalPauses?: number;
+  /** Ligne « Dernier coup » (v5.21), sous la durée. */
+  finalBlow?: string;
 }
 
-export function endStats(stats: GameStats, world: World, playerTeam: number, tacticalPauses = 0): EndStats {
+export function endStats(stats: GameStats, world: World, playerTeam: number, tacticalPauses = 0, duration = world.time): EndStats {
   const rows: EndStatsRow[] = [];
   for (let t = 0; t < world.numTeams; t++) {
     const tally = stats.teams[t] ?? { produced: 0, koDealt: 0, koTaken: 0, captured: 0 };
     rows.push({ ...tally, team: t, color: world.teamColors[t] ?? t, isPlayer: t === playerTeam });
   }
-  return { duration: world.time, rows, supervisors: !!world.rules.supervisors, ...(tacticalPauses > 0 ? { tacticalPauses } : {}) };
+  return { duration, rows, supervisors: !!world.rules.supervisors, ...(tacticalPauses > 0 ? { tacticalPauses } : {}) };
 }
 
 /** Ligne de durée de l'écran de fin, avec les pauses tactiques s'il y en a eu (v5.15). */

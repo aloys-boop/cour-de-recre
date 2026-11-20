@@ -101,7 +101,7 @@ describe('musique dans l’application', () => {
     for (const t of w.tiles) if (t.isCamp) t.owner = 0;
     advance(0.3);
     expect(game.over).toBe(true);
-    await wait(1000);
+    await wait(2000);
     expect(music.theme).toBe('victoire');
     const overlay = document.getElementById('overlay')!;
     [...overlay.querySelectorAll<HTMLButtonElement>('button')].find((b) => /Menu/.test(b.textContent ?? ''))!.click();

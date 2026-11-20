@@ -242,7 +242,7 @@ describe('tutoriel dans l’application', () => {
     advance(0.5);
     expect(game.over).toBe(true);
     expect(game.tutorial!.done).toBe(true);
-    await wait(1000);
+    await wait(2000);
     expect(overlay.querySelector('h2')!.textContent).toBe('Tutoriel réussi\u00a0!');
     expect(JSON.parse(localStorage.getItem('cour-de-recre.v2')!).tutorialDone).toBe(true);
     [...overlay.querySelectorAll('button')].find((b) => b.textContent === 'Menu')!.click();

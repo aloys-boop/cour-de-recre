@@ -117,7 +117,7 @@ describe('Mode Équipes, suite, dans l’application', () => {
     advance(0.1);
     expect(game.over).toBe(true);
     expect(game.sharedWin).toBe(true);
-    await wait(1000);
+    await wait(2000);
     const overlay = document.getElementById('overlay')!;
     expect(overlay.querySelector('h2')!.textContent).toBe('Victoire de l’équipe\u00a0!');
     expect(overlay.textContent).toMatch(/tes coéquipiers ont tenu/);

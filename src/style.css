@@ -1194,6 +1194,109 @@ button {
   opacity: 0.75;
 }
 
+/* Ralenti de fin (v5.21) : l'interface s'efface, un tap sur la cour ouvre l'écran de fin. */
+#hud {
+  transition: opacity 0.3s ease;
+}
+
+#hud.finale {
+  opacity: 0;
+}
+
+#hud.finale button,
+#hud.finale canvas,
+#hud.finale * {
+  pointer-events: none !important;
+}
+
+/* Écran de fin vivant (v5.21) : la carte arrive, le titre se tamponne, les lignes entrent une à une. */
+.card.win,
+.card.lose {
+  animation: end-card-in 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+.card.win h2,
+.card.lose h2 {
+  animation: end-title-in 0.42s 0.08s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+
+.end-stats tr:not(:first-child) {
+  animation: end-row-in 0.3s calc(0.2s + var(--i, 0) * 0.12s) ease-out both;
+}
+
+.end-stats td.best::after {
+  content: '\2605';
+  display: inline-block;
+  margin-left: 3px;
+  color: #e8a400;
+  font-size: 0.9em;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+  animation: end-star 0.5s calc(0.9s + var(--i, 0) * 0.12s) cubic-bezier(0.3, 1.8, 0.5, 1) both;
+}
+
+.end-blow {
+  margin-top: 3px;
+  font-size: 12px;
+  font-weight: 700;
+  font-style: italic;
+  opacity: 0.85;
+  animation: end-row-in 0.35s 0.9s ease-out both;
+}
+
+@keyframes end-card-in {
+  from {
+    transform: translateY(18px) scale(0.94);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes end-title-in {
+  from {
+    transform: scale(1.8) rotate(-4deg);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes end-row-in {
+  from {
+    transform: translateX(-14px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes end-star {
+  from {
+    transform: scale(0) rotate(-90deg);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card.win,
+  .card.lose,
+  .card.win h2,
+  .card.lose h2,
+  .end-stats tr:not(:first-child),
+  .end-stats td.best::after,
+  .end-blow {
+    animation: none;
+  }
+}
+
 @media (max-height: 420px) {
   .card:has(.end-stats) {
     padding: 12px 18px;

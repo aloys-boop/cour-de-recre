@@ -47,7 +47,11 @@ But mesurable : un joueur humain qui donne 15 à 25 ordres par minute doit pouvo
   - [x] **Lisibilité b : contours et cases.** (v5.20, 19/11/2026) Cases bonus prises teintées à 18 % de la couleur du propriétaire pour tout le monde (symbole toujours à 3:1, contour Jaune assombri) ; avec « Motifs d'équipe » : liseré coloré cerné de sombre aux pieds des élèves, emblèmes des camps sur la mini-carte ; bouton « Motifs d'équipe » à l'accueil.
     - Idée (19/11) : proposer les motifs au premier lancement (une ligne sous « Faire le tutoriel »), puisqu'ils restent masqués par défaut.
     - Idée (19/11) : liseré plus épais pour les élèves sélectionnés du joueur, à la place de l'ellipse blanche, si les deux se gênent sur iPhone.
-- [ ] Interface : transitions, retours tactiles visuels, menus plus vivants, écran de fin avec statistiques et ralenti du dernier coup.
+- [ ] **Interface.** Découpé en trois tranches :
+  - [x] **Interface a : fin de partie.** (v5.21, 20/11/2026) Ralenti sur le coup décisif (caméra qui glisse et zoome, bandes de cinéma, interface effacée, tampon « Victoire ! » ou « Défaite… », tap pour passer) ; écran de fin vivant (lignes et compteurs animés, étoiles des meilleurs scores, ligne « Dernier coup ») ; durée et médaille « éclair » arrêtées au coup de sifflet.
+    - Idée (20/11) : un vrai « replay » des 3 dernières secondes (instantanés légers du monde), si le ralenti après coup ne suffit pas à raconter le retournement.
+  - [ ] **Interface b : retours tactiles visuels et transitions.** Onde sous le doigt à chaque ordre, boutons qui s'enfoncent, fondus entre menu, partie et écran de fin.
+  - [ ] **Interface c : menus plus vivants.** Accueil animé (élèves qui courent dans le fond), cartes qui se retournent, petites animations des jauges d'équipe.
 - [ ] Performances : 60 images par seconde garanties à 240 élèves sur iPhone, mesurées.
 
 ## Saison 3 : une vraie campagne

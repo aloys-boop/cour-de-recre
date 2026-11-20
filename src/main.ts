@@ -1,7 +1,8 @@
 import './style.css';
 import { Music } from './audio/music';
 import { Sfx } from './audio/sfx';
-import { endStats } from './core/stats';
+import { endStats, type EndStats } from './core/stats';
+import { finalBlowLine } from './core/finale';
 import { medalsFor, mergeMedals } from './core/challenges';
 import { LEVELS } from './core/maps';
 import { encodeMapCode, randomSeed, type MapCode } from './core/mapcode';
@@ -261,7 +262,7 @@ function launch(opts: GameOptions, code: MapCode | null): void {
         hud.closeCounts();
         overlay.end(win, o.map.name, {
           nextAvailable: false,
-          stats: game ? endStats(game.stats, game.world, game.playerTeam, game.tactical.count) : undefined,
+          stats: game ? gameEndStats(game) : undefined,
           onReplay: () => startTutorial(),
           onNext: () => undefined,
           onMenu: () => backToMenu(),
@@ -274,7 +275,7 @@ function launch(opts: GameOptions, code: MapCode | null): void {
       // Les victoires d'escarmouche ne débloquent pas la campagne et ne donnent pas de médailles.
       if (win && campaign) {
         progress = recordWin(progress, o.map.id, o.mapIndex, LEVELS.length);
-        const earned = medalsFor({ win, homeCampLost: game?.homeCampLost ?? true, seconds: game?.world.time ?? Infinity });
+        const earned = medalsFor({ win, homeCampLost: game?.homeCampLost ?? true, seconds: game ? game.endTime || game.world.time : Infinity });
         const merged = mergeMedals(progress.medals, o.map.id, earned);
         progress = { ...progress, medals: merged.medals };
         extras.push(medalsBlock(earned, merged.fresh));
@@ -293,7 +294,7 @@ function launch(opts: GameOptions, code: MapCode | null): void {
       overlay.end(win, o.map.name, {
         alliance,
         nextAvailable,
-        stats: game ? endStats(game.stats, game.world, game.playerTeam, game.tactical.count) : undefined,
+        stats: game ? gameEndStats(game) : undefined,
         // Rejouer et carte suivante : nouvelle disposition tirée au sort.
         onReplay: () => (code ? play({ spec: code.spec, seed: randomSeed() }, o) : backToMenu()),
         onNext: () => play({ spec: { kind: 'campagne', level: o.mapIndex + 1 }, seed: randomSeed() }, o),
@@ -461,4 +462,11 @@ export function __game(): Game | null {
 /** Accès à la musique (tests d'intégration). */
 export function __music(): Music {
   return music;
+}
+
+/** Statistiques de fin, durée arrêtée au coup de sifflet final et ligne « Dernier coup » (v5.21). */
+function gameEndStats(g: Game): EndStats {
+  const s = endStats(g.stats, g.world, g.playerTeam, g.tactical.count, g.endTime || g.world.time);
+  const line = finalBlowLine(g.finalBlow, g.playerTeam, g.world.teamColors);
+  return line ? { ...s, finalBlow: line } : s;
 }

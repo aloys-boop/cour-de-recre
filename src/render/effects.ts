@@ -217,7 +217,7 @@ export class Effects {
   }
 }
 
-function reducedMotion(): boolean {
+export function reducedMotion(): boolean {
   try {
     return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   } catch {

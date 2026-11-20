@@ -2,6 +2,26 @@
 
 Une entrée par session, la plus récente en haut : date, version, ce qui a été fait, ce qui a été mesuré, ce qui reste ou ce qui inquiète.
 
+## 20/11/2026 : session de développement, v5.21 (saison 2, interface a : fin de partie mise en scène)
+
+**Fait**
+- Aucun retour d'Aloys (aucune réponse par e-mail sur 14 jours ; aucun e-mail envoyé). Travail du jour : le point « Interface » de la saison 2, découpé en trois tranches (fin de partie, retours tactiles et transitions, menus vivants) ; ce soir la première, en entier. Point de retour : branche `avant-2026-11-20`.
+- `src/core/finale.ts` : `FinaleTracker` (dernier camp pris et dernier KO, un camp récent passe avant un KO, un coup vu avant un coup caché, rien de plus vieux que 5 s), courbe du ralenti (×0,2 puis relâche à ×0,5), glissement et zoom adoucis, tampon qui tombe et s'écrase, bandes de cinéma, ligne « Dernier coup », meilleur score unique, compteurs qui montent.
+- `Game` : à la fin, plus de minuterie sèche de 0,9 s mais un ralenti de 1,8 s (1 s sans caméra avec « réduire les animations ») : la caméra glisse vers le coup décisif et zoome ×1,3, le monde continue au ralenti sans IA, statistiques ni diplomatie, l'interface s'efface, `render/finale.ts` dessine vignette, bandes et tampon « Victoire ! » doré ou « Défaite… » ; vibration ; un tap ouvre tout de suite l'écran de fin, sinon une horloge réelle l'ouvre. Abandon et « Terminer » : sans ralenti.
+- Écran de fin : carte et titre qui arrivent, lignes qui entrent une à une, nombres qui montent de 0 (valeur finale posée d'emblée, l'animation ne fait que la rejouer), étoile dorée sur les meilleurs KO infligés et cases prises, ligne « Dernier coup ». Durée et médaille « Éclair » arrêtées au coup de sifflet (`Game.endTime`), le ralenti ne compte pas.
+- « Comment jouer » (rubrique « Le but ») et README (règle, geste, mesures, versions, architecture). Pas d'étape de tutoriel : rien à apprendre.
+- 12 nouveaux tests (`fin-ralenti.test.ts` : coup décisif, ralenti, tampon, titres, ligne « Dernier coup », étoiles, compteurs, tableau ; `fin-ralenti-app.test.ts` : vraie partie, caméra centrée et zoomée sur le dernier KO, 0,6 s réelles = 0,1 s de jeu, tap qui ouvre l'écran une seule fois, ouverture sans images, abandon immédiat). Trois tests d'application attendent maintenant 2 s au lieu de 1 avant l'écran de fin. 510 tests verts.
+
+**Mesuré**
+- `perf240` : partie 0,195 ms par pas, mêlée 0,103, ordres 0,142 ; rendu ×1 1,65 ms (2,25 avec motifs), ×2 0,93 ms (1,64). Aucune régression. Témoin non relancé : purement visuel, après la fin de la partie.
+- Captures 844 × 390 (×3) : première version, le tampon et les bandes passaient sous le HUD (puces, boutons, mini-carte) et le tampon couvrait la mêlée ; corrigé (interface effacée pendant le ralenti, tampon remonté à 27 % de la hauteur). Résultat : scène nette, « Victoire ! » doré au-dessus des élèves, écran de fin avec étoile sur le « 1 » des KO et la ligne « Dernier coup : tu mets KO un élève des Verts. » Aucune erreur de console.
+
+**Reste à faire, inquiétudes**
+- Le ralenti montre la suite du coup décisif, pas le geste qui le précède : un vrai replay demanderait des instantanés du monde (idée notée).
+- Sur iPhone, vérifier que 1,8 s n'agace pas après plusieurs parties (le tap pour passer est là, mais rien ne le dit à l'écran).
+- Safari anime mal les transformations des lignes de tableau : au pire elles n'apparaîtront qu'en fondu.
+- Prochaine session : interface b (onde sous le doigt, boutons qui s'enfoncent, fondus entre écrans).
+
 ## 19/11/2026 : session de développement, v5.20 (saison 2, lisibilité b : cases teintées, liserés, mini-carte)
 
 **Fait**

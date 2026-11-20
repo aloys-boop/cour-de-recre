@@ -3,6 +3,8 @@ import { TEAM_COLORS, TEAM_NAMES, TEAM_PLURALS } from '../config';
 import { teamPlural } from '../core/diplomacy';
 import { durationLine, type EndStats } from '../core/stats';
 import { insecables } from '../core/tutorial';
+import { bestIndex, countUp } from '../core/finale';
+import { reducedMotion } from '../render/effects';
 
 /** Fenêtres modales : pause, fin de partie, aide à l'installation. */
 export class Overlay {
@@ -186,25 +188,43 @@ export class Overlay {
       head.append(th);
     }
     table.append(head);
-    for (const r of stats.rows) {
+    // Meilleure équipe aux KO infligés et aux cases prises : étoile dorée (v5.21).
+    const bestKo = bestIndex(stats.rows.map((r) => r.koDealt));
+    const bestCap = bestIndex(stats.rows.map((r) => r.captured));
+    const counters: HTMLElement[] = [];
+    stats.rows.forEach((r, i) => {
       const tr = document.createElement('tr');
       if (r.isPlayer) tr.className = 'me';
+      tr.style.setProperty('--i', String(i));
       const name = document.createElement('td');
       name.append(teamMarkEl(r.color, 13, false), document.createTextNode(`${TEAM_NAMES[r.color] ?? '?'}${r.isPlayer ? ' (toi)' : ''}`));
       tr.append(name);
       const values = [r.produced, r.koDealt, r.koTaken, r.captured];
       if (stats.supervisors) values.push(r.supKo ?? 0);
-      for (const v of values) {
+      values.forEach((v, j) => {
         const td = document.createElement('td');
         td.textContent = String(v);
+        td.dataset.value = String(v);
+        if ((j === 1 && i === bestKo) || (j === 3 && i === bestCap)) {
+          td.classList.add('best');
+          td.title = 'Meilleur score';
+        }
+        counters.push(td);
         tr.append(td);
-      }
+      });
       table.append(tr);
-    }
+    });
     const dur = document.createElement('div');
     dur.className = 'end-duration';
     dur.textContent = durationLine(stats);
     wrap.append(table, dur);
+    if (stats.finalBlow) {
+      const blow = document.createElement('div');
+      blow.className = 'end-blow';
+      blow.textContent = stats.finalBlow;
+      wrap.append(blow);
+    }
+    animateCounters(counters);
     return wrap;
   }
 
@@ -235,6 +255,31 @@ export class Overlay {
   }
 }
 
+/**
+ * Les nombres du tableau de fin montent de 0 à leur valeur (v5.21), ligne après ligne.
+ * Le texte final est posé tout de suite : sans animation (ou sans navigateur), il reste juste.
+ */
+function animateCounters(cells: HTMLElement[]): void {
+  if (typeof requestAnimationFrame !== 'function' || reducedMotion() || !cells.length) return;
+  const start = performance.now();
+  const rowDelay = 0.12;
+  const tick = (now: number) => {
+    const t = (now - start) / 1000;
+    let running = false;
+    for (const td of cells) {
+      if (!td.isConnected && t > 0.05) continue;
+      const v = Number(td.dataset.value ?? 0);
+      const row = Number((td.parentElement as HTMLElement | null)?.style.getPropertyValue('--i') || 0);
+      const local = t - 0.25 - row * rowDelay;
+      const shown = local <= 0 ? 0 : countUp(v, local);
+      td.textContent = String(shown);
+      if (shown !== v) running = true;
+    }
+    if (running) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
 /** « les Verts, les Jaunes et les Roses ». */
 function listFr(items: string[]): string {
   if (items.length <= 1) return items.join('');
@@ -243,7 +288,7 @@ function listFr(items: string[]): string {
 
 /** Rubriques de l'écran « Comment jouer » (textes courts), dans l'ordre des chapitres. */
 export const HOW_TO: ReadonlyArray<[string, string]> = [
-  ['Le but', 'Prends les cases et les camps des autres équipes. Tu gagnes quand tu es le dernier à avoir des élèves ou un camp, ou quand tu tiens tous les camps.'],
+  ['Le but', 'Prends les cases et les camps des autres équipes. Tu gagnes quand tu es le dernier à avoir des élèves ou un camp, ou quand tu tiens tous les camps. À la fin, la cour passe au ralenti sur le coup décisif (touche l’écran pour passer), puis l’écran de fin compte les scores : une étoile dorée marque les meilleurs KO et les meilleures prises.'],
   ['Sélectionner', 'Touche un élève : lui et ses voisins sont choisis. Appui long puis glisse : rectangle de sélection. Double-tap : tous tes élèves à l’écran.'],
   ['Déplacer et attaquer', 'Touche le sol : tes élèves y courent sans se battre (mode Fuir) ; touché hors de la cour, l’ordre va au bord le plus proche. Touche un ennemi pour l’attaquer. La barre au-dessus d’une bagarre montre qui est le plus fort ; en haut, touche une mini-barre pour aller voir une bagarre hors de l’écran.'],
   ['Bagarres', 'Un élève touché clignote en blanc et recule ; mis KO, il voit trente-six chandelles (étoiles qui tournent) avant de quitter la cour. Quand une grosse mêlée éclate à l’écran, la cour crie « Mêlée\u00a0! » et la caméra tremble d’autant plus fort que les KO s’enchaînent. La musique suit la cour : feutrée au calme, elle ajoute charleston, batterie puis arpèges quand ça cogne à l’écran ou qu’une alerte tombe. Dans la pause, « Sensations » coupe le tremblement ou la musique.'],

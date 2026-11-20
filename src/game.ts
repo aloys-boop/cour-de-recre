@@ -16,7 +16,9 @@ import { MAX_TEAMS, TEAM_COLORS } from './config';
 import { DiplomacyExtras } from './core/diplomacy-extras';
 import { TouchInput } from './input/touch';
 import { Camera } from './render/camera';
-import { Effects } from './render/effects';
+import { Effects, reducedMotion } from './render/effects';
+import { drawFinale } from './render/finale';
+import { FINALE, FinaleTracker, finaleFocus, finaleTimeScale, finaleTitle, type FinalBlow } from './core/finale';
 import { Minimap } from './render/minimap';
 import { Renderer, type Marker, type SelectionBox } from './render/renderer';
 import { FEET_Y } from './render/sprites';
@@ -175,6 +177,14 @@ export class Game {
   private dpr = 1;
   private ac = new AbortController();
   private endTimer = 0;
+  /** Coups marquants retenus pour la fin mise en scène (v5.21). */
+  private finaleTracker = new FinaleTracker();
+  /** Fin de partie au ralenti en cours (v5.21) : null hors fin, done une fois l'écran de fin ouvert. */
+  ending: { t: number; dur: number; result: GameResult; blow: FinalBlow | null; z0: number; z1: number; done: boolean } | null = null;
+  /** Temps de jeu à la fin de la partie (le ralenti fait encore vivre la cour). */
+  endTime = 0;
+  /** Coup décisif de la partie (dernier camp pris ou dernier KO vus), pour l'écran de fin. */
+  finalBlow: FinalBlow | null = null;
   /** Mode des ordres de déplacement du joueur : false = fuir (repli), true = charger. */
   charge = false;
   /** Ordre « Garder » armé : le prochain tap sur une case la confie à la sélection. */
@@ -493,6 +503,8 @@ export class Game {
       for (const m of this.markers) m.t += dt;
       this.markers = this.markers.filter((m) => m.t < 1);
       if (this.flash && this.flash.t >= 0) this.flash.t += dt;
+    } else if (this.ending && !this.ending.done) {
+      this.endingFrame(this.frameDt);
     }
     this.mood.update(this.frameDt, { heat: this.fx.heat.heat, finale: this.finale, calm: this.paused || this.over || frozen });
     this.render();
@@ -511,7 +523,9 @@ export class Game {
       this.stats.record(ev);
       this.diplomacy.record(ev);
       this.tutorial?.onWorldEvent(ev);
-      if (!eventPerceived(w, this.playerTeam, ev)) continue; // brouillard : combat hors vue, ni son ni effet
+      const seen = eventPerceived(w, this.playerTeam, ev);
+      if (ev.kind === 'ko' || ev.kind === 'captured') this.finaleTracker.note(ev, w.time, seen);
+      if (!seen) continue; // brouillard : combat hors vue, ni son ni effet
       this.fx.onEvent(ev, this.cam);
       if (this.fx.meleeStarted) {
         this.fx.meleeStarted = false;
@@ -614,7 +628,75 @@ export class Game {
       }
       this.sfx.play(result === 'victoire' ? 'victory' : 'defeat');
       this.hooks.onHud(w, this.selected.size);
-      this.endTimer = window.setTimeout(() => this.hooks.onEnd(result, this.opts), 900);
+      this.startEnding(result);
+    }
+  }
+
+  /**
+   * Fin mise en scène (v5.21) : la caméra glisse vers le coup décisif et zoome,
+   * la cour continue au ralenti sous des bandes de cinéma, le tampon tombe, puis
+   * l'écran de fin s'ouvre (tout de suite si le joueur touche l'écran).
+   */
+  private startEnding(result: GameResult): void {
+    const w = this.world;
+    this.endTime = w.time;
+    this.box = null;
+    this.arrow = null;
+    this.flash = null;
+    const blow = this.finaleTracker.decisive(w.time);
+    this.finalBlow = blow;
+    const reduced = reducedMotion();
+    const dur = reduced ? FINALE.reducedSeconds : FINALE.seconds;
+    const z0 = this.cam.zoom;
+    let z1 = z0;
+    if (blow && !reduced) {
+      this.cam.glideTo(blow.x, blow.y, FINALE.focusSeconds);
+      z1 = Math.min(this.cam.maxZoom, Math.max(z0 * FINALE.zoomBoost, 1.15));
+    }
+    this.ending = { t: 0, dur, result, blow, z0, z1, done: false };
+    setFinaleUi(true);
+    navigator.vibrate?.(result === 'victoire' ? [40, 60, 80] : 60);
+    // Horloge réelle : l'écran de fin s'ouvre même si les images ne tournent plus.
+    this.endTimer = window.setTimeout(() => this.finishEnding(), dur * 1000);
+  }
+
+  /** Ouvre l'écran de fin (une seule fois). */
+  finishEnding(): void {
+    const e = this.ending;
+    if (!e || e.done) return;
+    e.done = true;
+    clearTimeout(this.endTimer);
+    setFinaleUi(false);
+    this.hooks.onEnd(e.result, this.opts);
+  }
+
+  /** Une image du ralenti de fin : la cour vit encore, seuls les effets réagissent. */
+  private endingFrame(realDt: number): void {
+    const e = this.ending!;
+    e.t += realDt;
+    const dt = realDt * finaleTimeScale(e.t, e.dur);
+    this.acc += dt;
+    let steps = 0;
+    while (this.acc >= STEP && steps < 2) {
+      this.world.update(STEP);
+      for (const ev of this.world.drainEvents()) {
+        if (!eventPerceived(this.world, this.playerTeam, ev)) continue;
+        this.fx.onEvent(ev, this.cam);
+        if (ev.kind === 'hit') this.markers.push({ x: ev.x, y: ev.y, t: 0, kind: 'hit', team: this.world.teamColors[ev.team] });
+      }
+      this.acc -= STEP;
+      steps++;
+    }
+    this.fx.meleeStarted = false;
+    this.time += dt;
+    this.fx.update(dt);
+    this.gains.update(dt);
+    this.powerFx.update(dt);
+    for (const m of this.markers) m.t += dt;
+    this.markers = this.markers.filter((m) => m.t < 1);
+    if (e.z1 !== e.z0) {
+      const target = e.z0 + (e.z1 - e.z0) * finaleFocus(e.t);
+      this.cam.zoomAt(target / this.cam.zoom, this.cam.viewW / 2, this.cam.viewH / 2);
     }
   }
 
@@ -645,6 +727,11 @@ export class Game {
     this.fx.draw(ctx, this.cam);
     this.gains.draw(ctx, this.cam);
     this.minimap.draw(this.world, this.cam);
+    const e = this.ending;
+    if (e && !e.done) {
+      const shared = this.sharedWin;
+      drawFinale(ctx, this.dpr, this.canvas.width / this.dpr, this.canvas.height / this.dpr, e.t, finaleTitle(e.result === 'victoire' ? 'victoire' : 'defaite', shared), e.result === 'victoire', TEAM_COLORS[this.opts.playerColor]?.ui ?? '#fff');
+    }
     this.hooks.onFrame?.();
   }
 
@@ -694,6 +781,8 @@ export class Game {
   }
 
   private tap(sx: number, sy: number): void {
+    // Fin au ralenti : un tap ouvre tout de suite l'écran de fin.
+    if (this.ending && !this.ending.done) return this.finishEnding();
     if (this.paused || this.over) return;
     this.sfx.unlock();
     if (this.armedPower) return this.aimPower(sx, sy);
@@ -1368,6 +1457,7 @@ export class Game {
   destroy(): void {
     this.stop();
     clearTimeout(this.endTimer);
+    setFinaleUi(false);
     this.input.destroy();
     this.ac.abort();
   }
@@ -1583,4 +1673,9 @@ export class Game {
     this.hooks.onRally?.(res.cleared);
     if (!res.cleared) this.act({ kind: 'rally' });
   }
+}
+
+/** Pendant le ralenti de fin, l'interface s'efface pour laisser la place à la scène (v5.21). */
+function setFinaleUi(on: boolean): void {
+  if (typeof document !== 'undefined') document.getElementById('hud')?.classList.toggle('finale', on);
 }
