@@ -16,6 +16,7 @@ Une entrée par session, la plus récente en haut : date, version, ce qui a ét�
 **Mesuré**
 - `perf240` : partie 0,218 ms par pas, mêlée 0,103, ordres 0,157 ; rendu ×1 1,85 à 1,98 ms, avec motifs 2,76 à 3,41 selon le passage (bruit de la machine, la tranche ne touche pas ce chemin), ×2 1,10 et 1,55 ms. `scripts/dev/perf-ondes.ts` (nouveau) : 0,057 ms par image pour six ondes sur un canvas ×3. Témoin non relancé : purement visuel.
 - Captures 844 × 390 (×3) : ondes nettes sur le vide bleu comme sur le sol gris (halo sombre indispensable pour la blanche), crans rouges lisibles, voile qui se lève sur l'arrivée en partie, aucune erreur de console.
+- Déploiement : run n° 57 « Déploiement GitHub Pages » réussi (tests, build, `deploy-pages`).
 
 **Reste à faire, inquiétudes**
 - Les ondes passent sous le bandeau d'aide en bas : normal (le bandeau est au-dessus du canvas), mais un ordre donné juste au-dessus des boutons se verra moins.
