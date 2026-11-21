@@ -50,7 +50,9 @@ But mesurable : un joueur humain qui donne 15 à 25 ordres par minute doit pouvo
 - [ ] **Interface.** Découpé en trois tranches :
   - [x] **Interface a : fin de partie.** (v5.21, 20/11/2026) Ralenti sur le coup décisif (caméra qui glisse et zoome, bandes de cinéma, interface effacée, tampon « Victoire ! » ou « Défaite… », tap pour passer) ; écran de fin vivant (lignes et compteurs animés, étoiles des meilleurs scores, ligne « Dernier coup ») ; durée et médaille « éclair » arrêtées au coup de sifflet.
     - Idée (20/11) : un vrai « replay » des 3 dernières secondes (instantanés légers du monde), si le ralenti après coup ne suffit pas à raconter le retournement.
-  - [ ] **Interface b : retours tactiles visuels et transitions.** Onde sous le doigt à chaque ordre, boutons qui s'enfoncent, fondus entre menu, partie et écran de fin.
+  - [x] **Interface b : retours tactiles visuels et transitions.** (v5.22, 21/11/2026) Onde sous le doigt à la couleur de l'ordre compris (blanc, orange, rouge à quatre crans, couleur de l'équipe ; anneau pâle pour un tap sans effet), boutons qui s'enfoncent (110 ms au moins), voile bleu nuit qui se lève entre menu et partie, fond des fenêtres en fondu.
+    - Idée (21/11) : un léger « clic » sonore propre aux boutons du menu (aujourd'hui seuls certains en font un), à doser pour ne pas doubler les sons existants.
+    - Idée (21/11) : un vrai fondu enchaîné vers l'écran de fin (la dernière image de la cour qui s'estompe sous la carte), si le fond en fondu paraît sec sur iPhone.
   - [ ] **Interface c : menus plus vivants.** Accueil animé (élèves qui courent dans le fond), cartes qui se retournent, petites animations des jauges d'équipe.
 - [ ] Performances : 60 images par seconde garanties à 240 élèves sur iPhone, mesurées.
 

@@ -28,7 +28,7 @@
 }
 
 .sos-btn:active {
-  transform: translateY(-50%) scale(0.95);
+  transform: translateY(-50%);
   filter: brightness(1.15);
 }
 

@@ -434,7 +434,6 @@ button {
 
 .icon-btn:active,
 .btn:active {
-  transform: scale(0.96);
   filter: brightness(1.15);
 }
 
@@ -1454,4 +1453,81 @@ button {
 .end-stats .team-mark {
   margin-right: 6px;
   vertical-align: -2px;
+}
+
+/* ------------------------------------------------------------------ interface b (v5.22) */
+
+/* Boutons qui s'enfoncent : le doigt les fait rapetisser et descendre d'un pixel (propriétés
+   « scale » et « translate », qui s'ajoutent aux transformations propres à chaque bouton). */
+button,
+.btn,
+[role='button'] {
+  transition:
+    scale 0.09s ease-out,
+    translate 0.09s ease-out,
+    filter 0.09s ease-out,
+    box-shadow 0.09s ease-out;
+}
+
+button.is-pressed:not(:disabled),
+.btn.is-pressed,
+[role='button'].is-pressed {
+  scale: 0.93;
+  translate: 0 1px;
+  filter: brightness(1.14);
+}
+
+/* Grands boutons (cartes, équipes du menu) : enfoncement plus discret. */
+.map-btn.is-pressed,
+.btn-play.is-pressed,
+.card .btn.is-pressed {
+  scale: 0.96;
+}
+
+/* Fondus entre écrans : voile bleu nuit qui se lève (au-dessus de tout, jamais sous le doigt). */
+.veil {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  pointer-events: none;
+  opacity: 0;
+  display: none;
+  background: radial-gradient(ellipse at 50% 45%, #233366 0%, #16234a 55%, #0b1330 100%);
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.veil.on {
+  display: block;
+}
+
+/* Fenêtres (pause, fin de partie) : le fond assombri arrive en fondu. */
+.overlay:not(.hidden) {
+  animation: overlay-in 0.26s ease-out both;
+}
+
+@keyframes overlay-in {
+  from {
+    background-color: rgba(10, 16, 40, 0);
+  }
+  to {
+    background-color: rgba(10, 16, 40, 0.72);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button,
+  .btn,
+  [role='button'] {
+    transition: filter 0.06s;
+  }
+  button.is-pressed:not(:disabled),
+  .btn.is-pressed,
+  [role='button'].is-pressed {
+    scale: none;
+    translate: none;
+  }
+  .overlay:not(.hidden) {
+    animation-duration: 0.12s;
+  }
 }

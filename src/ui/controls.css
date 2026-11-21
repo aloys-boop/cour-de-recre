@@ -42,7 +42,6 @@
 }
 
 .ctl-btn:active {
-  transform: scale(0.96);
   filter: brightness(1.15);
 }
 

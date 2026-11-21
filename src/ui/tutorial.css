@@ -218,7 +218,7 @@
 }
 
 .howto-tab:active {
-  transform: scale(0.96);
+  filter: brightness(1.12);
 }
 
 .howto-tab.on {

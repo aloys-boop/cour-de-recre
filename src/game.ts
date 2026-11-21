@@ -17,6 +17,8 @@ import { DiplomacyExtras } from './core/diplomacy-extras';
 import { TouchInput } from './input/touch';
 import { Camera } from './render/camera';
 import { Effects, reducedMotion } from './render/effects';
+import { addRipple, rippleKindFor, rippleTeamColor, tickRipples, type Ripple, type RippleKind } from './core/feedback';
+import { drawRipples } from './render/ripples';
 import { drawFinale } from './render/finale';
 import { FINALE, FinaleTracker, finaleFocus, finaleTimeScale, finaleTitle, type FinalBlow } from './core/finale';
 import { Minimap } from './render/minimap';
@@ -159,6 +161,8 @@ export class Game {
   powerAim: Vec2 | null = null;
   private ais: TeamAi[] = [];
   private markers: Marker[] = [];
+  /** Ondes sous le doigt (v5.22), en pixels d'écran et en temps réel. */
+  ripples: Ripple[] = [];
   private box: SelectionBox | null = null;
   private renderer: Renderer;
   private minimap: Minimap;
@@ -273,7 +277,7 @@ export class Game {
     }
 
     this.input = new TouchInput(canvas, {
-      onTap: (x, y) => this.tap(x, y),
+      onTap: (x, y) => this.withRipple(x, y, () => this.tap(x, y)),
       onBoxStart: (x, y) => {
         this.box = { x0: x, y0: y, x1: x, y1: y };
       },
@@ -282,7 +286,7 @@ export class Game {
       },
       onBoxEnd: (x0, y0, x1, y1) => {
         this.box = null;
-        this.boxSelect(x0, y0, x1, y1);
+        this.withRipple(x1, y1, () => this.boxSelect(x0, y0, x1, y1), true);
       },
       onPan: (dx, dy) => {
         this.cam.pan(dx, dy);
@@ -294,9 +298,9 @@ export class Game {
       },
       canArrowFrom: (x, y) => this.canArrowFrom(x, y),
       onArrowMove: (x0, y0, x1, y1) => this.arrowMove(x0, y0, x1, y1),
-      onArrowEnd: (_x0, _y0, x1, y1) => this.arrowEnd(x1, y1),
+      onArrowEnd: (_x0, _y0, x1, y1) => this.withRipple(x1, y1, () => this.arrowEnd(x1, y1)),
       onArrowCancel: () => ((this.arrow = this.flash = null), (this.rallyDrag = null)),
-      onLongPress: (x, y) => this.longPress(x, y),
+      onLongPress: (x, y) => this.withRipple(x, y, () => this.longPress(x, y)),
     });
 
     minimapCanvas.addEventListener(
@@ -506,6 +510,7 @@ export class Game {
     } else if (this.ending && !this.ending.done) {
       this.endingFrame(this.frameDt);
     }
+    if (this.ripples.length) this.ripples = tickRipples(this.ripples, this.frameDt, reducedMotion());
     this.mood.update(this.frameDt, { heat: this.fx.heat.heat, finale: this.finale, calm: this.paused || this.over || frozen });
     this.render();
   }
@@ -724,6 +729,7 @@ export class Game {
     this.powerFx.draw(ctx, this.cam);
     this.brawlBars.draw(ctx, this.world, this.cam, this.playerTeam, this.time, this.frameDt);
     if (this.arrow) drawArrow(ctx, this.arrow);
+    if (this.ripples.length) drawRipples(ctx, this.ripples, reducedMotion(), this.dpr);
     this.fx.draw(ctx, this.cam);
     this.gains.draw(ctx, this.cam);
     this.minimap.draw(this.world, this.cam);
@@ -778,6 +784,43 @@ export class Game {
     this.markers.push({ x: hit.x, y: hit.y, t: 0, kind: 'attack', team: this.opts.playerColor });
     this.sfx.play('order');
     this.act({ kind: 'attack', count: units.length });
+  }
+
+  /**
+   * Onde sous le doigt (v5.22) : après un geste, une onde naît là où le doigt s'est posé, à la
+   * couleur de l'ordre compris (repère posé pendant le geste, sélection, pouvoir lancé ou tap
+   * sans effet). Rien pendant la pause, la fin au ralenti ou après la partie.
+   */
+  private withRipple(sx: number, sy: number, fn: () => void, quietIfIdle = false): void {
+    const blocked = this.paused || this.over || (this.ending && !this.ending.done);
+    const n = this.markers.length;
+    const before = this.selectionKey();
+    const power = this.armedPower;
+    fn();
+    if (blocked || this.paused) return;
+    let marker: string | null = null;
+    for (let i = this.markers.length - 1; i >= n; i--) {
+      const m = this.markers[i];
+      if (m.team === this.opts.playerColor && m.kind !== 'hit') {
+        marker = m.kind;
+        break;
+      }
+    }
+    const changed = this.selectionKey() !== before;
+    const kind: RippleKind = rippleKindFor(marker, changed, power && !this.armedPower ? 'power' : null);
+    if (kind === 'tap' && quietIfIdle) return;
+    this.addRipple(sx, sy, kind);
+  }
+
+  /** Ajoute une onde à l'écran (aussi utilisé par l'interface pour les boutons d'ordre). */
+  addRipple(sx: number, sy: number, kind: RippleKind): void {
+    addRipple(this.ripples, { x: sx, y: sy, kind, team: rippleTeamColor(TEAM_COLORS[this.opts.playerColor]?.light ?? '#ffffff') });
+  }
+
+  private selectionKey(): string {
+    let k = String(this.selected.size);
+    for (const id of this.selected) k += ',' + id;
+    return k;
   }
 
   private tap(sx: number, sy: number): void {

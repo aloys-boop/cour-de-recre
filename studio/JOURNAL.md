@@ -2,6 +2,26 @@
 
 Une entrée par session, la plus récente en haut : date, version, ce qui a été fait, ce qui a été mesuré, ce qui reste ou ce qui inquiète.
 
+## 21/11/2026 : session de développement, v5.22 (saison 2, interface b : retours sous le doigt et fondus)
+
+**Fait**
+- Aucun retour d'Aloys (seuls les anciens journaux envoyés à lui-même sur 14 jours, sans réponse ; aucun e-mail envoyé). Travail du jour : deuxième tranche du point « Interface », en entier. Point de retour : branche `avant-2026-11-21`.
+- `src/core/feedback.ts` : allure de l'onde par ordre (déplacement blanc, charge orange, attaque rouge à quatre crans qui se referment, case et pouvoir à la couleur de l'équipe éclaircie de 45 %, sélection en petit anneau, tap sans effet en anneau pâle), anneaux en sortie cubique, second anneau décalé, six ondes au plus, ordre compris d'après le repère posé pendant le geste, enfoncement minimal des boutons (110 ms), durées et courbe des fondus ; variantes « réduire les animations ».
+- `Game` : tap, flèche d'ordre, appui long et rectangle passent par `withRipple` ; l'onde naît exactement sous le doigt, vieillit en temps réel (aussi pendant la pause tactique), rien pendant la pause, la fin au ralenti ou après la partie. Dessin `render/ripples.ts`, en pixels d'écran avec un halo sombre, hors tremblement de la caméra.
+- `ui/press.ts` : un écouteur pour toute la page, classe `is-pressed` (propriétés CSS `scale` et `translate`, qui s'ajoutent aux transformations propres des boutons) ; le bouton remonte si le doigt glisse dehors. Les anciens `:active` qui rapetissaient certains boutons sont retirés (plus de double enfoncement).
+- `ui/veil.ts` : voile bleu nuit qui se lève entre menu et partie (0,42 s) et vers le menu (0,34 s), sans retarder ni bloquer le doigt ; fond des fenêtres (pause, fin) en fondu de 0,26 s.
+- « Comment jouer » (« Déplacer et attaquer ») et README (règle, geste, mesures, versions, architecture). Pas d'étape de tutoriel : rien à apprendre.
+- 11 nouveaux tests (`interface-b.test.ts` : couleurs, ouverture, extinction, mode réduit, crans, plafond, ordre compris, lisibilité sur le sol, enfoncement, fondus, « Comment jouer » ; `interface-b-app.test.ts` : bouton enfoncé puis relâché, doigt qui glisse dehors, fondu menu → partie puis retour, ondes de sélection, de déplacement et d'attaque sous le doigt, extinction, rien en pause). 521 tests verts.
+
+**Mesuré**
+- `perf240` : partie 0,218 ms par pas, mêlée 0,103, ordres 0,157 ; rendu ×1 1,85 à 1,98 ms, avec motifs 2,76 à 3,41 selon le passage (bruit de la machine, la tranche ne touche pas ce chemin), ×2 1,10 et 1,55 ms. `scripts/dev/perf-ondes.ts` (nouveau) : 0,057 ms par image pour six ondes sur un canvas ×3. Témoin non relancé : purement visuel.
+- Captures 844 × 390 (×3) : ondes nettes sur le vide bleu comme sur le sol gris (halo sombre indispensable pour la blanche), crans rouges lisibles, voile qui se lève sur l'arrivée en partie, aucune erreur de console.
+
+**Reste à faire, inquiétudes**
+- Les ondes passent sous le bandeau d'aide en bas : normal (le bandeau est au-dessus du canvas), mais un ordre donné juste au-dessus des boutons se verra moins.
+- Sur iPhone, vérifier que l'enfoncement des grands boutons du menu ne fait pas « gigoter » la mise en page (les propriétés `scale` ne déplacent rien, en principe).
+- Prochaine session : interface c (accueil animé, cartes qui se retournent, jauges d'équipe animées).
+
 ## 20/11/2026 : session de développement, v5.21 (saison 2, interface a : fin de partie mise en scène)
 
 **Fait**

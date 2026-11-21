@@ -30,6 +30,8 @@ import { AlertBanner } from './ui/alert-banner';
 import { BrawlHud } from './ui/brawl-hud';
 import { SpectateHud } from './ui/spectate-hud';
 import { TUTORIAL_MAP } from './core/tutorial';
+import { Veil } from './ui/veil';
+import { installPress } from './ui/press';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const minimapCanvas = document.getElementById('minimap') as HTMLCanvasElement;
@@ -43,6 +45,9 @@ sfx.setMuted(progress.muted);
 const music = new Music(sfx);
 music.setEnabled(!progress.musicMuted);
 const overlay = new Overlay(overlayRoot);
+// Interface b (v5.22) : fondus entre écrans et boutons qui s'enfoncent sous le doigt.
+const veil = new Veil(document.getElementById('app') ?? document.body);
+installPress(document);
 let game: Game | null = null;
 
 function toggleSound(): boolean {
@@ -189,6 +194,7 @@ function launch(opts: GameOptions, code: MapCode | null): void {
   const campaign = code?.spec.kind === 'campagne';
   const tutorial = !!opts.tutorial;
   game?.destroy();
+  veil.lift('partie');
   overlay.hide();
   menu.hide();
   hud.show();
@@ -395,6 +401,7 @@ function lisibiliteBlock(): HTMLElement {
 }
 
 function backToMenu(): void {
+  veil.lift('menu');
   music.setTheme('menu');
   tempoHud.set(false);
   spectateHud.hide();
@@ -457,6 +464,11 @@ if (!progress.tutorialSeen) {
 /** Accès à la partie en cours (tests d'intégration). */
 export function __game(): Game | null {
   return game;
+}
+
+/** Accès au voile des fondus (tests d'intégration). */
+export function __veil(): Veil {
+  return veil;
 }
 
 /** Accès à la musique (tests d'intégration). */
