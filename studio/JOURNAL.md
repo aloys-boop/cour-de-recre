@@ -2,6 +2,27 @@
 
 Une entrée par session, la plus récente en haut : date, version, ce qui a été fait, ce qui a été mesuré, ce qui reste ou ce qui inquiète.
 
+## 22/11/2026 : session de développement, v5.23 (saison 2, interface c : accueil vivant)
+
+**Fait**
+- Aucun retour d'Aloys (seuls les anciens journaux envoyés à lui-même sur 14 jours, sans réponse ; aucun e-mail envoyé). Travail du jour : troisième et dernière tranche du point « Interface », en entier, ce qui clôt le point. Point de retour : branche `avant-2026-11-22`.
+- `src/core/menu-scene.ts` : partie de chat déterministe le long d'une bande (un élève par couleur, 3 à 8 selon la largeur) : le chat compte 0,8 s puis poursuit l'élève libre le plus proche, les autres détalent à son approche, un élève coincé contre un bout passe à côté en changeant de profondeur, contact = « Touché ! » et rôles échangés, ancien chat intouchable 1,6 s ; saut de joie à deux bonds avec « Moi ! » ; trois onomatopées au plus ; pas plafonné à 0,1 s. Durée du retournement et délais des jauges.
+- `ui/menu-backdrop.ts` : la bande derrière le titre, avec les vrais sprites des élèves (profil gauche ou droit, course à quatre images, plus petits et plus sombres au fond), ombre au sol, ligne de craie et deux marelles, étoile dorée sur le chat ; 30 images par seconde, seulement menu affiché et page visible ; jamais sous le doigt. « Réduire les animations » : une image fixe.
+- `ui/flip.ts` et menu : choisir une équipe retourne sa carte (liseré à la couleur, emblème devant la devise) et fait sauter son élève ; Campagne/Escarmouche retourne le volet (les onglets ne bougent pas) ; les cases des jauges s'allument l'une après l'autre ; un petit son (`select`, au timbre de l'équipe) pour chaque choix du menu (équipe, difficulté, carte, tutoriel, onglet). Le réglage change dès le toucher : un premier essai changeait le contenu à mi-retournement, six tests existants l'ont attrapé (un « Jouer » touché dans les 120 ms partait avec l'ancien réglage) ; corrigé.
+- Correctif en cours de route : le contenu du menu passé au premier plan passait devant la fenêtre « Bienvenue » ; le menu a maintenant son propre contexte d'empilement (`isolation: isolate`).
+- README (règle, mesures, versions, architecture). Pas de tutoriel ni de « Comment jouer » à changer : aucune règle ni aucun geste nouveau.
+- 13 nouveaux tests (`interface-c.test.ts` : une couleur par élève, un seul chat, compte puis contact et échange, « Touché ! », ancien chat intouchable, fuite, personne hors de la bande, pas plafonné, déterminisme, saut et « Moi ! », équipe absente, onomatopées bornées, ordre de dessin, durées ; `interface-c-app.test.ts` : bande en tête du menu et animée, carte et jauges, retournement immédiat, deux choix rapides, volet Escarmouche, bande arrêtée en partie). 534 tests verts.
+
+**Mesuré**
+- Bande de l'accueil dans Chromium (844 × 390, ×3) : 0,30 ms par image (mise à jour et dessin).
+- `perf240` : partie 0,23 à 0,27 ms par pas, mêlée 0,12 à 0,18, ordres 0,18 à 0,23 ; rendu ×1 1,9 à 3,5 ms selon le passage, ×2 1,2 ms : même plage avec et sans la tranche (le jeu n'est pas touché, bruit de la machine). Témoin non relancé : purement visuel, menu seulement.
+- Captures 844 × 390 (×3) : élèves nets derrière le titre, qui reste lisible grâce à son ombre ; première version, la ligne de sol mordait le haut des panneaux, bande raccourcie de 6 px ; « Moi ! » était coupé en haut de la bande, il s'écrit maintenant à côté de la tête. Carte d'équipe à mi-retournement, jauges qui s'allument, volet Escarmouche qui pivote, partie inchangée. Aucune erreur de console.
+
+**Reste à faire, inquiétudes**
+- Sur iPhone, vérifier la batterie : la bande ne tourne que menu affiché, à 30 images par seconde, mais un menu laissé ouvert longtemps chauffe un peu.
+- La partie de chat se concentre souvent au milieu de la bande ; si elle paraît monotone, ajouter un ballon ou une corde à sauter.
+- Saison 2 : il reste « Performances : 60 images par seconde garanties à 240 élèves sur iPhone, mesurées ». Prochaine session : ce point, à découper (mesure en conditions iPhone simulées, puis les pistes).
+
 ## 21/11/2026 : session de développement, v5.22 (saison 2, interface b : retours sous le doigt et fondus)
 
 **Fait**

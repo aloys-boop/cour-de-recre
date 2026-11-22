@@ -47,13 +47,15 @@ But mesurable : un joueur humain qui donne 15 à 25 ordres par minute doit pouvo
   - [x] **Lisibilité b : contours et cases.** (v5.20, 19/11/2026) Cases bonus prises teintées à 18 % de la couleur du propriétaire pour tout le monde (symbole toujours à 3:1, contour Jaune assombri) ; avec « Motifs d'équipe » : liseré coloré cerné de sombre aux pieds des élèves, emblèmes des camps sur la mini-carte ; bouton « Motifs d'équipe » à l'accueil.
     - Idée (19/11) : proposer les motifs au premier lancement (une ligne sous « Faire le tutoriel »), puisqu'ils restent masqués par défaut.
     - Idée (19/11) : liseré plus épais pour les élèves sélectionnés du joueur, à la place de l'ellipse blanche, si les deux se gênent sur iPhone.
-- [ ] **Interface.** Découpé en trois tranches :
+- [x] **Interface.** (v5.21 à v5.23) Découpé en trois tranches :
   - [x] **Interface a : fin de partie.** (v5.21, 20/11/2026) Ralenti sur le coup décisif (caméra qui glisse et zoome, bandes de cinéma, interface effacée, tampon « Victoire ! » ou « Défaite… », tap pour passer) ; écran de fin vivant (lignes et compteurs animés, étoiles des meilleurs scores, ligne « Dernier coup ») ; durée et médaille « éclair » arrêtées au coup de sifflet.
     - Idée (20/11) : un vrai « replay » des 3 dernières secondes (instantanés légers du monde), si le ralenti après coup ne suffit pas à raconter le retournement.
   - [x] **Interface b : retours tactiles visuels et transitions.** (v5.22, 21/11/2026) Onde sous le doigt à la couleur de l'ordre compris (blanc, orange, rouge à quatre crans, couleur de l'équipe ; anneau pâle pour un tap sans effet), boutons qui s'enfoncent (110 ms au moins), voile bleu nuit qui se lève entre menu et partie, fond des fenêtres en fondu.
     - Idée (21/11) : un léger « clic » sonore propre aux boutons du menu (aujourd'hui seuls certains en font un), à doser pour ne pas doubler les sons existants.
     - Idée (21/11) : un vrai fondu enchaîné vers l'écran de fin (la dernière image de la cour qui s'estompe sous la carte), si le fond en fondu paraît sec sur iPhone.
-  - [ ] **Interface c : menus plus vivants.** Accueil animé (élèves qui courent dans le fond), cartes qui se retournent, petites animations des jauges d'équipe.
+  - [x] **Interface c : menus plus vivants.** (v5.23, 22/11/2026) Derrière le titre, des élèves de toutes les couleurs jouent au chat (étoile sur le chat, « Touché ! », rôles échangés) ; l'élève de l'équipe choisie saute de joie (« Moi ! ») ; carte d'équipe (liseré et emblème à la couleur) et volets Campagne/Escarmouche qui se retournent ; jauges qui se remplissent case après case ; petit son à chaque choix du menu (reprend l'idée du 21/11).
+    - Idée (22/11) : faire vivre aussi les puces d'équipe en partie (petit rebond quand une équipe prend ou perd un camp), si les jauges du menu plaisent.
+    - Idée (22/11) : au premier lancement, laisser la bande de cour jouer seule une seconde avant d'afficher la proposition de tutoriel.
 - [ ] Performances : 60 images par seconde garanties à 240 élèves sur iPhone, mesurées.
 
 ## Saison 3 : une vraie campagne

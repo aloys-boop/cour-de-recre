@@ -147,6 +147,10 @@ const menu = new Menu(menuRoot, progress, {
   },
   onInstallHelp: () => overlay.installHelp(() => overlay.hide()),
   onHowTo: () => overlay.howTo(() => overlay.hide()),
+  onPick: (team) => {
+    sfx.unlock();
+    sfx.play('select', team ?? 0);
+  },
 });
 
 function startGame(state: MenuState): void {
@@ -187,6 +191,7 @@ let tipTimer = 0;
 // Banc d'essai des contrôles visuels (Playwright) : « ?banc » dans l'adresse expose la partie en cours.
 if (typeof location !== 'undefined' && new URLSearchParams(location.search).has('banc')) {
   (window as unknown as { __partie: () => Game | null }).__partie = () => game;
+  (window as unknown as { __accueil: () => Menu }).__accueil = () => menu;
 }
 
 function launch(opts: GameOptions, code: MapCode | null): void {
@@ -481,4 +486,9 @@ function gameEndStats(g: Game): EndStats {
   const s = endStats(g.stats, g.world, g.playerTeam, g.tactical.count, g.endTime || g.world.time);
   const line = finalBlowLine(g.finalBlow, g.playerTeam, g.world.teamColors);
   return line ? { ...s, finalBlow: line } : s;
+}
+
+/** Accès au menu d'accueil (tests d'intégration, v5.23). */
+export function __menu(): Menu {
+  return menu;
 }

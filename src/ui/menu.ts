@@ -9,6 +9,10 @@ import type { Difficulty, TeamId } from '../core/types';
 import { medalDots } from './share';
 import { TUTORIAL_STEPS } from '../core/tutorial';
 import { rulesPanel, skirmishPanel } from './skirmish';
+import { MenuBackdrop } from './menu-backdrop';
+import { flipSwap } from './flip';
+import { gaugeDelay } from '../core/menu-scene';
+import { emblemFor, emblemSvg } from '../core/emblems';
 
 export interface MenuState {
   team: TeamId;
@@ -34,6 +38,8 @@ export interface MenuHooks {
   onInstallHelp(): void;
   /** Écran « Comment jouer ». */
   onHowTo?(): void;
+  /** Un choix du menu (équipe, difficulté, carte, onglet) : petit son (v5.23). Équipe : sa couleur. */
+  onPick?(team?: number): void;
 }
 
 const DIFFS = DIFFICULTIES;
@@ -41,6 +47,8 @@ const DIFFS = DIFFICULTIES;
 /** Écran d'accueil : choix de l'équipe, de la difficulté et de la carte. */
 export class Menu {
   state: MenuState;
+  /** Bande animée derrière le titre (v5.23) : des élèves jouent au chat. */
+  readonly backdrop: MenuBackdrop;
 
   constructor(
     private root: HTMLElement,
@@ -55,6 +63,7 @@ export class Menu {
       skirmish: { ...DEFAULT_SKIRMISH },
       rules: { ...DEFAULT_RULES },
     };
+    this.backdrop = new MenuBackdrop(root);
   }
 
   setProgress(p: Progress): void {
@@ -65,15 +74,18 @@ export class Menu {
   show(): void {
     this.render();
     this.root.classList.remove('hidden');
+    this.backdrop.start();
   }
 
   hide(): void {
     this.root.classList.add('hidden');
+    this.backdrop.stop();
   }
 
   private render(): void {
     const r = this.root;
     r.innerHTML = '';
+    this.backdrop.attach();
     const inner = el('div', 'menu-inner');
 
     const title = el('div', 'menu-title');
@@ -88,12 +100,16 @@ export class Menu {
     const profileBox = el('div', 'team-profile');
     const renderProfile = (i: number) => {
       const p = TEAM_PROFILES[i];
+      const c = TEAM_COLORS[i];
+      // Carte d'équipe (v5.23) : liseré et emblème à la couleur, jauges qui se remplissent.
+      profileBox.style.setProperty('--team', c.ui);
+      profileBox.dataset.team = String(i);
       profileBox.innerHTML =
-        `<div class="team-blurb">${p.blurb}</div>` +
-        statRow('Vie', p.points.hp) +
-        statRow('Dégâts', p.points.dmg) +
-        statRow('Production', p.points.prod) +
-        statRow('Vitesse', p.points.speed);
+        `<div class="team-blurb"><span class="team-card-mark" aria-hidden="true">${emblemSvg(emblemFor(i), c.ui, 'rgba(255,255,255,0.9)', 14)}</span>${p.blurb}</div>` +
+        statRow('Vie', p.points.hp, 0) +
+        statRow('Dégâts', p.points.dmg, 1) +
+        statRow('Production', p.points.prod, 2) +
+        statRow('Vitesse', p.points.speed, 3);
     };
     TEAM_NAMES.forEach((name, i) => {
       const b = document.createElement('button');
@@ -102,9 +118,13 @@ export class Menu {
       b.style.background = TEAM_COLORS[i].ui;
       b.style.color = TEAM_COLORS[i].text;
       b.addEventListener('click', () => {
+        const changed = this.state.team !== i;
         this.state.team = i as TeamId;
         teamBtns.forEach((x, j) => x.classList.toggle('active', j === i));
-        renderProfile(i);
+        this.hooks.onPick?.(i);
+        this.backdrop.cheer(i);
+        // La carte d'équipe se retourne sur la nouvelle équipe.
+        if (changed) flipSwap(profileBox, () => renderProfile(i));
       });
       teamBtns.push(b);
       teamRow.append(b);
@@ -125,6 +145,7 @@ export class Menu {
       b.textContent = d.label;
       b.addEventListener('click', () => {
         this.state.difficulty = d.id;
+        this.hooks.onPick?.();
         diffBtns.forEach((x, j) => x.classList.toggle('active', DIFFS[j].id === d.id));
         diffHint.textContent = describeAttention(d.id);
       });
@@ -152,7 +173,12 @@ export class Menu {
       const b = document.createElement('button');
       b.className = 'mode-btn';
       b.textContent = m.label;
-      b.addEventListener('click', () => setMode(m.id));
+      b.addEventListener('click', () => {
+        if (this.state.mode === m.id) return;
+        this.hooks.onPick?.();
+        // Le volet choisi se retourne ; les onglets restent immobiles sous le doigt.
+        flipSwap(m.pane, () => setMode(m.id));
+      });
       tabs.append(b);
       return b;
     });
@@ -177,6 +203,7 @@ export class Menu {
     tuto.append(tl, tr);
     tuto.addEventListener('click', () => {
       this.state.tutorial = true;
+      this.hooks.onPick?.();
       tuto.classList.add('active');
       mapBtns.forEach((x) => x.classList.remove('active'));
     });
@@ -200,6 +227,7 @@ export class Menu {
       b.addEventListener('click', () => {
         this.state.mapIndex = i;
         this.state.tutorial = false;
+        this.hooks.onPick?.();
         tuto.classList.remove('active');
         mapBtns.forEach((x, j) => x.classList.toggle('active', j === i));
       });
@@ -318,10 +346,12 @@ const SUIT_GLYPHS = { heart: '\u2665', spade: '\u2660', club: '\u2663', diamond:
 
 /** Ligne de statistique : libellé + cinq cases, remplies selon le multiplicateur (1 = trois cases). */
 /** Jauge d'une caractéristique : exactement les points de l'équipe (1 à 5). */
-function statRow(label: string, points: number): string {
+function statRow(label: string, points: number, row = 0): string {
   const n = points;
   let boxes = '';
-  for (let i = 0; i < STAT_POINTS_MAX; i++) boxes += `<i class="${i < n ? 'on' : ''}"></i>`;
+  // Les cases pleines s'allument l'une après l'autre, ligne après ligne (v5.23).
+  for (let i = 0; i < STAT_POINTS_MAX; i++)
+    boxes += i < n ? `<i class="on" style="animation-delay:${gaugeDelay(i, row)}ms"></i>` : '<i></i>';
   return `<div class="stat"><span>${label}</span><span class="boxes" data-points="${n}">${boxes}</span></div>`;
 }
 

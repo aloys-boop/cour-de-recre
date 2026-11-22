@@ -1531,3 +1531,87 @@ button.is-pressed:not(:disabled),
     animation-duration: 0.12s;
   }
 }
+
+/* ------------------------------------------------------------ Accueil vivant (v5.23, interface c) */
+
+.menu {
+  /* Contexte d'empilement propre : la bande et le contenu ne passent jamais devant les fenêtres. */
+  isolation: isolate;
+}
+
+/* Bande de cour derrière le titre : elle défile avec le menu, jamais sous le doigt. */
+.menu-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  pointer-events: none;
+  display: block;
+}
+
+.menu-inner {
+  position: relative;
+  z-index: 1;
+}
+
+/* Le titre reste lisible quand un élève passe derrière. */
+.menu-title h1,
+.menu-title p {
+  position: relative;
+}
+.menu-title p {
+  text-shadow: 0 1px 2px #0a1028, 0 0 6px #0a1028;
+}
+
+/* Carte d'équipe : liseré à la couleur, retournement au changement d'équipe. */
+.team-profile {
+  border-left: 4px solid var(--team, var(--accent));
+  padding: 4px 0 4px 10px;
+  border-radius: 4px;
+  transform-origin: 50% 50%;
+  backface-visibility: hidden;
+}
+.team-card-mark {
+  display: inline-flex;
+  vertical-align: -2px;
+  margin-right: 6px;
+}
+
+.flip-in {
+  animation: flip-in 240ms cubic-bezier(0.2, 0.8, 0.3, 1.15);
+}
+@keyframes flip-in {
+  from {
+    transform: perspective(700px) rotateY(-90deg);
+    filter: brightness(0.6);
+  }
+  55% {
+    filter: brightness(1.15);
+  }
+  to {
+    transform: perspective(700px) rotateY(0deg);
+  }
+}
+
+/* Jauges : les cases pleines s'allument l'une après l'autre. */
+.stat i.on {
+  animation: gauge-on 260ms cubic-bezier(0.2, 1.6, 0.4, 1) backwards;
+}
+@keyframes gauge-on {
+  from {
+    transform: scale(0.2);
+    background: #fff;
+    opacity: 0;
+  }
+  60% {
+    background: #fff;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flip-in,
+  .stat i.on {
+    animation: none;
+  }
+}
