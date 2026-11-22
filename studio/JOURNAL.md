@@ -15,6 +15,7 @@ Une entrée par session, la plus récente en haut : date, version, ce qui a ét�
 
 **Mesuré**
 - Bande de l'accueil dans Chromium (844 × 390, ×3) : 0,30 ms par image (mise à jour et dessin).
+- Déploiement : run n° 59 « Déploiement GitHub Pages » réussi (tests, build, `deploy-pages`).
 - `perf240` : partie 0,23 à 0,27 ms par pas, mêlée 0,12 à 0,18, ordres 0,18 à 0,23 ; rendu ×1 1,9 à 3,5 ms selon le passage, ×2 1,2 ms : même plage avec et sans la tranche (le jeu n'est pas touché, bruit de la machine). Témoin non relancé : purement visuel, menu seulement.
 - Captures 844 × 390 (×3) : élèves nets derrière le titre, qui reste lisible grâce à son ombre ; première version, la ligne de sol mordait le haut des panneaux, bande raccourcie de 6 px ; « Moi ! » était coupé en haut de la bande, il s'écrit maintenant à côté de la tête. Carte d'équipe à mi-retournement, jauges qui s'allument, volet Escarmouche qui pivote, partie inchangée. Aucune erreur de console.
 
