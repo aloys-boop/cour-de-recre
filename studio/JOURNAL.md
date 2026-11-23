@@ -14,6 +14,7 @@ Une entrée par session, la plus récente en haut : date, version, ce qui a ét�
 
 **Mesuré**
 - `perf-iphone` : processeur normal, vue d'ensemble 60 i/s, travail 2,1 ms (95e centile 3,7) ; ×2 : 54 i/s, 3,7 ms (7,1) ; ×4 : 29 i/s, 7,6 ms (16,9). Trace Chromium ×4 : « Commit » (copie logicielle du canvas, faute de carte graphique) 68 % du fil principal, tout le code du jeu 23 % : les images sautées du banc viennent surtout du navigateur sans GPU, pas du jeu.
+- Déploiement : run n° 61 « Déploiement GitHub Pages » réussi (tests, build, `deploy-pages`).
 - `pointes` (60 s, Le tournoi) : pas moyen 0,32 ms ; 1 % le plus lent 4,2 ms, dont 3,6 dans le monde (déplacements 1,4, cases 0,7, séparation 0,6, le reste dans les modules), sans coupable unique ; ramasse-miettes rare (0,5 ms par passage).
 - `perf240` : partie 0,29 ms par pas (99e centile 2,7), mêlée 0,14, ordres 0,22 ; rendu ×1 2,2 ms, ×2 1,4 ms (avec motifs 3,0 et 2,3) : dans le bruit de la machine. Témoin non relancé : rien ne change dans la partie.
 - Captures 844 × 390 ×3 : pastille nette sous le bouton de pause, hors encoche et hors puces ; rubrique « Performances » lisible dans la pause, boutons de 44 px ; menu inchangé ; aucune erreur de console.
