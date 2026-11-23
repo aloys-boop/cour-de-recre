@@ -4,7 +4,7 @@ import { Sfx } from './audio/sfx';
 import { endStats, type EndStats } from './core/stats';
 import { finalBlowLine } from './core/finale';
 import { medalsFor, mergeMedals } from './core/challenges';
-import { LEVELS } from './core/maps';
+import { generateMap, LEVELS } from './core/maps';
 import { encodeMapCode, randomSeed, type MapCode } from './core/mapcode';
 import { mapWithRules } from './core/ghosts';
 import { loadProgress, recordWin, saveProgress, type Progress } from './core/save';
@@ -15,7 +15,7 @@ import { DiplomacyExtrasHud } from './ui/diplomacy-extras';
 import { Menu, type MenuState } from './ui/menu';
 import { Overlay } from './ui/overlay';
 import { TacticsHud } from './ui/tactics-hud';
-import { readabilityBlock, shakeBlock, TempoHud, tempoBlock } from './ui/tempo-hud';
+import { performanceBlock, readabilityBlock, shakeBlock, TempoHud, tempoBlock } from './ui/tempo-hud';
 import { tempoAllowed } from './core/tempo';
 import { codeBlock, medalsBlock } from './ui/share';
 import { KingHud, kingEnd } from './ui/king-hud';
@@ -192,6 +192,12 @@ let tipTimer = 0;
 if (typeof location !== 'undefined' && new URLSearchParams(location.search).has('banc')) {
   (window as unknown as { __partie: () => Game | null }).__partie = () => game;
   (window as unknown as { __accueil: () => Menu }).__accueil = () => menu;
+  // Banc de performances (v5.24, `scripts/dev/perf-iphone.ts`) : Le tournoi, 8 équipes × 30 élèves, IA Expert.
+  (window as unknown as { __plafond: (seed?: number) => Game | null }).__plafond = (seed = 55) => {
+    const level = LEVELS.findIndex((l) => l.teams === 8);
+    launch({ map: { ...generateMap(LEVELS[level], seed), startUnits: 30 }, mapIndex: level, playerColor: 0, difficulty: 'expert', seed }, null);
+    return game;
+  };
 }
 
 function launch(opts: GameOptions, code: MapCode | null): void {
@@ -203,7 +209,7 @@ function launch(opts: GameOptions, code: MapCode | null): void {
   overlay.hide();
   menu.hide();
   hud.show();
-  opts = { ...opts, speed: progress.speed ?? 'normale', shake: progress.shake !== false, patterns: progress.patterns === true };
+  opts = { ...opts, speed: progress.speed ?? 'normale', shake: progress.shake !== false, patterns: progress.patterns === true, meter: progress.meter === true };
   // Musique (v5.18) : thème « Bagarre », qui s'intensifie avec la partie.
   music.setIntensity(0);
   music.setTheme('partie');
@@ -247,7 +253,7 @@ function launch(opts: GameOptions, code: MapCode | null): void {
               game?.setPaused(false);
             },
             () => backToMenu(),
-            [...(tutorial ? [] : [rhythmBlock(opts)]), sensationsBlock(), lisibiliteBlock(), ...(code ? [codeBlock(codeText)] : [])],
+            [...(tutorial ? [] : [rhythmBlock(opts)]), sensationsBlock(), lisibiliteBlock(), performancesBlock(), ...(code ? [codeBlock(codeText)] : [])],
             () => overlay.howTo(showPause),
             tutorial ? undefined : () => game?.surrender(),
           );
@@ -392,6 +398,16 @@ function sensationsBlock(): HTMLElement {
       },
     },
   );
+}
+
+/** Bloc « Performances » du menu pause (v5.24) : compteur d'images, mémorisé. */
+function performancesBlock(): HTMLElement {
+  return performanceBlock(progress.meter === true, (on) => {
+    progress = { ...progress, meter: on };
+    saveProgress(progress);
+    game?.setMeter(on);
+    sfx.play('select');
+  });
 }
 
 /** Bloc « Lisibilité » du menu pause (v5.19) : motifs d'équipe, mémorisés. */

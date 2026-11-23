@@ -32,6 +32,8 @@ export interface Progress {
   shake?: boolean;
   /** Motifs d'équipe : un emblème par équipe sur les cases et les élèves (v5.19, facultatif : absent = masqués). */
   patterns?: boolean;
+  /** Compteur d'images affiché en partie (v5.24, facultatif : absent = masqué). */
+  meter?: boolean;
 }
 
 /** Échelle de difficulté actuelle (Facile, Normal, Difficile, Expert). */
@@ -83,6 +85,7 @@ export function loadProgress(store: StorageLike | null = storage()): Progress {
       tacticalPause: parsed.tacticalPause !== false,
       shake: parsed.shake !== false,
       patterns: parsed.patterns === true,
+      meter: parsed.meter === true,
     };
   } catch {
     return { ...DEFAULT, wins: {} };

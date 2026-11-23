@@ -170,3 +170,17 @@ export function readabilityBlock(on: boolean, onPick: (v: boolean) => void): HTM
   box.append(title, segmented('Motifs d\u2019équipe', 'patterns-toggle', [['on', 'Affichés'], ['off', 'Masqués']], on ? 'on' : 'off', (v) => onPick(v === 'on')));
   return box;
 }
+
+/**
+ * Bloc « Performances » du menu pause (v5.24) : compteur d'images en haut de l'écran
+ * (images par seconde et travail du jeu par image, pastille verte, orange ou rouge).
+ */
+export function performanceBlock(on: boolean, onPick: (v: boolean) => void): HTMLElement {
+  const box = document.createElement('div');
+  box.className = 'tempo-block performance-block';
+  const title = document.createElement('div');
+  title.className = 'tempo-title';
+  title.textContent = 'Performances';
+  box.append(title, segmented('Compteur d\u2019images', 'meter-toggle', [['on', 'Affiché'], ['off', 'Masqué']], on ? 'on' : 'off', (v) => onPick(v === 'on')));
+  return box;
+}

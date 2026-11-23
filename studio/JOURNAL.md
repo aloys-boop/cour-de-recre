@@ -2,6 +2,27 @@
 
 Une entrée par session, la plus récente en haut : date, version, ce qui a été fait, ce qui a été mesuré, ce qui reste ou ce qui inquiète.
 
+## 23/11/2026 : session de développement, v5.24 (saison 2, performances a : mesurer)
+
+**Fait**
+- Aucun retour d'Aloys (seuls les anciens journaux envoyés à lui-même sur 14 jours, sans réponse ; aucun e-mail envoyé). Travail du jour : dernier point de la saison 2, « Performances », découpé en trois tranches (mesurer, lisser les pointes, garde-fou) ; première tranche livrée en entier. Point de retour : branche `avant-2026-11-23` (créée après les premières modifications locales, mais sur `origin/main` intact : même état).
+- `src/core/frame-meter.ts` : compteur d'images en fenêtre glissante (240 images), images sautées comptées par rapport à l'intervalle médian (juste à 60 comme à 120 Hz), onglet revenu de veille ignoré, travail par image (simulation + dessin), 95e centile et pire image, verdict fluide / juste / saccadé, libellé « 60 i/s · 3,2 ms ».
+- `Game` : chaque image est chronométrée (simulation, dessin) et versée au compteur, affiché ou non. Pastille dessinée sous le bouton de pause (`render/frame-meter.ts`), relue deux fois par seconde ; une première version au centre en haut passait sous les puces d'équipe (vu sur la capture), déplacée.
+- Pause : rubrique « Performances », « Compteur d'images : Affiché / Masqué », mémorisée (`meter` dans la sauvegarde, absent = masqué : anciennes sauvegardes compatibles). « Comment jouer » (« Lisibilité ») le mentionne.
+- Banc `scripts/dev/perf-iphone.ts` (vraie application dans Chromium, 844 × 390 ×3, doigt, processeur ralenti par CDP, Le tournoi à 8 × 30 élèves IA Expert via `?banc` et `__plafond`) et `scripts/dev/pointes.ts` (décomposition des pas lents).
+- 10 nouveaux tests (`performances-a.test.ts` : vide, régulier, 120 Hz, images sautées, verdicts, fenêtre glissante, veille et valeurs absurdes, centiles, sauvegarde ; `performances-a-app.test.ts` : mesure masquée, rubrique de la pause, affichage mémorisé, image de 50 ms comptée). 544 tests verts.
+
+**Mesuré**
+- `perf-iphone` : processeur normal, vue d'ensemble 60 i/s, travail 2,1 ms (95e centile 3,7) ; ×2 : 54 i/s, 3,7 ms (7,1) ; ×4 : 29 i/s, 7,6 ms (16,9). Trace Chromium ×4 : « Commit » (copie logicielle du canvas, faute de carte graphique) 68 % du fil principal, tout le code du jeu 23 % : les images sautées du banc viennent surtout du navigateur sans GPU, pas du jeu.
+- `pointes` (60 s, Le tournoi) : pas moyen 0,32 ms ; 1 % le plus lent 4,2 ms, dont 3,6 dans le monde (déplacements 1,4, cases 0,7, séparation 0,6, le reste dans les modules), sans coupable unique ; ramasse-miettes rare (0,5 ms par passage).
+- `perf240` : partie 0,29 ms par pas (99e centile 2,7), mêlée 0,14, ordres 0,22 ; rendu ×1 2,2 ms, ×2 1,4 ms (avec motifs 3,0 et 2,3) : dans le bruit de la machine. Témoin non relancé : rien ne change dans la partie.
+- Captures 844 × 390 ×3 : pastille nette sous le bouton de pause, hors encoche et hors puces ; rubrique « Performances » lisible dans la pause, boutons de 44 px ; menu inchangé ; aucune erreur de console.
+
+**Reste à faire, inquiétudes**
+- La vraie mesure est sur l'iPhone d'Aloys : afficher le compteur pendant une grosse partie du Tournoi. Sans retour, la tranche b avance sur les chiffres du banc.
+- Prochaine session : « Performances b » (lisser les pointes de la simulation et alléger le dessin de la vue d'ensemble), puis « c » (garde-fou automatique).
+- Le compteur ne voit que le fil du jeu : une saccade due au navigateur (composition) se lit dans les images par seconde, pas dans les millisecondes.
+
 ## 22/11/2026 : session de développement, v5.23 (saison 2, interface c : accueil vivant)
 
 **Fait**

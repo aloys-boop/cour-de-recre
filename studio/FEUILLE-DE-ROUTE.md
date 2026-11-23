@@ -56,7 +56,10 @@ But mesurable : un joueur humain qui donne 15 à 25 ordres par minute doit pouvo
   - [x] **Interface c : menus plus vivants.** (v5.23, 22/11/2026) Derrière le titre, des élèves de toutes les couleurs jouent au chat (étoile sur le chat, « Touché ! », rôles échangés) ; l'élève de l'équipe choisie saute de joie (« Moi ! ») ; carte d'équipe (liseré et emblème à la couleur) et volets Campagne/Escarmouche qui se retournent ; jauges qui se remplissent case après case ; petit son à chaque choix du menu (reprend l'idée du 21/11).
     - Idée (22/11) : faire vivre aussi les puces d'équipe en partie (petit rebond quand une équipe prend ou perd un camp), si les jauges du menu plaisent.
     - Idée (22/11) : au premier lancement, laisser la bande de cour jouer seule une seconde avant d'afficher la proposition de tutoriel.
-- [ ] Performances : 60 images par seconde garanties à 240 élèves sur iPhone, mesurées.
+- [ ] **Performances : 60 images par seconde garanties à 240 élèves sur iPhone, mesurées.** Découpé en trois tranches :
+  - [x] **Performances a : mesurer.** (v5.24, 23/11/2026) Compteur d'images en partie (rubrique « Performances » de la pause : images par seconde, travail par image, pastille verte, orange ou rouge), banc `perf-iphone.ts` (application réelle, 844 × 390 ×3, processeur ralenti ×2 et ×4, Le tournoi à 240 élèves) et `pointes.ts`. Constat : le jeu tient dans la moitié du budget jusqu'à ×2 ; restent les pointes de simulation (4,2 ms au 1 % le plus lent contre 0,32 ms en moyenne).
+  - [ ] **Performances b : lisser les pointes.** Trouver et étaler ce qui fait les pas lents du monde (déplacements, séparation, cases : moins d'allocations, travaux étalés sur plusieurs pas), et dans le dessin de la vue d'ensemble (moins d'appels par élève : barres de vie groupées, ombres et sprites dans un même passage). But : 99e centile du pas sous 1 ms sur ordinateur, travail sous 8,3 ms au 95e centile à ×4.
+  - [ ] **Performances c : garde-fou.** Si le compteur voit des saccades durables sur l'appareil, alléger tout seul ce qui ne sert pas la lecture (onomatopées, particules, résolution du canvas ×2 → ×1,5), puis remonter ; à valider sur l'iPhone d'Aloys avec le compteur.
 
 ## Saison 3 : une vraie campagne
 

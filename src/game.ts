@@ -47,6 +47,8 @@ import { TutorialState, type TutorialEvent } from './core/tutorial';
 import { assignGuards, canGuard, guardCounts } from './core/garrison';
 import { assignConquest, assignDefence, assignEscort, releaseSquad, squadMembers, squadMode, type SquadMode } from './core/squads';
 import { speedFactor, TacticalPause, tempoAllowed, type GameSpeed } from './core/tempo';
+import { FrameMeter } from './core/frame-meter';
+import { drawFrameMeter, type MeterAnchor } from './render/frame-meter';
 
 /** Résultat d'une partie ; « abandon » : le joueur a abandonné (défaite, statistiques quand même). */
 export type GameResult = 'victoire' | 'defaite' | 'abandon';
@@ -70,6 +72,8 @@ export interface GameOptions {
   shake?: boolean;
   /** Motifs d'équipe affichés (v5.19, réglage « Lisibilité »). */
   patterns?: boolean;
+  /** Compteur d'images affiché (v5.24, réglage « Performances »). */
+  meter?: boolean;
 }
 
 export interface GameHooks {
@@ -156,6 +160,9 @@ export class Game {
   /** Barres de bagarre. */
   private brawlBars = new BrawlBars();
   private frameDt = 0;
+  /** Compteur d'images (v5.24) : mesure toujours, ne s'affiche que sur demande. */
+  readonly meter = new FrameMeter();
+  private meterShown = false;
   /** Pouvoir armé par le joueur (visée en cours) et point visé (aperçu de la zone). */
   armedPower: PowerId | null = null;
   powerAim: Vec2 | null = null;
@@ -223,6 +230,7 @@ export class Game {
     this.tactical = new TacticalPause(tempoAllowed(opts.difficulty, !!opts.tutorial));
     this.speed = speedFactor(opts.speed ?? 'normale', opts.difficulty, !!opts.tutorial);
     this.fx.heat.shakeEnabled = opts.shake !== false;
+    this.meterShown = opts.meter === true;
     // Roi de la cour : trône au centre (jamais en campagne : pas de règles passées).
     this.world = new World(isKingMode(rules) ? withThrone(opts.map) : opts.map, opts.map.teams, seed, [opts.playerColor, ...others]);
     this.world.rules = rules;
@@ -435,6 +443,29 @@ export class Game {
     return this.fx.heat.shakeEnabled;
   }
 
+  /** Affiche ou masque le compteur d'images (réglage « Performances » de la pause, v5.24). */
+  setMeter(on: boolean): void {
+    this.meterShown = on;
+  }
+
+  get meterVisible(): boolean {
+    return this.meterShown;
+  }
+
+  private anchorCache: { at: number; anchor: MeterAnchor | null } | null = null;
+
+  /** Bouton de pause (relu deux fois par seconde) : la pastille du compteur se cale dessous. */
+  private meterAnchor(): MeterAnchor | null {
+    const now = performance.now();
+    if (this.anchorCache && now - this.anchorCache.at < 500 && now >= this.anchorCache.at) return this.anchorCache.anchor;
+    const btn = typeof document !== 'undefined' ? document.getElementById('btn-pause') : null;
+    const r = btn?.getBoundingClientRect();
+    const c = this.canvas.getBoundingClientRect?.();
+    const anchor = r && r.width > 0 ? { right: r.right - (c?.left ?? 0), top: r.bottom - (c?.top ?? 0) } : null;
+    this.anchorCache = { at: now, anchor };
+    return anchor;
+  }
+
   setSpeed(speed: GameSpeed): number {
     this.speed = speedFactor(speed, this.opts.difficulty, !!this.opts.tutorial);
     return this.speed;
@@ -470,6 +501,8 @@ export class Game {
 
   /** Une image de la boucle (publique pour les tests). */
   frame(now: number): void {
+    const interval = now - this.last;
+    const t0 = performance.now();
     let dt = (now - this.last) / 1000;
     this.last = now;
     if (dt > 0.1) dt = 0.1;
@@ -512,7 +545,10 @@ export class Game {
     }
     if (this.ripples.length) this.ripples = tickRipples(this.ripples, this.frameDt, reducedMotion());
     this.mood.update(this.frameDt, { heat: this.fx.heat.heat, finale: this.finale, calm: this.paused || this.over || frozen });
+    const t1 = performance.now();
     this.render();
+    const t2 = performance.now();
+    this.meter.record({ interval, sim: t1 - t0, render: t2 - t1 });
   }
 
   private step(dt: number): void {
@@ -733,6 +769,7 @@ export class Game {
     this.fx.draw(ctx, this.cam);
     this.gains.draw(ctx, this.cam);
     this.minimap.draw(this.world, this.cam);
+    if (this.meterShown) drawFrameMeter(ctx, this.dpr, this.canvas.width / this.dpr, this.meter, this.meterAnchor());
     const e = this.ending;
     if (e && !e.done) {
       const shared = this.sharedWin;

@@ -459,6 +459,21 @@ Les valeurs d'un point ont été réglées en Difficile ; en Normal, la Rose (4,
 
 Le spectateur change surtout l'expérience (une partie sur cinq à deux, une sur trois à trois ne s'arrête plus net), très peu le taux de victoire : une équipe qui perd un camp perd presque toujours. `perf240` inchangé (partie 0,233 ms par pas, rendu 1,2 à 1,9 ms par image).
 
+### Compteur d'images et mesure en conditions iPhone (v5.24)
+
+Rubrique « Performances » de la pause : « Compteur d'images » affiche, sous le bouton de pause, une pastille « 60 i/s · 3,2 ms » (images par seconde réellement affichées et travail du jeu par image, simulation et dessin), verte si c'est fluide, orange si c'est juste, rouge si ça saccade. Le compteur mesure toujours, même masqué (`core/frame-meter.ts`, testé : fenêtre glissante de 240 images, images sautées comptées par rapport à l'intervalle médian, donc juste aussi sur un écran 120 Hz, onglet revenu de veille ignoré) ; le réglage est mémorisé (absent des anciennes sauvegardes : masqué). C'est la seule vraie mesure sur iPhone : l'afficher pendant une grosse partie du Tournoi.
+
+`scripts/dev/perf-iphone.ts` lance la vraie application dans Chromium à 844 × 390 points, écran ×3 et doigt, processeur ralenti, sur Le tournoi à 8 équipes × 30 élèves, IA Expert (adresse `?banc`, fonction `__plafond`), et lit le compteur sur trois scénarios. `scripts/dev/pointes.ts` décompose les pas de simulation les plus lents (IA, monde, diplomatie).
+
+| Processeur | Scénario | Images par seconde | Travail moyen (simulation + dessin) | 95e centile |
+| --- | --- | --- | --- | --- |
+| normal | vue d'ensemble, 235 élèves | 60,0 | 2,1 ms (0,6 + 1,5) | 3,7 ms |
+| ralenti ×2 | vue d'ensemble, 223 élèves | 54,1 | 3,7 ms (0,9 + 2,8) | 7,1 ms |
+| ralenti ×2 | mêlée zoomée ×2 | 49,2 | 2,9 ms (0,8 + 2,2) | 6,8 ms |
+| ralenti ×4 | vue d'ensemble, 224 élèves | 29,2 | 7,6 ms (2,5 + 5,1) | 16,9 ms |
+
+Lecture : le jeu lui-même tient dans la moitié du budget d'une image (8,3 ms) jusqu'à un processeur deux fois plus lent, et en moyenne même à ×4. Les images sautées viennent surtout du navigateur : sans carte graphique, Chromium copie le canvas en logiciel à chaque image (« Commit » : 68 % du fil principal ralenti ×4, contre 23 % pour tout le code du jeu), ce qu'un iPhone fait sur sa puce graphique. Les pointes restantes sont dans la simulation : au 1 % des pas les plus lents, 4,2 ms en moyenne contre 0,32 ms d'ordinaire, dont 3,6 ms dans le monde (déplacements, séparation, cases), réparties sans coupable unique. Ce sont elles que vise la tranche suivante.
+
 ### Accueil vivant (v5.23)
 
 Logique dans `core/menu-scene.ts` (testée, déterministe) : partie de chat (poursuite de l'élève libre le plus proche, fuite, élève coincé qui passe à côté du chat en changeant de profondeur, contact, échange des rôles, compte du nouveau chat, ancien chat intouchable 1,6 s), saut de joie à deux bonds, onomatopées (trois au plus), pas plafonné à 0,1 s (un onglet revenu de veille ne téléporte personne), durées du retournement et des jauges. Dessin dans `ui/menu-backdrop.ts` : les vrais sprites des élèves, à 30 images par seconde, seulement menu affiché et page visible ; carte qui se retourne dans `ui/flip.ts` (contenu changé tout de suite, la carte arrive de la tranche en 0,24 s). Mesuré dans Chromium (844 × 390, ×3) : 0,30 ms par image pour la bande entière. Le menu seul est touché : `perf240` dans le bruit (partie 0,23 à 0,27 ms par pas, rendu ×1 1,9 à 2,2 ms).
@@ -611,6 +626,8 @@ Le dépôt contient un workflow GitHub Actions (`.github/workflows/deploy.yml`) 
 | `v5.22` | Saison 2, interface (deuxième tranche) : onde sous le doigt à la couleur de l'ordre compris, boutons qui s'enfoncent, fondus entre menu et partie et fond des fenêtres en fondu |
 | `avant-2026-11-22` | état avant la v5.23 (point de retour) |
 | `v5.23` | Saison 2, interface (troisième tranche) : accueil vivant (élèves qui jouent au chat derrière le titre, « Moi ! » de l'équipe choisie), carte d'équipe et volets qui se retournent, jauges qui se remplissent, son à chaque choix du menu |
+| `avant-2026-11-23` | état avant la v5.24 (point de retour) |
+| `v5.24` | Saison 2, performances (première tranche) : compteur d'images (rubrique « Performances » de la pause), banc de mesure en conditions iPhone simulées (`perf-iphone.ts`) et décomposition des pointes de simulation (`pointes.ts`) |
 
 ## Architecture
 
@@ -649,6 +666,7 @@ src/
     tempo.ts           rythme réglable : vitesse lente, pause tactique, attention humaine en temps de jeu
     reinforce.ts       renforts automatiques : menace des cases, case secourue par chaque camp, envoi des nouveaux élèves
     save.ts            progression (localStorage)
+    frame-meter.ts     compteur d'images : images par seconde, images sautées, travail par image, verdict
     merits.ts          bons points : gains, solde, dépenses
     upgrades.ts        améliorations globales (Production, Uniformes, Entraînement, classes) et Défense par camp
     camps.ts           camps d'une équipe : ordre, numéro, nom
@@ -692,6 +710,8 @@ scripts/dev/           outils de développement (lancés avec `npx tsx`)
   equilibre.ts         équilibrage des couleurs : couleurs et positions au hasard, sur plusieurs processus
   perf8.ts             temps de simulation à 8 équipes
   perf240.ts           pas de simulation et rendu au plafond (8 × 30 élèves)
+  perf-iphone.ts       l'application dans Chromium en conditions iPhone (844 × 390, ×3, processeur ralenti), lue sur le compteur d'images
+  pointes.ts           pas de simulation les plus lents décomposés (IA, monde, diplomatie)
   bons-points.ts       équilibrage des bons points (revenus, effet des dépenses)
   render-v3.ts         aperçus des nouveautés v3 (fanions, gains, classes, pouvoirs)
   roi.ts               parties IA contre IA en mode Roi de la cour (durée, type de victoire)
