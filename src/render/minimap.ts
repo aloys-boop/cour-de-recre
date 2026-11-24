@@ -108,12 +108,21 @@ export class Minimap {
     }
     drawGoldenMinimap(ctx, world, (gx, gy) => this.toMini(gx, gy), Math.max(2.5, (TILE_W / 2) * this.scale * 0.9));
     drawKingMinimap(ctx, world, (gx, gy) => this.toMini(gx, gy), Math.max(2.5, (TILE_W / 2) * this.scale * 0.9));
-    // Élèves.
-    for (const u of world.units) {
-      if (!u.alive || !unitVisible(world, playerTeam, u)) continue;
-      const p = this.toMini(u.x, u.y);
-      ctx.fillStyle = TEAM_COLORS[world.teamColors[u.team]].ui;
-      ctx.fillRect(p.x - 1, p.y - 1, 2.5, 2.5);
+    // Élèves : un remplissage par équipe (v5.25) au lieu d'un par élève.
+    const k = this.scale;
+    const hx = (TILE_W / 2) * k;
+    const hy = (TILE_H / 2) * k;
+    for (let team = 0; team < world.numTeams; team++) {
+      let any = false;
+      for (const u of world.units) {
+        if (u.team !== team || !u.alive || !unitVisible(world, playerTeam, u)) continue;
+        if (!any) ctx.beginPath();
+        any = true;
+        ctx.rect(this.ox + (u.x - u.y) * hx - 1, this.oy + (u.x + u.y) * hy - 1, 2.5, 2.5);
+      }
+      if (!any) continue;
+      ctx.fillStyle = TEAM_COLORS[world.teamColors[team]].ui;
+      ctx.fill();
     }
     // Motifs d'équipe (v5.20) : emblème de chaque camp possédé, par-dessus les élèves qui s'y massent.
     if (this.patterns) {

@@ -119,6 +119,9 @@ interface Cluster {
   strength: Map<number, number>;
 }
 
+/** Tableau de travail de `detectClusters` (réutilisé d'un pas à l'autre). */
+const brawlScratch: Unit[] = [];
+
 /**
  * Combattants : élèves debout à moins de `contact` d'un ennemi. Ils sont regroupés de proche en
  * proche (distance `link`) ; un groupe où deux équipes ennemies se font face est une bagarre.
@@ -129,10 +132,12 @@ export function detectClusters(world: World): Cluster[] {
   for (const u of world.units) {
     if (!u.alive) continue;
     let hit = false;
-    world.hash.query(u.x, u.y, BRAWL.contact, (o) => {
-      if (hit || o === u || !o.alive || world.isFriend(o.team, u.team)) return;
+    const count = world.hash.near(u.x, u.y, BRAWL.contact, brawlScratch);
+    for (let i = 0; i < count && !hit; i++) {
+      const o = brawlScratch[i];
+      if (o === u || !o.alive || world.isFriend(o.team, u.team)) continue;
       if ((o.x - u.x) ** 2 + (o.y - u.y) ** 2 <= c2) hit = true;
-    });
+    }
     if (hit) fighters.push(u);
   }
   if (fighters.length === 0) return [];

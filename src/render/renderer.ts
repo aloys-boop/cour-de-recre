@@ -2,6 +2,7 @@ import { TEAM_COLORS, TUNING } from '../config';
 import { impactPose, koStars, type ImpactPose } from '../core/impact';
 import type { Tile } from '../core/tile';
 import { NO_TEAM, type Vec2 } from '../core/types';
+import { TILE_H, TILE_W } from '../core/math';
 import type { Unit } from '../core/unit';
 import type { World } from '../core/world';
 import type { Camera } from './camera';
@@ -23,6 +24,7 @@ import type { Supervisor } from '../core/supervisors';
 import { CHARGE_COLOR, drawHealHeart, drawRallies, drawConquests, drawReinforcements, drawSpadeAura, spadeAuraTeams } from './tactics';
 import { tileView, unitVisible, pointVisible } from '../core/fog';
 import { drawFog } from './fog';
+import { TileImages } from './tile-images';
 import { campPennants, drawPennant } from './merits';
 import type { UnitClass } from '../core/classes';
 
@@ -80,7 +82,12 @@ export class Renderer {
     this.supSheet = lazySupervisorSheet(makeCanvas);
     this.unitEmblems = new UnitEmblems(makeCanvas as never);
     this.teamRings = new TeamRings(makeCanvas as never);
+    this.tileImages = new TileImages(ctx, makeCanvas as never);
   }
+
+  /** Fonds de cases en cache (v5.25). */
+  readonly tileImages: TileImages;
+  private readonly paintTile = (g: CanvasRenderingContext2D, c: Camera, t: Tile, owner: number): void => this.drawTileBase(g, c, t, owner);
 
   draw(
     world: World,
@@ -114,6 +121,7 @@ export class Renderer {
     ctx.fillStyle = COLORS.void;
     ctx.fillRect(0, 0, cam.viewW, cam.viewH);
     this.drawFloor(world, cam);
+    this.tileImages.begin(cam.zoom);
     for (const t of world.tiles) this.drawTile(world, t, cam, opts.time);
     const myColor = world.teamColors[opts.playerTeam];
     if (opts.guardZones) for (const t of opts.guardZones) drawGuardZone(ctx, cam, t, myColor, opts.time);
@@ -137,8 +145,7 @@ export class Renderer {
 
   // ---------------------------------------------------------------- sol
 
-  private diamondPath(cam: Camera, x0: number, y0: number, x1: number, y1: number): void {
-    const ctx = this.ctx;
+  private diamondPath(cam: Camera, x0: number, y0: number, x1: number, y1: number, ctx: CanvasRenderingContext2D = this.ctx): void {
     const a = cam.gridToScreen(x0, y0);
     const b = cam.gridToScreen(x1, y0);
     const c = cam.gridToScreen(x1, y1);
@@ -194,41 +201,14 @@ export class Renderer {
     const view = tileView(world, this.viewTeam, t);
     const ownerColor = view.owner === NO_TEAM ? NO_TEAM : world.teamColors[view.owner];
     const inset = t.isCamp ? 0.06 : 0.1;
-    this.diamondPath(cam, t.x + inset, t.y + inset, t.x + t.size - inset, t.y + t.size - inset);
-    if (t.kind === 'throne') drawThroneTile(ctx, world, t, cam, time);
-    else if (t.isCamp) {
-      // Camp : zone plate de la couleur de l'équipe.
-      ctx.fillStyle = ownerColor === NO_TEAM ? '#bdbdc2' : TEAM_COLORS[ownerColor].main;
-      ctx.fill();
-      ctx.strokeStyle = ownerColor === NO_TEAM ? COLORS.floorEdge : TEAM_COLORS[ownerColor].dark;
-      ctx.lineWidth = Math.max(1, 2 * z);
-      ctx.stroke();
-      // Liseré clair intérieur.
-      this.diamondPath(cam, t.x + 0.22, t.y + 0.22, t.x + t.size - 0.22, t.y + t.size - 0.22);
-      ctx.strokeStyle = ownerColor === NO_TEAM ? '#d8d8dc' : TEAM_COLORS[ownerColor].light;
-      ctx.lineWidth = Math.max(1, 1.2 * z);
-      ctx.stroke();
-      if (t.ghost && t.owner === NO_TEAM) drawGhostCamp(ctx, cam, t, time);
-      if (this.patterns && ownerColor !== NO_TEAM) drawCampEmblem(ctx, cam, t, ownerColor);
+    if (t.kind === 'throne') {
+      this.diamondPath(cam, t.x + inset, t.y + inset, t.x + t.size - inset, t.y + t.size - inset);
+      drawThroneTile(ctx, world, t, cam, time);
     } else {
-      // Case bonus : blanche, avec un grand symbole gris qui prend la couleur du propriétaire ;
-      // prise, son fond se teinte légèrement de l'équipe (v5.20), pour la lire même dézoomé.
-      const tileBg = ownerColor === NO_TEAM ? COLORS.tile : bonusTileFill(TEAM_COLORS[ownerColor], COLORS.tile);
-      ctx.fillStyle = tileBg;
-      ctx.fill();
-      ctx.strokeStyle = COLORS.tileEdge;
-      ctx.lineWidth = Math.max(1, 1 * z);
-      ctx.stroke();
-      if (t.suit) {
-        ctx.save();
-        ctx.translate(center.x, center.y);
-        ctx.scale(1, 0.5);
-        // Encre contrastée (v5.19) : Jaune, Orange et Rose cernés de leur teinte sombre sur le blanc.
-        const ink = ownerColor === NO_TEAM ? { fill: COLORS.suitNeutral, outline: null } : inkOn(tileBg, TEAM_COLORS[ownerColor]);
-        drawSuit(ctx, t.suit, 0, 0, 48 * z, ink.fill, ink.outline ? { color: ink.outline, width: Math.max(1.5, 2.4 * z) } : undefined);
-        ctx.restore();
-      }
-      if (this.patterns && ownerColor !== NO_TEAM) drawTileEmblem(ctx, cam, t, ownerColor);
+      const img = this.tileImages.draw(t, ownerColor, this.patterns, center.x, center.y, this.paintTile);
+      if (!img) this.drawTileBase(ctx, cam, t, ownerColor);
+      // Camp fantôme (animé) : par-dessus le fond, jamais en cache.
+      if (t.isCamp && t.ghost && t.owner === NO_TEAM) drawGhostCamp(ctx, cam, t, time);
     }
     if (t.contested && view.visible) {
       ctx.save();
@@ -259,8 +239,62 @@ export class Renderer {
     }
   }
 
+  /**
+   * Fond immobile d'une case (camp ou case bonus) : losange, liserés, symbole, emblème. Il ne
+   * change qu'avec le propriétaire, le zoom ou les motifs : dessiné une fois dans une petite
+   * image (`TileImages`, v5.25), puis recopié à chaque image.
+   */
+  private drawTileBase(ctx: CanvasRenderingContext2D, cam: Camera, t: Tile, ownerColor: number): void {
+    const z = cam.zoom;
+    const inset = t.isCamp ? 0.06 : 0.1;
+    this.diamondPath(cam, t.x + inset, t.y + inset, t.x + t.size - inset, t.y + t.size - inset, ctx);
+    if (t.isCamp) {
+      // Camp : zone plate de la couleur de l'équipe.
+      ctx.fillStyle = ownerColor === NO_TEAM ? '#bdbdc2' : TEAM_COLORS[ownerColor].main;
+      ctx.fill();
+      ctx.strokeStyle = ownerColor === NO_TEAM ? COLORS.floorEdge : TEAM_COLORS[ownerColor].dark;
+      ctx.lineWidth = Math.max(1, 2 * z);
+      ctx.stroke();
+      // Liseré clair intérieur.
+      this.diamondPath(cam, t.x + 0.22, t.y + 0.22, t.x + t.size - 0.22, t.y + t.size - 0.22, ctx);
+      ctx.strokeStyle = ownerColor === NO_TEAM ? '#d8d8dc' : TEAM_COLORS[ownerColor].light;
+      ctx.lineWidth = Math.max(1, 1.2 * z);
+      ctx.stroke();
+      if (this.patterns && ownerColor !== NO_TEAM) drawCampEmblem(ctx, cam, t, ownerColor);
+      return;
+    }
+    // Case bonus : blanche, avec un grand symbole gris qui prend la couleur du propriétaire ;
+    // prise, son fond se teinte légèrement de l'équipe (v5.20), pour la lire même dézoomé.
+    const tileBg = ownerColor === NO_TEAM ? COLORS.tile : bonusTileFill(TEAM_COLORS[ownerColor], COLORS.tile);
+    ctx.fillStyle = tileBg;
+    ctx.fill();
+    ctx.strokeStyle = COLORS.tileEdge;
+    ctx.lineWidth = Math.max(1, 1 * z);
+    ctx.stroke();
+    if (t.suit) {
+      const center = cam.gridToScreen(t.cx, t.cy);
+      ctx.save();
+      ctx.translate(center.x, center.y);
+      ctx.scale(1, 0.5);
+      // Encre contrastée (v5.19) : Jaune, Orange et Rose cernés de leur teinte sombre sur le blanc.
+      const ink = ownerColor === NO_TEAM ? { fill: COLORS.suitNeutral, outline: null } : inkOn(tileBg, TEAM_COLORS[ownerColor]);
+      drawSuit(ctx, t.suit, 0, 0, 48 * z, ink.fill, ink.outline ? { color: ink.outline, width: Math.max(1.5, 2.4 * z) } : undefined);
+      ctx.restore();
+    }
+    if (this.patterns && ownerColor !== NO_TEAM) drawTileEmblem(ctx, cam, t, ownerColor);
+  }
+
+  /** Obstacle (bac à fleurs) : tous identiques, une seule image en cache par zoom (v5.25). */
   private drawObstacle(o: Vec2, cam: Camera): void {
-    const ctx = this.ctx;
+    const z = cam.zoom;
+    const p = cam.gridToScreen(o.x + 0.5, o.y + 0.5);
+    if (this.tileImages.stamp('obstacle', p.x, p.y, o.x + 0.5, o.y + 0.5, (TILE_W / 2) * z + 6 * z + 4, (TILE_H / 2) * z + 48 * z + 4, this.paintObstacle, o, 0)) return;
+    this.drawObstacleShape(this.ctx, o, cam);
+  }
+
+  private readonly paintObstacle = (g: CanvasRenderingContext2D, c: Camera, o: Vec2): void => this.drawObstacleShape(g, o, c);
+
+  private drawObstacleShape(ctx: CanvasRenderingContext2D, o: Vec2, cam: Camera): void {
     const z = cam.zoom;
     const h = 26 * z;
     const a = cam.gridToScreen(o.x + 0.12, o.y + 0.12);
@@ -302,21 +336,77 @@ export class Renderer {
 
   // ---------------------------------------------------------------- unités
 
-  /** Unités et obstacles triés ensemble par profondeur (x + y) pour un recouvrement correct. */
+  /** Éléments à trier par profondeur, réutilisés d'une image à l'autre (aucune allocation par élève, v5.25). */
+  private readonly items: DepthItem[] = [];
+  private readonly unitItems: DepthItem[] = [];
+  /** Barres de vie de l'image en cours, dessinées ensemble à la fin (v5.25). */
+  private readonly bars: BarItem[] = [];
+  private barCount = 0;
+  /** Point de travail passé aux fonctions de dessin d'un élève (lu, jamais conservé). */
+  private readonly pt: Vec2 = { x: 0, y: 0 };
+
+  /**
+   * Unités et obstacles triés ensemble par profondeur (x + y) pour un recouvrement correct.
+   * Trois passages (v5.25) : d'abord tout ce qui est au sol sous les élèves (ombres, liserés,
+   * auras, sélection), puis les corps triés par profondeur avec les obstacles, enfin les barres
+   * de vie groupées par couleur (quelques remplissages au lieu de deux par élève), toujours
+   * au-dessus des corps : une barre ne se cache plus derrière l'élève de devant.
+   */
   private drawUnitsAndObstacles(world: World, cam: Camera, selected: Set<number>, playerTeam: number): void {
     const ctx = this.ctx;
     const z = cam.zoom;
-    type Item = { depth: number; unit?: Unit; obstacle?: Vec2; sup?: Supervisor; pennant?: { x: number; y: number; branch: UpgradeBranch; level: number } };
-    const items: Item[] = [];
-    for (const u of world.units) items.push({ depth: u.x + u.y, unit: u });
-    for (const o of world.map.obstacles ?? []) items.push({ depth: o.x + o.y + 1, obstacle: o });
-    // Fanions d'amélioration des camps (visibles seulement si le camp l'est).
-    for (const t of world.tiles) if (t.isCamp && t.owner !== NO_TEAM && tileView(world, playerTeam, t).visible) for (const p of campPennants(t)) items.push({ depth: p.depth, pennant: p });
-    pushSupervisorItems(world, items);
-    items.sort((a, b) => a.depth - b.depth);
+    const items = this.items;
+    items.length = 0;
     const margin = 80 * z;
+    let n = 0;
+    for (const u of world.units) {
+      if (!unitVisible(world, playerTeam, u)) continue;
+      const p = cam.gridToScreen(u.x, u.y);
+      if (p.x < -margin || p.y < -margin || p.x > cam.viewW + margin || p.y > cam.viewH + margin) continue;
+      let it = this.unitItems[n];
+      if (!it) this.unitItems[n] = it = { depth: 0, px: 0, py: 0 };
+      n++;
+      it.depth = u.x + u.y;
+      it.unit = u;
+      it.px = p.x;
+      it.py = p.y;
+      items.push(it);
+    }
+    for (const o of world.map.obstacles ?? []) items.push({ depth: o.x + o.y + 1, obstacle: o, px: 0, py: 0 });
+    // Fanions d'amélioration des camps (visibles seulement si le camp l'est).
+    for (const t of world.tiles) if (t.isCamp && t.owner !== NO_TEAM && tileView(world, playerTeam, t).visible) for (const p of campPennants(t)) items.push({ depth: p.depth, pennant: p, px: 0, py: 0 });
+    pushSupervisorItems(world, items as Array<{ depth: number; sup?: Supervisor }>);
+    items.sort(byDepth);
     const aura = spadeAuraTeams(world);
+
+    // 1. Au sol : ombres (image en cache), auras de pique, liserés d'équipe, cercles de sélection.
+    const sh = this.shadow(z);
+    const shw = sh.width / 2;
+    const shh = sh.height / 2;
+    for (const it of items) {
+      const u = it.unit;
+      if (!u) continue;
+      const alive = u.alive;
+      ctx.globalAlpha = alive ? 1 : Math.min(1, u.koTimer / 0.5);
+      if (aura[u.team] && alive) drawSpadeAura(ctx, { x: it.px, y: it.py }, z);
+      // Ombre portée, décalée vers le bas-droite comme dans les rendus 3D d'époque.
+      ctx.drawImage(sh as CanvasImageSource, Math.round(it.px + 4 * z - shw), Math.round(it.py + 1 * z - shh));
+      // Liseré d'équipe aux pieds (v5.20, motifs d'équipe) : démêle les mêlées serrées.
+      if (this.patterns && alive) this.teamRings.draw(ctx, world.teamColors[u.team], it.px, it.py, z * (u.pion ? SUPERVISOR_SCALE : CLASS_SCALE[u.cls]));
+      if (selected.size > 0 && selected.has(u.id)) {
+        ctx.strokeStyle = u.team === playerTeam ? '#ffffff' : '#ff6a4a';
+        ctx.lineWidth = Math.max(1.5, 2 * z);
+        ctx.beginPath();
+        ctx.ellipse(it.px, it.py, 15 * z, 7.5 * z, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+    ctx.globalAlpha = 1;
+
+    // 2. Corps et obstacles, par profondeur.
     const shownSups: Supervisor[] = [];
+    const bars = this.bars;
+    let nb = 0;
     for (const it of items) {
       if (it.obstacle) {
         this.drawObstacle(it.obstacle, cam);
@@ -333,50 +423,86 @@ export class Renderer {
         continue;
       }
       const u = it.unit!;
-      if (!unitVisible(world, playerTeam, u)) continue;
-      const p = cam.gridToScreen(u.x, u.y);
-      if (p.x < -margin || p.y < -margin || p.x > cam.viewW + margin || p.y > cam.viewH + margin) continue;
-      const fade = u.state === 'ko' ? Math.min(1, u.koTimer / 0.5) : 1;
-      ctx.globalAlpha = fade;
-      if (aura[u.team] && u.alive) drawSpadeAura(ctx, p, z);
-      // Ombre portée, décalée vers le bas-droite comme dans les rendus 3D d'époque (image en cache).
-      const sh = this.shadow(z);
-      ctx.drawImage(sh as CanvasImageSource, Math.round(p.x + 4 * z - sh.width / 2), Math.round(p.y + 1 * z - sh.height / 2));
-      // Liseré d'équipe aux pieds (v5.20, motifs d'équipe) : démêle les mêlées serrées.
-      if (this.patterns && u.alive) this.teamRings.draw(ctx, world.teamColors[u.team], p.x, p.y, z * (u.pion ? SUPERVISOR_SCALE : CLASS_SCALE[u.cls]));
-      if (selected.has(u.id)) {
-        ctx.strokeStyle = u.team === playerTeam ? '#ffffff' : '#ff6a4a';
-        ctx.lineWidth = Math.max(1.5, 2 * z);
-        ctx.beginPath();
-        ctx.ellipse(p.x, p.y, 15 * z, 7.5 * z, 0, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-      const pose = impactPose(world.time, u.hitAt, u.hitDx, u.hitDy, u.state === 'ko');
+      const p = this.pt;
+      p.x = it.px;
+      p.y = it.py;
+      const alive = u.alive;
+      const scale = u.pion ? SUPERVISOR_SCALE : CLASS_SCALE[u.cls];
+      ctx.globalAlpha = alive ? 1 : Math.min(1, u.koTimer / 0.5);
+      const pose = impactPose(world.time, u.hitAt, u.hitDx, u.hitDy, !alive);
       if (u.pion) this.drawPion(u, world.teamColors[u.team], p, z, pose);
-      else this.drawSprite(u, world.teamColors[u.team], p, z * CLASS_SCALE[u.cls], pose);
-      if (u.state === 'ko') drawKoStars(ctx, koStars(TUNING.koSeconds - u.koTimer, TUNING.koSeconds, u.id), p, z * (u.pion ? SUPERVISOR_SCALE : CLASS_SCALE[u.cls]));
-      if (u.alive && u.frozenUntil > world.time) drawFrozenMark(ctx, u, p, z, world.time);
-      // Barre de vie : fine ligne verte au-dessus de la tête.
-      if (u.alive) {
-        const bw = (u.pion ? 40 : 22) * z;
-        const bh = Math.max(2, 2.5 * z);
-        const bx = p.x - bw / 2;
-        const by = p.y - (FEET_Y + 6) * z * (u.pion ? SUPERVISOR_SCALE : CLASS_SCALE[u.cls]);
-        const ally = u.team !== playerTeam && world.isAllied(u.team, playerTeam);
-        // Allié du joueur : cadre bleuté autour de la barre et petit losange à gauche.
-        ctx.fillStyle = ally ? 'rgba(40,120,200,0.85)' : 'rgba(0,0,0,0.5)';
-        ctx.fillRect(bx - 1, by - 1, bw + 2, bh + 2);
-        if (ally) drawAllyDiamond(ctx, bx - 4 * z, by + bh / 2, z);
-        const r = u.hp / u.maxHp;
-        ctx.fillStyle = r > 0.5 ? '#3ee05a' : r > 0.25 ? '#f2c22e' : '#e5453c';
-        ctx.fillRect(bx, by, bw * r, bh);
-        if (this.patterns) this.unitEmblems.draw(ctx, world.teamColors[u.team], bx + bw + 5 * z, by + bh / 2, z);
-        drawHealHeart(ctx, u, p, z, world.time);
-        drawStarvingBar(ctx, world, u.team, bx, by, bw, bh);
+      else this.drawSprite(u, world.teamColors[u.team], p, z * scale, pose);
+      if (!alive) drawKoStars(ctx, koStars(TUNING.koSeconds - u.koTimer, TUNING.koSeconds, u.id), p, z * scale);
+      else if (u.frozenUntil > world.time) drawFrozenMark(ctx, u, p, z, world.time);
+      if (alive) {
+        let b = bars[nb];
+        if (!b) bars[nb] = b = { unit: u, x: 0, y: 0, w: 0, h: 0, r: 0, ally: false, px: 0, py: 0 };
+        nb++;
+        b.unit = u;
+        b.w = (u.pion ? 40 : 22) * z;
+        b.h = Math.max(2, 2.5 * z);
+        b.x = p.x - b.w / 2;
+        b.y = p.y - (FEET_Y + 6) * z * scale;
+        b.r = u.hp / u.maxHp;
+        b.ally = u.team !== playerTeam && world.isAllied(u.team, playerTeam);
+        b.px = p.x;
+        b.py = p.y;
       }
-      ctx.globalAlpha = 1;
     }
+    ctx.globalAlpha = 1;
+    this.barCount = nb;
+    this.drawBars(world, z);
     for (const s of shownSups) drawSupervisorBar(ctx, s, cam);
+  }
+
+  /**
+   * Barres de vie des élèves visibles : fine ligne verte au-dessus de la tête, sur un cadre sombre
+   * (bleuté pour un allié du joueur, avec un petit losange à gauche). Les cadres puis les
+   * remplissages sont groupés par couleur : cinq remplissages pour toute la cour.
+   */
+  private drawBars(world: World, z: number): void {
+    const ctx = this.ctx;
+    const n = this.barCount;
+    if (n === 0) return;
+    const bars = this.bars;
+    for (let pass = 0; pass < 2; pass++) {
+      const ally = pass === 1;
+      ctx.beginPath();
+      let any = false;
+      for (let i = 0; i < n; i++) {
+        const b = bars[i];
+        if (b.ally !== ally) continue;
+        ctx.rect(b.x - 1, b.y - 1, b.w + 2, b.h + 2);
+        any = true;
+      }
+      if (!any) continue;
+      ctx.fillStyle = ally ? 'rgba(40,120,200,0.85)' : 'rgba(0,0,0,0.5)';
+      ctx.fill();
+    }
+    for (let i = 0; i < n; i++) {
+      const b = bars[i];
+      if (b.ally) drawAllyDiamond(ctx, b.x - 4 * z, b.y + b.h / 2, z);
+    }
+    for (let band = 0; band < 3; band++) {
+      ctx.beginPath();
+      let any = false;
+      for (let i = 0; i < n; i++) {
+        const b = bars[i];
+        if (barBand(b.r) !== band || b.r <= 0) continue;
+        ctx.rect(b.x, b.y, b.w * b.r, b.h);
+        any = true;
+      }
+      if (!any) continue;
+      ctx.fillStyle = BAR_FILLS[band];
+      ctx.fill();
+    }
+    for (let i = 0; i < n; i++) {
+      const b = bars[i];
+      const u = b.unit;
+      if (this.patterns) this.unitEmblems.draw(ctx, world.teamColors[u.team], b.x + b.w + 5 * z, b.y + b.h / 2, z);
+      if (u.healedAt >= 0) drawHealHeart(ctx, u, { x: b.px, y: b.py }, z, world.time);
+      drawStarvingBar(ctx, world, u.team, b.x, b.y, b.w, b.h);
+    }
   }
 
   private shadowCanvas: SheetCanvas | null = null;
@@ -647,4 +773,42 @@ function drawWhistle(ctx: CanvasRenderingContext2D, x: number, y: number, r: num
   ctx.moveTo(x - 6 * s, y - 1 * s);
   ctx.quadraticCurveTo(x - 9 * s, y + 5 * s, x - 3 * s, y + 7 * s);
   ctx.stroke();
+}
+
+/** Élément trié par profondeur dans le dessin de la cour (un seul des champs facultatifs est rempli). */
+interface DepthItem {
+  depth: number;
+  unit?: Unit;
+  obstacle?: Vec2;
+  sup?: Supervisor;
+  pennant?: { x: number; y: number; branch: UpgradeBranch; level: number };
+  /** Position à l'écran (élèves seulement). */
+  px: number;
+  py: number;
+}
+
+/** Barre de vie d'un élève, en attente du passage groupé. */
+interface BarItem {
+  unit: Unit;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** Part de vie restante (0 à 1). */
+  r: number;
+  ally: boolean;
+  px: number;
+  py: number;
+}
+
+function byDepth(a: DepthItem, b: DepthItem): number {
+  return a.depth - b.depth;
+}
+
+/** Couleurs de remplissage des barres de vie : plus de la moitié, plus du quart, le reste. */
+const BAR_FILLS = ['#3ee05a', '#f2c22e', '#e5453c'] as const;
+
+/** Tranche de couleur d'une barre de vie (0 vert, 1 jaune, 2 rouge), comme avant la v5.25. */
+export function barBand(r: number): number {
+  return r > 0.5 ? 0 : r > 0.25 ? 1 : 2;
 }

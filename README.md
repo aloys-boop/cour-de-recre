@@ -474,6 +474,25 @@ Rubrique « Performances » de la pause : « Compteur d'images » affiche, sous 
 
 Lecture : le jeu lui-même tient dans la moitié du budget d'une image (8,3 ms) jusqu'à un processeur deux fois plus lent, et en moyenne même à ×4. Les images sautées viennent surtout du navigateur : sans carte graphique, Chromium copie le canvas en logiciel à chaque image (« Commit » : 68 % du fil principal ralenti ×4, contre 23 % pour tout le code du jeu), ce qu'un iPhone fait sur sa puce graphique. Les pointes restantes sont dans la simulation : au 1 % des pas les plus lents, 4,2 ms en moyenne contre 0,32 ms d'ordinaire, dont 3,6 ms dans le monde (déplacements, séparation, cases), réparties sans coupable unique. Ce sont elles que vise la tranche suivante.
 
+### Dessin et simulation allégés (v5.25)
+
+Rien ne change dans les règles : la partie est la même au pas près (même graine, même empreinte, `scripts/dev/empreinte.ts`). Ce qui change, c'est le travail par image.
+
+- **Fonds de cases en cache** (`render/tile-images.ts`). Le losange, les liserés, le grand symbole et l'emblème d'une case ne changent qu'avec son propriétaire, le zoom ou les motifs : ils sont dessinés une fois par combinaison, à la résolution de l'écran, puis recopiés au pixel près. Même chose pour les bacs à fleurs, tous identiques. Pendant un pincement, les cases sont dessinées directement comme avant, et le cache est refait dès que le zoom se pose.
+- **Élèves en trois passages** : d'abord tout ce qui est au sol (ombres, liserés, auras, sélection), puis les corps triés par profondeur avec les obstacles, enfin les barres de vie, groupées par couleur (cinq remplissages pour toute la cour au lieu de deux par élève). Une barre n'est plus jamais cachée par l'élève de devant. Mini-carte : un remplissage par équipe au lieu d'un par élève.
+- **Simulation sans allocation dans les boucles chaudes** : le hash spatial garde ses tableaux et des compteurs (vider un tableau rendait sa mémoire, réallouée au pas suivant), ses clés restent de petits entiers, et la séparation, la recherche d'ennemi, les cases, les infirmiers et les bagarres parcourent leurs voisins sans fonction de rappel (`near`).
+
+| Mesure | v5.24 | v5.25 |
+| --- | --- | --- |
+| Appels au canvas par image, vue d'ensemble, 240 élèves | 2 494 (dont 1 354 tracés) | 1 526 (dont 574 tracés) |
+| Même chose avec les motifs d'équipe | 3 197 (1 810 tracés) | 2 087 (1 014 tracés) |
+| Rendu `perf240`, ×1 / ×1 motifs / ×2 motifs | 1,59 / 2,22 / 1,90 ms | 1,21 / 1,56 / 0,73 ms |
+| Mémoire allouée par pas de simulation (Le tournoi) | 147 Ko | 69 Ko |
+| Ramasse-miettes pour 270 s de jeu | 209 passages, 133 ms | 108 passages, 79 ms |
+| Pas complet (IA + monde + diplomatie), 99e centile | 0,83 ms | 0,74 ms |
+
+Sur le banc Chromium sans carte graphique (`perf-iphone.ts`, ×4), la vue d'ensemble reste autour de 10 à 12 ms au 95e centile : ce banc est limité par la peinture logicielle des pixels, que l'iPhone fait sur sa puce graphique, et ses chiffres varient de 30 % d'une fois à l'autre sur la machine du studio. Les nouveaux outils comparent deux versions sans ce bruit : `banc-dessin.ts` (même image redessinée, appels au canvas comptés), `allocations.ts` (qui alloue quoi à chaque pas), `pointes-monde.ts` (étapes du monde dans les pas lents, ramasse-miettes).
+
 ### Accueil vivant (v5.23)
 
 Logique dans `core/menu-scene.ts` (testée, déterministe) : partie de chat (poursuite de l'élève libre le plus proche, fuite, élève coincé qui passe à côté du chat en changeant de profondeur, contact, échange des rôles, compte du nouveau chat, ancien chat intouchable 1,6 s), saut de joie à deux bonds, onomatopées (trois au plus), pas plafonné à 0,1 s (un onglet revenu de veille ne téléporte personne), durées du retournement et des jauges. Dessin dans `ui/menu-backdrop.ts` : les vrais sprites des élèves, à 30 images par seconde, seulement menu affiché et page visible ; carte qui se retourne dans `ui/flip.ts` (contenu changé tout de suite, la carte arrive de la tranche en 0,24 s). Mesuré dans Chromium (844 × 390, ×3) : 0,30 ms par image pour la bande entière. Le menu seul est touché : `perf240` dans le bruit (partie 0,23 à 0,27 ms par pas, rendu ×1 1,9 à 2,2 ms).
@@ -628,6 +647,8 @@ Le dépôt contient un workflow GitHub Actions (`.github/workflows/deploy.yml`) 
 | `v5.23` | Saison 2, interface (troisième tranche) : accueil vivant (élèves qui jouent au chat derrière le titre, « Moi ! » de l'équipe choisie), carte d'équipe et volets qui se retournent, jauges qui se remplissent, son à chaque choix du menu |
 | `avant-2026-11-23` | état avant la v5.24 (point de retour) |
 | `v5.24` | Saison 2, performances (première tranche) : compteur d'images (rubrique « Performances » de la pause), banc de mesure en conditions iPhone simulées (`perf-iphone.ts`) et décomposition des pointes de simulation (`pointes.ts`) |
+| `avant-2026-11-24` | état avant la v5.25 (point de retour) |
+| `v5.25` | Saison 2, performances (deuxième tranche) : fonds de cases et obstacles en cache, barres de vie groupées au-dessus des élèves, mini-carte groupée par équipe (39 % d'appels au canvas en moins, 58 % de tracés en moins) ; simulation deux fois moins gourmande en mémoire, à l'identique |
 
 ## Architecture
 
@@ -650,7 +671,7 @@ src/
     headcount.ts       compteur d'élèves : effectifs vus par le joueur (brouillard compris)
     king.ts            mode Roi de la cour : trône, temps de règne, victoire, aide à l'IA
     pathfinding.ts     A* 8 voisins + lissage
-    spatial.ts         hash spatial pour les voisinages
+    spatial.ts         hash spatial pour les voisinages (sans allocation, `near`)
     grid.ts            grille de navigation et obstacles
     mapgen.ts          générateur de cartes aléatoires (camps, cases bonus, obstacles)
     maps.ts            les 6 niveaux
@@ -680,6 +701,7 @@ src/
     sprites.ts         élèves dessinés pixel par pixel : 8 directions, marche, coup, KO, silhouettes des classes
     suits.ts           symboles de cartes en vectoriel
     renderer.ts        sol iso, cases, obstacles, unités triées par profondeur, marqueurs
+    tile-images.ts     fonds de cases et obstacles en cache au zoom courant
     minimap.ts         mini-carte
     king.ts            trône doré, couronne pixel, repère sur la mini-carte
     camera.ts          zoom, déplacement, cadrage
@@ -712,6 +734,10 @@ scripts/dev/           outils de développement (lancés avec `npx tsx`)
   perf240.ts           pas de simulation et rendu au plafond (8 × 30 élèves)
   perf-iphone.ts       l'application dans Chromium en conditions iPhone (844 × 390, ×3, processeur ralenti), lue sur le compteur d'images
   pointes.ts           pas de simulation les plus lents décomposés (IA, monde, diplomatie)
+  pointes-monde.ts     étapes du monde dans les pas lents, chemins calculés, ramasse-miettes
+  allocations.ts       mémoire allouée à chaque pas, par fonction
+  empreinte.ts         empreinte d'une partie (vérifier qu'une optimisation ne change rien au jeu)
+  banc-dessin.ts       même image redessinée dans Chromium : temps et appels au canvas
   bons-points.ts       équilibrage des bons points (revenus, effet des dépenses)
   render-v3.ts         aperçus des nouveautés v3 (fanions, gains, classes, pouvoirs)
   roi.ts               parties IA contre IA en mode Roi de la cour (durée, type de victoire)

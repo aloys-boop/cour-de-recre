@@ -2,6 +2,29 @@
 
 Une entrée par session, la plus récente en haut : date, version, ce qui a été fait, ce qui a été mesuré, ce qui reste ou ce qui inquiète.
 
+## 24/11/2026 : session de développement, v5.25 (saison 2, performances b : lisser les pointes)
+
+**Fait**
+- Aucun retour d'Aloys (seuls les anciens journaux envoyés à lui-même sur 14 jours, sans réponse ; aucun e-mail envoyé). Travail du jour : deuxième tranche du point « Performances », en entier. Point de retour : branche `avant-2026-11-24`.
+- Diagnostic d'abord. Simulation : le 99e centile du pas complet était déjà sous 1 ms (0,83) ; les « 4,2 ms » de la veille étaient la moyenne du 1 % le plus lent, faite surtout de passages du ramasse-miettes et de recompilations. `allocations.ts` : 147 Ko alloués par pas, dont la moitié par le hash spatial (vider un tableau par `length = 0` rend sa mémoire à V8, réallouée au pas suivant ; clés de cellules au-delà des petits entiers). Dessin : profil Chromium de la vue d'ensemble, le fond des cases (losanges, liserés, symboles, `save`/`restore`) faisait 77 % du temps du dessin, les élèves 13 %.
+- `core/spatial.ts` : cellules à compteur, clés en petits entiers, `near()` qui écrit les voisins dans un tableau fourni et retourne leur nombre ; séparation, recherche d'ennemi, cases, infirmiers et bagarres l'utilisent. Partie identique au pas près (`empreinte.ts`, trois parties de 60 s, avant et après).
+- `render/tile-images.ts` : fonds de cases et bacs à fleurs en cache au zoom courant et à la résolution de l'écran, recopiés calés sur les pixels de l'appareil ; dessin direct pendant un pincement, cache refait quand le zoom se pose ; dessin direct aussi si le contexte n'a pas de transformation lisible.
+- `renderer.ts` : élèves en trois passages (sol, corps, barres), barres de vie groupées par couleur et désormais toujours au-dessus des corps, objets de tri réutilisés ; mini-carte : un remplissage par équipe.
+- Outils : `pointes-monde.ts`, `allocations.ts`, `empreinte.ts`, `banc-dessin.ts` (même image redessinée, appels au canvas comptés : la mesure qui ne dépend pas de la machine).
+- 9 nouveaux tests (`performances-b.test.ts` : voisinage identique à `query`, tableau réutilisé, coordonnées lointaines, cache instable pendant le zoom puis une image par combinaison, calage au pixel, contexte sans transformation, cache construit une fois dans le vrai rendu, barres groupées après les corps, tranches de couleur). 553 tests verts.
+
+**Mesuré**
+- Appels au canvas par image (vue d'ensemble, 240 élèves) : 2 494 → 1 526, tracés 1 354 → 574 ; avec les motifs 3 197 → 2 087, tracés 1 810 → 1 014.
+- `perf240` rendu (canvas logiciel) : ×1 1,59 → 1,21 ms, ×2 0,93 → 0,71, ×1 motifs 2,22 → 1,56, ×2 motifs 1,90 → 0,73. Simulation : partie 0,18 ms par pas, mêlée 0,11, ordres 0,15, dans le bruit.
+- `pointes-monde` (3 parties du Tournoi, 270 s) : ramasse-miettes 209 → 108 passages, 133 → 79 ms ; pas complet au 99e centile 0,83 → 0,74 ms ; mémoire par pas 147 → 69 Ko.
+- `perf-iphone` ×4 : vue d'ensemble entre 8,9 et 12,7 ms au 95e centile selon les essais, ancienne et nouvelle version confondues : le banc est dominé par la peinture logicielle de Chromium et par la charge de la machine (30 % d'écart d'un essai à l'autre). Le but « 8,3 ms à ×4 » n'est donc pas vérifiable ici ; d'où le banc par appels au canvas.
+- Captures 844 × 390 ×3 (menu, vue d'ensemble, zoom avec motifs) : cases identiques à la version précédente, nettes, sans décalage ; barres au-dessus des têtes ; aucune erreur de console. Équilibre non relancé : la partie est identique au pas près.
+
+**Reste à faire, inquiétudes**
+- Prochaine session : « Performances c » (garde-fou automatique), puis la saison 3.
+- Les pointes isolées restantes (5 à 11 ms, une ou deux par minute sur ordinateur) ressemblent à des recompilations de V8 plus qu'à du code du jeu ; à surveiller sur le compteur de l'iPhone.
+- Les barres de vie passent toujours devant les élèves : plus lisible dans les mêlées, mais une barre peut couvrir le haut d'une tête juste derrière. À revoir si Aloys le remarque.
+
 ## 23/11/2026 : session de développement, v5.24 (saison 2, performances a : mesurer)
 
 **Fait**

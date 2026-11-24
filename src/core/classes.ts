@@ -84,20 +84,25 @@ export function applyClass(u: Unit, cls: UnitClass): void {
   u.speedMul *= info.speed;
 }
 
+/** Tableau de travail de `updateHealers` (réutilisé d'un pas à l'autre). */
+const healScratch: Unit[] = [];
+
 /** Les infirmiers soignent les élèves amis (leur équipe et leurs alliés) autour d'eux. */
 export function updateHealers(world: World, dt: number): void {
   for (const h of world.units) {
     if (!h.alive || h.cls !== 'infirmier') continue;
     const info = CLASSES.infirmier;
     const r2 = info.healRadius * info.healRadius;
-    world.hash.query(h.x, h.y, info.healRadius, (u) => {
-      if (u === h || !u.alive || u.hp >= u.maxHp || !world.isFriend(u.team, h.team)) return;
+    const count = world.hash.near(h.x, h.y, info.healRadius, healScratch);
+    for (let i = 0; i < count; i++) {
+      const u = healScratch[i];
+      if (u === h || !u.alive || u.hp >= u.maxHp || !world.isFriend(u.team, h.team)) continue;
       const dx = u.x - h.x;
       const dy = u.y - h.y;
-      if (dx * dx + dy * dy > r2) return;
+      if (dx * dx + dy * dy > r2) continue;
       u.hp = Math.min(u.maxHp, u.hp + info.heal * dt);
       u.healedAt = world.time;
-    });
+    }
   }
 }
 

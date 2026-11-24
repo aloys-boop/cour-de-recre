@@ -433,18 +433,24 @@ export class World {
     for (const u of this.units) if (u.alive) this.hash.insert(u);
   }
 
+  /** Tableau de travail des requêtes de voisinage du monde (réutilisé, jamais conservé). */
+  private readonly near: Unit[] = [];
+
   private nearestEnemy(u: Unit, radius: number): Unit | null {
     let best: Unit | null = null;
     let bd = radius * radius;
-    this.hash.query(u.x, u.y, radius, (o) => {
-      if (!o.alive || this.isFriend(o.team, u.team)) return;
+    const near = this.near;
+    const count = this.hash.near(u.x, u.y, radius, near);
+    for (let i = 0; i < count; i++) {
+      const o = near[i];
+      if (!o.alive || this.isFriend(o.team, u.team)) continue;
       const d = dist2(u.x, u.y, o.x, o.y);
       if (d < bd) {
         bd = d;
         best = o;
       }
-    });
-    return best as Unit | null;
+    }
+    return best;
   }
 
   private updateUnit(u: Unit, dt: number): void {
@@ -615,25 +621,28 @@ export class World {
       if (!u.alive) continue;
       let px = 0;
       let py = 0;
-      this.hash.query(u.x, u.y, r, (o) => {
-        if (o === u || !o.alive) return;
+      const near = this.near;
+      const count = this.hash.near(u.x, u.y, r, near);
+      for (let i = 0; i < count; i++) {
+        const o = near[i];
+        if (o === u || !o.alive) continue;
         // Des alliés se traversent sans se bloquer.
-        if (o.team !== u.team && this.isAllied(o.team, u.team)) return;
+        if (o.team !== u.team && this.isAllied(o.team, u.team)) continue;
         const dx = u.x - o.x;
         const dy = u.y - o.y;
         const d2 = dx * dx + dy * dy;
-        if (d2 >= r2) return;
+        if (d2 >= r2) continue;
         if (d2 < 1e-6) {
           const a = (u.id * 2.399) % (Math.PI * 2);
           px += Math.cos(a) * 0.02;
           py += Math.sin(a) * 0.02;
-          return;
+          continue;
         }
         const d = Math.sqrt(d2);
         const push = ((r - d) / r) * 0.5;
         px += (dx / d) * push * r * 0.5;
         py += (dy / d) * push * r * 0.5;
-      });
+      }
       if (px !== 0 || py !== 0) {
         const nx = u.x + px;
         const ny = u.y + py;
@@ -659,14 +668,17 @@ export class World {
       pres.fill(0);
       // Soin : sur son propre camp ou un cœur possédé, un élève se régénère.
       const heals = t.owner !== NO_TEAM && (t.isCamp || t.suit === 'heart');
-      this.hash.query(t.cx, t.cy, t.half, (u) => {
-        if (!u.alive || !t.contains(u.x, u.y)) return;
+      const near = this.near;
+      const count = this.hash.near(t.cx, t.cy, t.half, near);
+      for (let k = 0; k < count; k++) {
+        const u = near[k];
+        if (!u.alive || !t.contains(u.x, u.y)) continue;
         if (!u.pion) pres[u.team] += CLASSES[u.cls].capture;
         if (heals && u.team === t.owner && u.hp < u.maxHp && !this.rhythm.starving[u.team]) {
           u.hp = Math.min(u.maxHp, u.hp + TUNING.regenPerSec * t.defenseMul * dt);
           u.healedAt = this.time;
         }
-      });
+      }
       const ev = updateCapture(t, pres, dt, this.friendFn);
       if (ev && ev.kind === 'captured') {
         changed = true;
