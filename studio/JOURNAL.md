@@ -14,6 +14,7 @@ Une entrée par session, la plus récente en haut : date, version, ce qui a ét�
 - 9 nouveaux tests (`performances-b.test.ts` : voisinage identique à `query`, tableau réutilisé, coordonnées lointaines, cache instable pendant le zoom puis une image par combinaison, calage au pixel, contexte sans transformation, cache construit une fois dans le vrai rendu, barres groupées après les corps, tranches de couleur). 553 tests verts.
 
 **Mesuré**
+- Déploiement : run n° 63 « Déploiement GitHub Pages » réussi (tests, build, `deploy-pages`).
 - Appels au canvas par image (vue d'ensemble, 240 élèves) : 2 494 → 1 526, tracés 1 354 → 574 ; avec les motifs 3 197 → 2 087, tracés 1 810 → 1 014.
 - `perf240` rendu (canvas logiciel) : ×1 1,59 → 1,21 ms, ×2 0,93 → 0,71, ×1 motifs 2,22 → 1,56, ×2 motifs 1,90 → 0,73. Simulation : partie 0,18 ms par pas, mêlée 0,11, ordres 0,15, dans le bruit.
 - `pointes-monde` (3 parties du Tournoi, 270 s) : ramasse-miettes 209 → 108 passages, 133 → 79 ms ; pas complet au 99e centile 0,83 → 0,74 ms ; mémoire par pas 147 → 69 Ko.
