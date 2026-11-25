@@ -13,6 +13,7 @@ Une entrée par session, la plus récente en haut : date, version, ce qui a ét�
 - 12 nouveaux tests (`performances-c.test.ts` : fluide et juste sans effet, descente en 2 s puis cran 2 et plafond, saccade brève ignorée, pause et mesure trop courte, remontée en 15 s et délai doublé après rechute, plafond de 2 min, « juste » neutre, coupure qui rend tout, crans et libellés, effets allégés, sauvegarde ; `performances-c-app.test.ts` : application complète à ×3, pause ignorée, cran 1 et annonce, cran 2 et canvas ×1,5, rubrique de la pause, « Désactivé » qui rend ×2 et mémorisé, plus d'allègement ensuite). 565 tests verts.
 
 **Mesuré**
+- Déploiement : run n° 65 « Déploiement GitHub Pages » réussi (tests, build, `deploy-pages`).
 - `crans.ts` (Chromium, 844 × 390 ×3, ×4, deux essais par cran) : vue d'ensemble 34,1 / 34,3 i/s au cran 0, 37,8 / 38,6 au cran 1, 42,4 / 43,9 au cran 2 ; mêlée ×2 38,4 / 41,7, 44,2 / 41,5, 55,2 / 53,9. Le pourcentage d'images sautées du banc est trompeur quand l'intervalle médian bascule entre 16,7 et 33 ms : les images par seconde font foi.
 - `perf-iphone.ts` ×4 avec le garde-fou : il descend au cran 1 dans la vue d'ensemble puis au cran 2 dans la mêlée (59,5 i/s en fin de banc, contre 56,7 sans garde-fou).
 - `perf240` (deux passages) : partie 0,23 ms par pas, mêlée 0,11 à 0,15, ordres 0,17 à 0,20, rendu ×1 1,6 à 2,4 ms, ×2 0,8 à 0,9 : dans le bruit de la machine (le monde et le renderer n'ont pas changé). Équilibre non relancé : aucune règle de jeu touchée.
