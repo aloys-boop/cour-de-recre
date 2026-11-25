@@ -34,6 +34,8 @@ export interface Progress {
   patterns?: boolean;
   /** Compteur d'images affiché en partie (v5.24, facultatif : absent = masqué). */
   meter?: boolean;
+  /** Allègement automatique en cas de saccades (v5.26, facultatif : absent = activé). */
+  autoQuality?: boolean;
 }
 
 /** Échelle de difficulté actuelle (Facile, Normal, Difficile, Expert). */
@@ -86,6 +88,7 @@ export function loadProgress(store: StorageLike | null = storage()): Progress {
       shake: parsed.shake !== false,
       patterns: parsed.patterns === true,
       meter: parsed.meter === true,
+      autoQuality: parsed.autoQuality !== false,
     };
   } catch {
     return { ...DEFAULT, wins: {} };

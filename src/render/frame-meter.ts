@@ -11,11 +11,15 @@ export interface MeterAnchor {
   top: number;
 }
 
-export function drawFrameMeter(ctx: CanvasRenderingContext2D, dpr: number, width: number, meter: FrameMeter, anchor: MeterAnchor | null): void {
+/**
+ * `level` : cran du garde-fou de fluidité (v5.26) ; allégé, la pastille le dit (« allégé »,
+ * « ×1,5 ») pour que le joueur qui regarde le compteur sache pourquoi les « Paf ! » ont disparu.
+ */
+export function drawFrameMeter(ctx: CanvasRenderingContext2D, dpr: number, width: number, meter: FrameMeter, anchor: MeterAnchor | null, level = 0): void {
   const now = performance.now();
   if (!cached || now - cached.at > 500 || now < cached.at) cached = { at: now, stats: meter.stats() };
   const s = cached.stats;
-  const label = meterLabel(s);
+  const label = meterLabel(s) + (level >= 2 ? ' · ×1,5' : level === 1 ? ' · allégé' : '');
   const color = VERDICT_COLORS[frameVerdict(s)];
   ctx.save();
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

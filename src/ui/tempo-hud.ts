@@ -174,13 +174,34 @@ export function readabilityBlock(on: boolean, onPick: (v: boolean) => void): HTM
 /**
  * Bloc « Performances » du menu pause (v5.24) : compteur d'images en haut de l'écran
  * (images par seconde et travail du jeu par image, pastille verte, orange ou rouge).
+ * v5.26 : « Allègement auto » (garde-fou de fluidité, activé par défaut) et une ligne qui dit ce
+ * qui est allégé en ce moment.
  */
-export function performanceBlock(on: boolean, onPick: (v: boolean) => void): HTMLElement {
+export function performanceBlock(
+  on: boolean,
+  onPick: (v: boolean) => void,
+  auto?: { on: boolean; state: string; onPick: (v: boolean) => void },
+): HTMLElement {
   const box = document.createElement('div');
   box.className = 'tempo-block performance-block';
   const title = document.createElement('div');
   title.className = 'tempo-title';
   title.textContent = 'Performances';
   box.append(title, segmented('Compteur d\u2019images', 'meter-toggle', [['on', 'Affiché'], ['off', 'Masqué']], on ? 'on' : 'off', (v) => onPick(v === 'on')));
+  if (auto) {
+    const note = document.createElement('div');
+    note.className = 'tempo-note quality-state';
+    const say = (enabled: boolean) => {
+      note.textContent = enabled ? `En ce moment\u00a0: ${auto.state}.` : 'Tous les effets, même si l\u2019image saccade.';
+    };
+    say(auto.on);
+    box.append(
+      segmented('Allègement auto', 'quality-toggle', [['on', 'Activé'], ['off', 'Désactivé']], auto.on ? 'on' : 'off', (v) => {
+        say(v === 'on');
+        auto.onPick(v === 'on');
+      }),
+      note,
+    );
+  }
   return box;
 }

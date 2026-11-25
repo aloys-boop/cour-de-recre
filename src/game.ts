@@ -48,6 +48,7 @@ import { assignGuards, canGuard, guardCounts } from './core/garrison';
 import { assignConquest, assignDefence, assignEscort, releaseSquad, squadMembers, squadMode, type SquadMode } from './core/squads';
 import { speedFactor, TacticalPause, tempoAllowed, type GameSpeed } from './core/tempo';
 import { FrameMeter } from './core/frame-meter';
+import { QualityGovernor, dprCap, lightEffects, qualityLabel, type QualityLevel } from './core/quality';
 import { drawFrameMeter, type MeterAnchor } from './render/frame-meter';
 
 /** Résultat d'une partie ; « abandon » : le joueur a abandonné (défaite, statistiques quand même). */
@@ -74,6 +75,8 @@ export interface GameOptions {
   patterns?: boolean;
   /** Compteur d'images affiché (v5.24, réglage « Performances »). */
   meter?: boolean;
+  /** Allègement automatique en cas de saccades (v5.26, réglage « Performances », absent : activé). */
+  autoQuality?: boolean;
 }
 
 export interface GameHooks {
@@ -163,6 +166,10 @@ export class Game {
   /** Compteur d'images (v5.24) : mesure toujours, ne s'affiche que sur demande. */
   readonly meter = new FrameMeter();
   private meterShown = false;
+  /** Garde-fou de fluidité (v5.26) : allège les effets puis la résolution si les saccades durent. */
+  readonly quality = new QualityGovernor();
+  /** Image paire ou impaire : la mini-carte n'est redessinée qu'une fois sur deux en cran allégé. */
+  private frameParity = 0;
   /** Pouvoir armé par le joueur (visée en cours) et point visé (aperçu de la zone). */
   armedPower: PowerId | null = null;
   powerAim: Vec2 | null = null;
@@ -231,6 +238,7 @@ export class Game {
     this.speed = speedFactor(opts.speed ?? 'normale', opts.difficulty, !!opts.tutorial);
     this.fx.heat.shakeEnabled = opts.shake !== false;
     this.meterShown = opts.meter === true;
+    this.quality.enabled = opts.autoQuality !== false;
     // Roi de la cour : trône au centre (jamais en campagne : pas de règles passées).
     this.world = new World(isKingMode(rules) ? withThrone(opts.map) : opts.map, opts.map.teams, seed, [opts.playerColor, ...others]);
     this.world.rules = rules;
@@ -327,7 +335,7 @@ export class Game {
   // ---------------------------------------------------------------- cycle de vie
 
   resize(): void {
-    this.dpr = Math.min(2, window.devicePixelRatio || 1);
+    this.dpr = Math.min(dprCap(this.quality.level), window.devicePixelRatio || 1);
     const w = this.canvas.clientWidth || window.innerWidth;
     const h = this.canvas.clientHeight || window.innerHeight;
     this.canvas.width = Math.round(w * this.dpr);
@@ -452,6 +460,41 @@ export class Game {
     return this.meterShown;
   }
 
+  /** Active ou coupe l'allègement automatique (réglage « Performances » de la pause, v5.26). */
+  setAutoQuality(on: boolean): void {
+    const ch = this.quality.setEnabled(on);
+    if (ch) this.applyQuality(ch.level);
+  }
+
+  get autoQuality(): boolean {
+    return this.quality.enabled;
+  }
+
+  /** Cran d'allègement en cours (0 : tous les effets). */
+  get qualityLevel(): QualityLevel {
+    return this.quality.level;
+  }
+
+  /** Résolution du canvas en cours (pixels de l'appareil par point d'écran). */
+  get pixelRatio(): number {
+    return this.dpr;
+  }
+
+  /** Bancs d'essai : fige un cran (le garde-fou est coupé, sans toucher à la sauvegarde). */
+  forceQuality(level: QualityLevel): void {
+    this.quality.enabled = false;
+    this.quality.level = level;
+    this.applyQuality(level);
+  }
+
+  /** Applique un cran du garde-fou : effets, puis résolution du canvas ; la mesure repart de zéro. */
+  private applyQuality(level: QualityLevel): void {
+    this.fx.light = lightEffects(level);
+    const want = Math.min(dprCap(level), (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
+    if (want !== this.dpr) this.resize();
+    this.meter.reset();
+  }
+
   private anchorCache: { at: number; anchor: MeterAnchor | null } | null = null;
 
   /** Bouton de pause (relu deux fois par seconde) : la pastille du compteur se cale dessous. */
@@ -549,6 +592,14 @@ export class Game {
     this.render();
     const t2 = performance.now();
     this.meter.record({ interval, sim: t1 - t0, render: t2 - t1 });
+    // Garde-fou de fluidité : jugé seulement pendant le jeu (ni pause, ni fin, ni page cachée).
+    const running = !this.paused && !this.over && !this.ending && !(typeof document !== 'undefined' && document.visibilityState === 'hidden');
+    const ch = this.quality.update(interval > 0 && interval <= 1000 ? interval / 1000 : 0, running, () => this.meter.stats());
+    if (ch) {
+      this.applyQuality(ch.level);
+      // La première fois qu'une partie s'allège, une ligne l'explique ; ensuite, en silence.
+      if (ch.dir === 'down' && this.quality.downs === 1) this.hooks.onAnnounce?.(`Fluidité : ${qualityLabel(ch.level)}`);
+    }
   }
 
   private step(dt: number): void {
@@ -768,8 +819,10 @@ export class Game {
     if (this.ripples.length) drawRipples(ctx, this.ripples, reducedMotion(), this.dpr);
     this.fx.draw(ctx, this.cam);
     this.gains.draw(ctx, this.cam);
-    this.minimap.draw(this.world, this.cam);
-    if (this.meterShown) drawFrameMeter(ctx, this.dpr, this.canvas.width / this.dpr, this.meter, this.meterAnchor());
+    // Cran allégé : mini-carte redessinée une image sur deux (son canvas garde l'image précédente).
+    this.frameParity ^= 1;
+    if (!lightEffects(this.quality.level) || this.frameParity === 0) this.minimap.draw(this.world, this.cam);
+    if (this.meterShown) drawFrameMeter(ctx, this.dpr, this.canvas.width / this.dpr, this.meter, this.meterAnchor(), this.quality.level);
     const e = this.ending;
     if (e && !e.done) {
       const shared = this.sharedWin;

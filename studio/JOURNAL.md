@@ -2,6 +2,27 @@
 
 Une entrée par session, la plus récente en haut : date, version, ce qui a été fait, ce qui a été mesuré, ce qui reste ou ce qui inquiète.
 
+## 25/11/2026 : session de développement, v5.26 (saison 2, performances c : garde-fou)
+
+**Fait**
+- Aucun retour d'Aloys (seuls les anciens journaux envoyés à lui-même sur 14 jours, sans réponse ; aucun e-mail envoyé). Travail du jour : troisième et dernière tranche du point « Performances », en entier, ce qui clôt la saison 2. Point de retour : branche `avant-2026-11-25`.
+- `src/core/quality.ts` : garde-fou à trois crans (tous les effets ; effets allégés ; image ×1,5). Examen du compteur deux fois par seconde, seulement en jeu (ni pause, ni fin, ni page cachée) et après une seconde de mesure ; 2 s de « saccadé » continu pour descendre, 3 s de mesure au nouveau cran, 15 s de « fluide » pour remonter, délai doublé à chaque rechute (redescente moins de 12 s après une remontée), 2 minutes au plus.
+- `Game` : cran appliqué aux onomatopées (`Effects.light` : plus de « Paf ! », « Bam ! », « Pif ! » ; « Mêlée ! », « Paré ! » et KO gardés), à la mini-carte (une image sur deux) et à la résolution du canvas (×2 → ×1,5, cache des cases refait de lui-même) ; compteur vidé à chaque changement ; annonce « Fluidité : effets allégés » la première fois ; `forceQuality` pour les bancs. Pastille du compteur : « · allégé » ou « · ×1,5 ».
+- Pause, « Performances » : « Allègement auto » Activé / Désactivé (mémorisé, `autoQuality` absent = activé : anciennes sauvegardes compatibles) et la ligne « En ce moment : … ». « Comment jouer » (Lisibilité) l'explique.
+- Outils : `scripts/dev/crans.ts` (chaque cran figé, mesuré au compteur, ×4) ; `perf-iphone.ts` affiche le cran atteint, `GARDE=0` pour le couper. Au passage : l'adresse par défaut de `perf-iphone.ts` (`/cour-de-recre/?banc`) ne marche pas avec `npm run preview` (base `./`) : passer `http://localhost:4173/?banc`.
+- 12 nouveaux tests (`performances-c.test.ts` : fluide et juste sans effet, descente en 2 s puis cran 2 et plafond, saccade brève ignorée, pause et mesure trop courte, remontée en 15 s et délai doublé après rechute, plafond de 2 min, « juste » neutre, coupure qui rend tout, crans et libellés, effets allégés, sauvegarde ; `performances-c-app.test.ts` : application complète à ×3, pause ignorée, cran 1 et annonce, cran 2 et canvas ×1,5, rubrique de la pause, « Désactivé » qui rend ×2 et mémorisé, plus d'allègement ensuite). 565 tests verts.
+
+**Mesuré**
+- `crans.ts` (Chromium, 844 × 390 ×3, ×4, deux essais par cran) : vue d'ensemble 34,1 / 34,3 i/s au cran 0, 37,8 / 38,6 au cran 1, 42,4 / 43,9 au cran 2 ; mêlée ×2 38,4 / 41,7, 44,2 / 41,5, 55,2 / 53,9. Le pourcentage d'images sautées du banc est trompeur quand l'intervalle médian bascule entre 16,7 et 33 ms : les images par seconde font foi.
+- `perf-iphone.ts` ×4 avec le garde-fou : il descend au cran 1 dans la vue d'ensemble puis au cran 2 dans la mêlée (59,5 i/s en fin de banc, contre 56,7 sans garde-fou).
+- `perf240` (deux passages) : partie 0,23 ms par pas, mêlée 0,11 à 0,15, ordres 0,17 à 0,20, rendu ×1 1,6 à 2,4 ms, ×2 0,8 à 0,9 : dans le bruit de la machine (le monde et le renderer n'ont pas changé). Équilibre non relancé : aucune règle de jeu touchée.
+- Captures 844 × 390 ×3 (menu, partie allégée avec pastille « 37 i/s · 2,9 ms · allégé », pause « Performances ») : lisibles, boutons de 44 px, rien ne déborde, aucune erreur de console.
+
+**Reste à faire, inquiétudes**
+- La vraie validation est sur l'iPhone d'Aloys : si le garde-fou s'enclenche sans raison (fausse alerte), passer « Allègement auto » sur Désactivé et regarder le compteur.
+- L'annonce « Fluidité : … » partage la ligne d'aide avec les conseils de partie : elle peut être remplacée par un conseil quelques instants plus tard. Acceptable (la pastille et la pause gardent l'information).
+- Saison 2 terminée. Prochaine session : saison 3, « une vraie campagne », à découper (histoire légère et personnages en premier).
+
 ## 24/11/2026 : session de développement, v5.25 (saison 2, performances b : lisser les pointes)
 
 **Fait**

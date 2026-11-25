@@ -4,6 +4,8 @@
 // (`core/frame-meter.ts`) : images par seconde, images sautées, travail par image.
 //   npm run build && npm run preview   (dans un autre terminal, port 4173)
 //   npx tsx scripts/dev/perf-iphone.ts [ralentissement=4] [secondes=8] [adresse]
+// v5.26 : le garde-fou de fluidité est actif comme chez le joueur (cran affiché en fin de ligne) ;
+// GARDE=0 devant la commande le coupe, pour comparer.
 // Le dessin de Chromium sans carte graphique (SwiftShader) est bien plus lent que celui d'un
 // iPhone : les chiffres sont un plafond pessimiste, à comparer d'une version à l'autre.
 import { createRequire } from 'node:module';
@@ -25,6 +27,8 @@ interface Stats {
   workP95: number;
   workWorst: number;
   units: number;
+  level: number;
+  dpr: number;
 }
 
 const browser = await chromium.launch();
@@ -58,6 +62,7 @@ for (const [i, sc] of scenarios.entries()) {
       const w = window as unknown as { __plafond: (seed?: number) => unknown };
       w.__plafond(55);
     });
+    if (process.env.GARDE === '0') await page.evaluate('window.__partie().setAutoQuality(false)');
     await page.waitForTimeout(1500);
   }
   await page.evaluate(sc.setup.length ? `(() => { const g = window.__partie(); ${sc.setup} })()` : '0');
@@ -65,8 +70,8 @@ for (const [i, sc] of scenarios.entries()) {
   await page.evaluate(() => (window as unknown as { __partie: () => { meter: { reset(): void } } }).__partie().meter.reset());
   await page.waitForTimeout(seconds * 1000);
   const s = await page.evaluate(() => {
-    const g = (window as unknown as { __partie: () => { meter: { stats(): object }; world: { units: unknown[] } } }).__partie();
-    return { ...g.meter.stats(), units: g.world.units.length } as Stats;
+    const g = (window as unknown as { __partie: () => { meter: { stats(): object }; world: { units: unknown[] }; qualityLevel: number; pixelRatio: number } }).__partie();
+    return { ...g.meter.stats(), units: g.world.units.length, level: g.qualityLevel, dpr: g.pixelRatio } as Stats;
   });
   results.push([sc.name, s]);
 }
@@ -76,7 +81,7 @@ console.log(`Processeur ralenti ×${slow}, ${seconds} s par scénario, 844 × 39
 for (const [name, s] of results) {
   console.log(
     `${name.padEnd(13)} ${f(s.fps)} i/s, ${f(s.droppedShare * 100)} % d'images sautées, travail ${f(s.work, 2)} ms ` +
-      `(simulation ${f(s.sim, 2)}, dessin ${f(s.render, 2)}), 95e centile ${f(s.workP95, 2)}, pire ${f(s.workWorst, 2)}, ${s.units} élèves`,
+      `(simulation ${f(s.sim, 2)}, dessin ${f(s.render, 2)}), 95e centile ${f(s.workP95, 2)}, pire ${f(s.workWorst, 2)}, ${s.units} élèves, cran ${s.level} (canvas ×${f(s.dpr)})`,
   );
 }
 if (errors.length) console.log('Erreurs :', errors.join(' | '));

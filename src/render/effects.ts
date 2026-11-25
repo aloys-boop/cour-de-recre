@@ -55,6 +55,11 @@ export class Effects {
   private meleeCooldown = 0;
   /** Une grosse mêlée vient d'éclater (le jeu joue le son « Ouuuh ! » et remet le drapeau à faux). */
   meleeStarted = false;
+  /**
+   * Effets allégés par le garde-fou de fluidité (v5.26) : plus d'onomatopées de coups (« Paf ! »,
+   * « Bam ! », « Pif ! ») ; « Mêlée ! », « Paré ! » et les KO restent, ils renseignent.
+   */
+  light = false;
 
   constructor(rand: () => number = Math.random) {
     this.rand = rand;
@@ -74,7 +79,7 @@ export class Effects {
           if (this.rand() < PARRY_CHANCE && this.visible(ev.x, ev.y, cam)) this.spawn(W_PARE, ev.x, ev.y, false);
           break;
         }
-        if (this.rand() < HIT_CHANCE && this.visible(ev.x, ev.y, cam)) {
+        if (this.rand() < HIT_CHANCE && !this.light && this.visible(ev.x, ev.y, cam)) {
           const r = this.rand();
           this.spawn(r < 0.4 ? W_PAF : r < 0.75 ? W_BAM : W_PIF, ev.x, ev.y, false);
         }

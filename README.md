@@ -474,6 +474,18 @@ Rubrique « Performances » de la pause : « Compteur d'images » affiche, sous 
 
 Lecture : le jeu lui-même tient dans la moitié du budget d'une image (8,3 ms) jusqu'à un processeur deux fois plus lent, et en moyenne même à ×4. Les images sautées viennent surtout du navigateur : sans carte graphique, Chromium copie le canvas en logiciel à chaque image (« Commit » : 68 % du fil principal ralenti ×4, contre 23 % pour tout le code du jeu), ce qu'un iPhone fait sur sa puce graphique. Les pointes restantes sont dans la simulation : au 1 % des pas les plus lents, 4,2 ms en moyenne contre 0,32 ms d'ordinaire, dont 3,6 ms dans le monde (déplacements, séparation, cases), réparties sans coupable unique. Ce sont elles que vise la tranche suivante.
 
+### Garde-fou de fluidité (v5.26)
+
+Si l'image saccade plusieurs secondes de suite, le jeu s'allège tout seul, un cran à la fois, puis retente le cran supérieur quand tout redevient fluide (`core/quality.ts`, testé). Rubrique « Performances » de la pause : « Allègement auto » (activé par défaut, mémorisé, absent des anciennes sauvegardes : activé) et une ligne « En ce moment : … ». La première fois qu'une partie s'allège, une ligne l'annonce (« Fluidité : effets allégés ») ; la pastille du compteur d'images ajoute « allégé » ou « ×1,5 ».
+
+- **Cran 0, tous les effets** : image à la résolution de l'écran (×2 au plus).
+- **Cran 1, effets allégés** : plus d'onomatopées de coups (« Paf ! », « Bam ! », « Pif ! ») et mini-carte redessinée une image sur deux. « Mêlée ! », « Paré ! » et les onomatopées des KO restent : elles renseignent.
+- **Cran 2, image ×1,5** : en plus, le canvas passe de ×2 à ×1,5 (44 % de pixels en moins).
+
+Règles du garde-fou : examen du compteur deux fois par seconde, jamais en pause, en fin de partie ni page cachée, et seulement après une seconde de mesure ; 2 s de verdict « saccadé » sans interruption pour descendre ; 3 s laissées au nouveau cran pour se mesurer ; 15 s de verdict « fluide » pour remonter, délai doublé à chaque rechute (redescente dans les 12 s qui suivent une remontée), jusqu'à 2 minutes. Un iPhone en mode économie d'énergie (30 images par seconde régulières) n'est pas pris pour une saccade : les images sautées se comptent par rapport à l'intervalle médian.
+
+Mesuré dans Chromium (`scripts/dev/crans.ts`, 844 × 390 ×3, processeur ralenti ×4, chaque cran figé, deux essais) : vue d'ensemble du Tournoi 34 i/s au cran 0, 38 au cran 1, 43 à 44 au cran 2 ; mêlée zoomée ×2 38 à 42, 42 à 44, 54 à 55. `perf-iphone.ts` affiche désormais le cran atteint (`GARDE=0` pour couper le garde-fou).
+
 ### Dessin et simulation allégés (v5.25)
 
 Rien ne change dans les règles : la partie est la même au pas près (même graine, même empreinte, `scripts/dev/empreinte.ts`). Ce qui change, c'est le travail par image.
@@ -649,6 +661,8 @@ Le dépôt contient un workflow GitHub Actions (`.github/workflows/deploy.yml`) 
 | `v5.24` | Saison 2, performances (première tranche) : compteur d'images (rubrique « Performances » de la pause), banc de mesure en conditions iPhone simulées (`perf-iphone.ts`) et décomposition des pointes de simulation (`pointes.ts`) |
 | `avant-2026-11-24` | état avant la v5.25 (point de retour) |
 | `v5.25` | Saison 2, performances (deuxième tranche) : fonds de cases et obstacles en cache, barres de vie groupées au-dessus des élèves, mini-carte groupée par équipe (39 % d'appels au canvas en moins, 58 % de tracés en moins) ; simulation deux fois moins gourmande en mémoire, à l'identique |
+| `avant-2026-11-25` | état avant la v5.26 (point de retour) |
+| `v5.26` | Saison 2, performances (troisième tranche) : garde-fou de fluidité, « Allègement auto » (onomatopées de coups et mini-carte une image sur deux, puis image ×1,5 si les saccades durent ; tout revient quand c'est fluide) |
 
 ## Architecture
 
@@ -688,6 +702,7 @@ src/
     reinforce.ts       renforts automatiques : menace des cases, case secourue par chaque camp, envoi des nouveaux élèves
     save.ts            progression (localStorage)
     frame-meter.ts     compteur d'images : images par seconde, images sautées, travail par image, verdict
+    quality.ts         garde-fou de fluidité : crans d'allègement, descente et remontée avec délai croissant
     merits.ts          bons points : gains, solde, dépenses
     upgrades.ts        améliorations globales (Production, Uniformes, Entraînement, classes) et Défense par camp
     camps.ts           camps d'une équipe : ordre, numéro, nom

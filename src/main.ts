@@ -17,6 +17,7 @@ import { Overlay } from './ui/overlay';
 import { TacticsHud } from './ui/tactics-hud';
 import { performanceBlock, readabilityBlock, shakeBlock, TempoHud, tempoBlock } from './ui/tempo-hud';
 import { tempoAllowed } from './core/tempo';
+import { qualityLabel } from './core/quality';
 import { codeBlock, medalsBlock } from './ui/share';
 import { KingHud, kingEnd } from './ui/king-hud';
 import { CampPanel } from './ui/camp-panel';
@@ -209,7 +210,7 @@ function launch(opts: GameOptions, code: MapCode | null): void {
   overlay.hide();
   menu.hide();
   hud.show();
-  opts = { ...opts, speed: progress.speed ?? 'normale', shake: progress.shake !== false, patterns: progress.patterns === true, meter: progress.meter === true };
+  opts = { ...opts, speed: progress.speed ?? 'normale', shake: progress.shake !== false, patterns: progress.patterns === true, meter: progress.meter === true, autoQuality: progress.autoQuality !== false };
   // Musique (v5.18) : thème « Bagarre », qui s'intensifie avec la partie.
   music.setIntensity(0);
   music.setTheme('partie');
@@ -402,12 +403,25 @@ function sensationsBlock(): HTMLElement {
 
 /** Bloc « Performances » du menu pause (v5.24) : compteur d'images, mémorisé. */
 function performancesBlock(): HTMLElement {
-  return performanceBlock(progress.meter === true, (on) => {
-    progress = { ...progress, meter: on };
-    saveProgress(progress);
-    game?.setMeter(on);
-    sfx.play('select');
-  });
+  return performanceBlock(
+    progress.meter === true,
+    (on) => {
+      progress = { ...progress, meter: on };
+      saveProgress(progress);
+      game?.setMeter(on);
+      sfx.play('select');
+    },
+    {
+      on: progress.autoQuality !== false,
+      state: qualityLabel(game?.qualityLevel ?? 0),
+      onPick: (on) => {
+        progress = { ...progress, autoQuality: on };
+        saveProgress(progress);
+        game?.setAutoQuality(on);
+        sfx.play('select');
+      },
+    },
+  );
 }
 
 /** Bloc « Lisibilité » du menu pause (v5.19) : motifs d'équipe, mémorisés. */
